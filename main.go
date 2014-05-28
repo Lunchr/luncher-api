@@ -1,20 +1,17 @@
 package main
 
 import (
-	"fmt"
-	// "github.com/gorilla/mux"
-	"html"
+	"github.com/deiwin/praad-api/handler"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 )
 
 func main() {
-	// r := mux.NewRouter()
-	// r.HandleFunc("/offers", OffersHandler)
-	// http.HandleFunc("/api", r)
-	http.HandleFunc("/api", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
-	})
+	r := mux.NewRouter().PathPrefix("/api").Subrouter()
 
+	r.HandleFunc("/offers", handler.Offers)
+
+	http.Handle("/", r)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
