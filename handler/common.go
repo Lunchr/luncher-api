@@ -8,10 +8,7 @@ import (
 )
 
 func writeJson(w http.ResponseWriter, v interface{}) {
-	// avoid json vulnerabilities, always wrap v in an object literal
-	doc := map[string]interface{}{"d": v}
-
-	if data, err := json.Marshal(doc); err != nil {
+	if data, err := json.Marshal(v); err != nil {
 		log.Printf("Error marshalling json: %v", err)
 	} else {
 		w.Header().Set("Content-Length", strconv.Itoa(len(data)))
