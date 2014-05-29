@@ -3,7 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"html"
+	"github.com/deiwin/praad-api/db"
 	"net/http"
 )
 
@@ -21,5 +21,15 @@ func (r Response) String() (s string) {
 
 func Offers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, Response{"response": "Hello, %s!"}.String(), html.EscapeString(r.URL.Path))
+	offers := []interface{}{}
+	var offer interface{}
+	iter := db.Offers.Find(struct{}{}).Iter()
+	for {
+		if iter.Next(&offer) {
+			offers = append(offers, offer)
+		} else {
+			break
+		}
+	}
+	fmt.Fprint(w, Response{"offers": offers})
 }

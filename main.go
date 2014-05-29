@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/deiwin/praad-api/db"
 	"github.com/deiwin/praad-api/handler"
 	"github.com/gorilla/mux"
 	"log"
@@ -8,6 +9,9 @@ import (
 )
 
 func main() {
+	db.Connect()
+	defer db.Disconnect()
+
 	r := mux.NewRouter().PathPrefix("/api").Subrouter()
 
 	r.HandleFunc("/offers", handler.Offers)
