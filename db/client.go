@@ -13,24 +13,30 @@ const (
 	testDbName        = "test"
 )
 
-var (
+var ()
+
+type Client struct {
 	Database *mgo.Database
 	session  *mgo.Session
-)
-
-func Connect() {
-	var err error
-	var dbURL = getEnvOrDefaultDbURL()
-	var dbName = getEnvOrDefaultDbName()
-	session, err = mgo.Dial(dbURL)
-	if err != nil {
-		panic(err)
-	}
-	Database = session.DB(dbName)
 }
 
-func Disconnect() {
-	session.Close()
+func NewClient() *Client {
+	return new(Client)
+}
+func (client *Client) Connect() (err error) {
+	var dbURL = getEnvOrDefaultDbURL()
+	var dbName = getEnvOrDefaultDbName()
+	session, err := mgo.Dial(dbURL)
+	if err != nil {
+		return err
+	}
+	client.session = session
+	client.Database = session.DB(dbName)
+	return
+}
+
+func (client *Client) Disconnect() {
+	client.session.Close()
 }
 
 func getEnvOrDefaultDbURL() (dbURL string) {
