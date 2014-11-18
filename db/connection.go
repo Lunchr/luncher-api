@@ -1,24 +1,50 @@
 package db
 
 import (
-	"labix.org/v2/mgo"
+	"os"
+
+	"gopkg.in/mgo.v2"
+)
+
+const (
+	dbURLEnvVariable  = "PRAAD_DB_ADDRESS"
+	dbNameEnvVariable = "PRAAD_DB_NAME"
+	testDbURL         = "mongodb://localhost/test"
+	testDbName        = "test"
 )
 
 var (
-	Offers  *mgo.Collection
-	session *mgo.Session
+	Database *mgo.Database
+	session  *mgo.Session
 )
 
 func Connect() {
 	var err error
-	session, err = mgo.Dial("mongodb://localhost/test")
+	var dbURL = getEnvOrDefaultDbURL()
+	var dbName = getEnvOrDefaultDbName()
+	session, err = mgo.Dial(dbURL)
 	if err != nil {
 		panic(err)
 	}
-	db := session.DB("test")
-	Offers = db.C("offers")
+	Database = session.DB(dbName)
 }
 
 func Disconnect() {
 	session.Close()
+}
+
+func getEnvOrDefaultDbURL() (dbURL string) {
+	dbURL = os.Getenv(dbURLEnvVariable)
+	if dbURL == "" {
+		dbURL = testDbURL
+	}
+	return
+}
+
+func getEnvOrDefaultDbName() (dbName string) {
+	dbName = os.Getenv(dbNameEnvVariable)
+	if dbName == "" {
+		dbName = testDbName
+	}
+	return
 }

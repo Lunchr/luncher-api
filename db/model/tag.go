@@ -1,8 +1,10 @@
 package model
 
 import (
-	"labix.org/v2/mgo/bson"
+	"gopkg.in/mgo.v2/bson"
 )
+
+const TagCollectionName = "tags"
 
 type (
 	Tag struct {

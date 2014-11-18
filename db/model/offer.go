@@ -1,9 +1,12 @@
 package model
 
 import (
-	"labix.org/v2/mgo/bson"
 	"time"
+
+	"gopkg.in/mgo.v2/bson"
 )
+
+const OfferCollectionName = "offers"
 
 type (
 	// Offer provides the mapping to the offers as represented in the DB and also
