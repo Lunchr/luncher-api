@@ -24,6 +24,10 @@ var _ = BeforeSuite(func() {
 	dbClient = db.NewClient()
 	err := dbClient.Connect()
 	Expect(err).NotTo(HaveOccurred())
+
+	err = wipeDb()
+	Expect(err).NotTo(HaveOccurred())
+
 	offersCollection = db.NewOffers(dbClient)
 	err = insertOffers()
 	Expect(err).NotTo(HaveOccurred())
@@ -32,6 +36,7 @@ var _ = BeforeSuite(func() {
 var _ = AfterSuite(func() {
 	err := wipeDb()
 	Expect(err).NotTo(HaveOccurred())
+
 	dbClient.Disconnect()
 })
 
@@ -79,6 +84,7 @@ func insertOffers() (err error) {
 }
 
 func wipeDb() (err error) {
+	// TODO
 	return
 }
 

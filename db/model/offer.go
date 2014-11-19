@@ -12,7 +12,7 @@ type (
 	// Offer provides the mapping to the offers as represented in the DB and also
 	// to json
 	Offer struct {
-		ID          bson.ObjectId   `json:"_id"            bson:"_id"`
+		ID          bson.ObjectId   `json:"_id,omitempty"            bson:"_id,omitempty"`
 		Restaurant  OfferRestaurant `json:"restaurant"     bson:"restaurant"`
 		Title       string          `json:"title"          bson:"title"`
 		FromTime    time.Time       `json:"fromTime"       bson:"fromTime"`
