@@ -16,7 +16,7 @@ const (
 var ()
 
 type Client struct {
-	Database *mgo.Database
+	database *mgo.Database
 	session  *mgo.Session
 }
 
@@ -31,7 +31,7 @@ func (client *Client) Connect() (err error) {
 		return err
 	}
 	client.session = session
-	client.Database = session.DB(dbName)
+	client.database = session.DB(dbName)
 	return
 }
 
