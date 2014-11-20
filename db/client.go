@@ -1,56 +1,26 @@
 package db
 
-import (
-	"os"
-
-	"gopkg.in/mgo.v2"
-)
-
-const (
-	dbURLEnvVariable  = "PRAAD_DB_ADDRESS"
-	dbNameEnvVariable = "PRAAD_DB_NAME"
-	testDbURL         = "mongodb://localhost/test"
-	testDbName        = "test"
-)
-
-var ()
+import "gopkg.in/mgo.v2"
 
 type Client struct {
+	config   *Config
 	database *mgo.Database
 	session  *mgo.Session
 }
 
-func NewClient() *Client {
-	return new(Client)
+func NewClient(config *Config) *Client {
+	return &Client{config: config}
 }
 func (client *Client) Connect() (err error) {
-	var dbURL = getEnvOrDefaultDbURL()
-	var dbName = getEnvOrDefaultDbName()
-	session, err := mgo.Dial(dbURL)
+	session, err := mgo.Dial(client.config.DbURL)
 	if err != nil {
 		return err
 	}
 	client.session = session
-	client.database = session.DB(dbName)
+	client.database = session.DB(client.config.DbName)
 	return
 }
 
 func (client *Client) Disconnect() {
 	client.session.Close()
-}
-
-func getEnvOrDefaultDbURL() (dbURL string) {
-	dbURL = os.Getenv(dbURLEnvVariable)
-	if dbURL == "" {
-		dbURL = testDbURL
-	}
-	return
-}
-
-func getEnvOrDefaultDbName() (dbName string) {
-	dbName = os.Getenv(dbNameEnvVariable)
-	if dbName == "" {
-		dbName = testDbName
-	}
-	return
 }
