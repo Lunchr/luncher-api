@@ -24,38 +24,49 @@ func TestDb(t *testing.T) {
 
 var _ = BeforeSuite(func(done Done) {
 	defer close(done)
-	dbConfig := createTestDbConf()
-	dbClient = db.NewClient(dbConfig)
-	err := dbClient.Connect()
-	Expect(err).NotTo(HaveOccurred())
-
-	err = wipeDb()
-	Expect(err).NotTo(HaveOccurred())
-
-	offersCollection = db.NewOffers(dbClient)
-	err = insertOffers()
-	Expect(err).NotTo(HaveOccurred())
-
-	tagsCollection = db.NewTags(dbClient)
-	err = insertTags()
-	Expect(err).NotTo(HaveOccurred())
-
-	restaurantsCollection = db.NewRestaurants(dbClient)
-	err = insertRestaurants()
-	Expect(err).NotTo(HaveOccurred())
+	createClient()
+	wipeDb()
+	initCollections()
 })
 
 var _ = AfterSuite(func(done Done) {
 	defer close(done)
-	err := wipeDb()
-	Expect(err).NotTo(HaveOccurred())
-
+	wipeDb()
 	dbClient.Disconnect()
 })
 
-var _ = It("should work", func() {
+var _ = It("should work", func() {})
 
-})
+func createClient() {
+	dbConfig := createTestDbConf()
+	dbClient = db.NewClient(dbConfig)
+	err := dbClient.Connect()
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func initCollections() {
+	initOffersCollection()
+	initTagsCollection()
+	initRestaurantsCollection()
+}
+
+func initOffersCollection() {
+	offersCollection = db.NewOffers(dbClient)
+	err := insertOffers()
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func initTagsCollection() {
+	tagsCollection = db.NewTags(dbClient)
+	err := insertTags()
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func initRestaurantsCollection() {
+	restaurantsCollection = db.NewRestaurants(dbClient)
+	err := insertRestaurants()
+	Expect(err).NotTo(HaveOccurred())
+}
 
 func createTestDbConf() (dbConfig *db.Config) {
 	dbConfig = db.NewConfig()
@@ -144,8 +155,9 @@ func insertOffers() (err error) {
 	)
 }
 
-func wipeDb() (err error) {
-	return dbClient.DropDb()
+func wipeDb() {
+	err := dbClient.DropDb()
+	Expect(err).NotTo(HaveOccurred())
 }
 
 func parseTime(timeString string) time.Time {
