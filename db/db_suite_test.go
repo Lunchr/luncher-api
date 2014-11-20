@@ -21,7 +21,8 @@ func TestDb(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	dbClient = db.NewClient()
+	dbConfig := createTestDbConf()
+	dbClient = db.NewClient(dbConfig)
 	err := dbClient.Connect()
 	Expect(err).NotTo(HaveOccurred())
 
@@ -43,6 +44,13 @@ var _ = AfterSuite(func() {
 var _ = It("should work", func() {
 
 })
+
+func createTestDbConf() (dbConfig *db.Config) {
+	dbConfig = db.NewConfig()
+	dbConfig.DbURL = "mongodb://localhost/test"
+	dbConfig.DbName = "test"
+	return
+}
 
 func insertOffers() (err error) {
 
