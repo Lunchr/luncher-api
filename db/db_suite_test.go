@@ -11,8 +11,10 @@ import (
 )
 
 var (
-	dbClient         *db.Client
-	offersCollection *db.Offers
+	dbClient              *db.Client
+	offersCollection      *db.Offers
+	tagsCollection        *db.Tags
+	restaurantsCollection *db.Restaurants
 )
 
 func TestDb(t *testing.T) {
@@ -32,6 +34,14 @@ var _ = BeforeSuite(func(done Done) {
 
 	offersCollection = db.NewOffers(dbClient)
 	err = insertOffers()
+	Expect(err).NotTo(HaveOccurred())
+
+	tagsCollection = db.NewTags(dbClient)
+	err = insertTags()
+	Expect(err).NotTo(HaveOccurred())
+
+	restaurantsCollection = db.NewRestaurants(dbClient)
+	err = insertRestaurants()
 	Expect(err).NotTo(HaveOccurred())
 })
 
@@ -54,8 +64,49 @@ func createTestDbConf() (dbConfig *db.Config) {
 	return
 }
 
-func insertOffers() (err error) {
+func insertTags() (err error) {
+	return tagsCollection.Insert(
+		&model.Tag{
+			Name:        "kala",
+			DisplayName: "Kalast",
+		},
+		&model.Tag{
+			Name:        "lind",
+			DisplayName: "Linnust",
+		},
+		&model.Tag{
+			Name:        "siga",
+			DisplayName: "Seast",
+		},
+		&model.Tag{
+			Name:        "veis",
+			DisplayName: "Veisest",
+		},
+		&model.Tag{
+			Name:        "lammas",
+			DisplayName: "Lambast",
+		},
+	)
+}
 
+func insertRestaurants() (err error) {
+	return restaurantsCollection.Insert(
+		&model.Restaurant{
+			Name:    "Bulgarian Dude",
+			Address: "Võru 23, Tartu",
+		},
+		&model.Restaurant{
+			Name:    "Asian Chef",
+			Address: "Võru 24, Tartu",
+		},
+		&model.Restaurant{
+			Name:    "Caesarian Kitchen",
+			Address: "Võru 25, Tartu",
+		},
+	)
+}
+
+func insertOffers() (err error) {
 	return offersCollection.Insert(
 		&model.Offer{
 			Restaurant: model.OfferRestaurant{
