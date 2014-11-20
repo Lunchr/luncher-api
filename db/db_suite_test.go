@@ -20,7 +20,8 @@ func TestDb(t *testing.T) {
 	RunSpecs(t, "Db Suite")
 }
 
-var _ = BeforeSuite(func() {
+var _ = BeforeSuite(func(done Done) {
+	defer close(done)
 	dbConfig := createTestDbConf()
 	dbClient = db.NewClient(dbConfig)
 	err := dbClient.Connect()
@@ -34,7 +35,8 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 })
 
-var _ = AfterSuite(func() {
+var _ = AfterSuite(func(done Done) {
+	defer close(done)
 	err := wipeDb()
 	Expect(err).NotTo(HaveOccurred())
 
@@ -92,8 +94,7 @@ func insertOffers() (err error) {
 }
 
 func wipeDb() (err error) {
-	// TODO
-	return
+	return dbClient.DropDb()
 }
 
 func parseTime(timeString string) time.Time {

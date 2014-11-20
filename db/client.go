@@ -11,6 +11,7 @@ type Client struct {
 func NewClient(config *Config) *Client {
 	return &Client{config: config}
 }
+
 func (client *Client) Connect() (err error) {
 	session, err := mgo.Dial(client.config.DbURL)
 	if err != nil {
@@ -19,6 +20,10 @@ func (client *Client) Connect() (err error) {
 	client.session = session
 	client.database = session.DB(client.config.DbName)
 	return
+}
+
+func (client *Client) DropDb() (err error) {
+	return client.database.DropDatabase()
 }
 
 func (client *Client) Disconnect() {
