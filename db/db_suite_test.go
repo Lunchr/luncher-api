@@ -2,12 +2,10 @@ package db_test
 
 import (
 	"github.com/deiwin/praad-api/db"
-	"github.com/deiwin/praad-api/db/model"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"testing"
-	"time"
 )
 
 var (
@@ -15,6 +13,7 @@ var (
 	offersCollection      *db.Offers
 	tagsCollection        *db.Tags
 	restaurantsCollection *db.Restaurants
+	mocks                 *Mocks
 )
 
 func TestDb(t *testing.T) {
@@ -24,6 +23,7 @@ func TestDb(t *testing.T) {
 
 var _ = BeforeSuite(func(done Done) {
 	defer close(done)
+	mocks = createMocks()
 	createClient()
 	wipeDb()
 	initCollections()
@@ -76,92 +76,18 @@ func createTestDbConf() (dbConfig *db.Config) {
 }
 
 func insertTags() (err error) {
-	return tagsCollection.Insert(
-		&model.Tag{
-			Name:        "kala",
-			DisplayName: "Kalast",
-		},
-		&model.Tag{
-			Name:        "lind",
-			DisplayName: "Linnust",
-		},
-		&model.Tag{
-			Name:        "siga",
-			DisplayName: "Seast",
-		},
-		&model.Tag{
-			Name:        "veis",
-			DisplayName: "Veisest",
-		},
-		&model.Tag{
-			Name:        "lammas",
-			DisplayName: "Lambast",
-		},
-	)
+	return tagsCollection.Insert(mocks.tagMocks...)
 }
 
 func insertRestaurants() (err error) {
-	return restaurantsCollection.Insert(
-		&model.Restaurant{
-			Name:    "Bulgarian Dude",
-			Address: "Võru 23, Tartu",
-		},
-		&model.Restaurant{
-			Name:    "Asian Chef",
-			Address: "Võru 24, Tartu",
-		},
-		&model.Restaurant{
-			Name:    "Caesarian Kitchen",
-			Address: "Võru 25, Tartu",
-		},
-	)
+	return restaurantsCollection.Insert(mocks.restaurantMocks...)
 }
 
 func insertOffers() (err error) {
-	return offersCollection.Insert(
-		&model.Offer{
-			Restaurant: model.OfferRestaurant{
-				Name: "Asian Chef",
-			},
-			Title:       "Sweet & Sour Chicken",
-			Description: "Kanafilee aedviljadega rikkalikus magushapus kastmes.",
-			FromTime:    parseTime("2014-11-10T09:00:00.000Z"),
-			ToTime:      parseTime("2014-11-10T11:00:00.000Z"),
-			Price:       3.4,
-			Tags:        []string{"lind"},
-		},
-		&model.Offer{
-			Restaurant: model.OfferRestaurant{
-				Name: "Bulgarian Dude",
-			},
-			Title:       "Sweet & Sour Pork",
-			Description: "Seafilee aedviljadega rikkalikus magushapus kastmes.",
-			FromTime:    parseTime("2014-11-10T09:00:00.000Z"),
-			ToTime:      parseTime("2014-11-10T12:00:00.000Z"),
-			Price:       3.3,
-			Tags:        []string{"lind"},
-		},
-		&model.Offer{
-			Restaurant: model.OfferRestaurant{
-				Name: "Caesarian Kitchen",
-			},
-			Title:       "Sweet & Sour Duck",
-			Description: "Pardifilee aedviljadega rikkalikus magushapus kastmes.",
-			FromTime:    parseTime("2014-11-11T09:00:00.000Z"),
-			ToTime:      parseTime("2014-11-11T11:00:00.000Z"),
-			Price:       3.6,
-			Tags:        []string{"lind"},
-		},
-	)
+	return offersCollection.Insert(mocks.offerMocks...)
 }
 
 func wipeDb() {
 	err := dbClient.DropDb()
 	Expect(err).NotTo(HaveOccurred())
-}
-
-func parseTime(timeString string) time.Time {
-	parsedTime, err := time.Parse(time.RFC3339, timeString)
-	Expect(err).NotTo(HaveOccurred())
-	return parsedTime
 }
