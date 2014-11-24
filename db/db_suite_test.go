@@ -76,15 +76,15 @@ func createTestDbConf() (dbConfig *db.Config) {
 }
 
 func insertTags() (err error) {
-	return tagsCollection.Insert(mocks.tagMocks...)
+	return tagsCollection.Insert(mocks.tags...)
 }
 
 func insertRestaurants() (err error) {
-	return restaurantsCollection.Insert(mocks.restaurantMocks...)
+	return restaurantsCollection.Insert(mocks.restaurants...)
 }
 
 func insertOffers() (err error) {
-	return offersCollection.Insert(mocks.offerMocks...)
+	return offersCollection.Insert(mocks.offers...)
 }
 
 func wipeDb() {

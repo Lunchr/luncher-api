@@ -3,8 +3,6 @@ package db_test
 import (
 	"time"
 
-	// . "github.com/deiwin/praad-api/db"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

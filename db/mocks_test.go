@@ -8,14 +8,14 @@ import (
 )
 
 type Mocks struct {
-	offerMocks      []*model.Offer
-	tagMocks        []*model.Tag
-	restaurantMocks []*model.Restaurant
+	offers      []*model.Offer
+	tags        []*model.Tag
+	restaurants []*model.Restaurant
 }
 
 func createMocks() *Mocks {
 	return &Mocks{
-		offerMocks: []*model.Offer{&model.Offer{
+		offers: []*model.Offer{&model.Offer{
 			Restaurant: model.OfferRestaurant{
 				Name: "Asian Chef",
 			},
@@ -49,7 +49,7 @@ func createMocks() *Mocks {
 				Tags:        []string{"lind"},
 			},
 		},
-		tagMocks: []*model.Tag{
+		tags: []*model.Tag{
 			&model.Tag{
 				Name:        "kala",
 				DisplayName: "Kalast",
@@ -71,7 +71,7 @@ func createMocks() *Mocks {
 				DisplayName: "Lambast",
 			},
 		},
-		restaurantMocks: []*model.Restaurant{
+		restaurants: []*model.Restaurant{
 			&model.Restaurant{
 				Name:    "Bulgarian Dude",
 				Address: "Võru 23, Tartu",
