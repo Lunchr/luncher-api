@@ -25,11 +25,13 @@ func (collection Offers) Insert(offersToInsert ...*model.Offer) (err error) {
 	return collection.c.Insert(docs...)
 }
 
-func (collection Offers) GetForDate(date time.Time) (offers []*model.Offer, err error) {
+func (collection Offers) GetForTimeRange(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
 	err = collection.c.Find(bson.M{
 		"fromTime": bson.M{
-			"$gte": date,
-			"$lt":  date.AddDate(0, 0, 1),
+			"$lte": endTime,
+		},
+		"toTime": bson.M{
+			"$gte": startTime,
 		},
 	}).All(&offers)
 	return
