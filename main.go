@@ -10,7 +10,8 @@ import (
 )
 
 func main() {
-	dbClient := db.NewClient()
+	dbConfig := db.NewConfig()
+	dbClient := db.NewClient(dbConfig)
 	err := dbClient.Connect()
 	if err != nil {
 		panic(err)
@@ -19,7 +20,7 @@ func main() {
 
 	r := mux.NewRouter().PathPrefix("/api").Subrouter()
 
-	r.HandleFunc("/offers", handler.Offers)
+	r.HandleFunc("/offers", handler.Offers(dbClient))
 
 	http.Handle("/", r)
 	log.Fatal(http.ListenAndServe(":8080", nil))
