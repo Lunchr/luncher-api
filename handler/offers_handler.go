@@ -8,9 +8,7 @@ import (
 	"github.com/deiwin/praad-api/db"
 )
 
-func Offers(dbClient *db.Client) func(http.ResponseWriter, *http.Request) {
-	offersCollection := db.NewOffers(dbClient)
-
+func Offers(offersCollection *db.Offers) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		now := time.Now()

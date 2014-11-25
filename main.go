@@ -18,10 +18,10 @@ func main() {
 	}
 	defer dbClient.Disconnect()
 
+	offersCollection := db.NewOffers(dbClient)
+
 	r := mux.NewRouter().PathPrefix("/api").Subrouter()
-
-	r.HandleFunc("/offers", handler.Offers(dbClient))
-
+	r.HandleFunc("/offers", handler.Offers(offersCollection))
 	http.Handle("/", r)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
