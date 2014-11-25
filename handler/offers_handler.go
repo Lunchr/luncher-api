@@ -10,7 +10,6 @@ import (
 
 func Offers(offersCollection db.Offers) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
 		now := time.Now()
 		startTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 		endTime := startTime.AddDate(0, 0, 1)
