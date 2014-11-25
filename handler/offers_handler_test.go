@@ -30,6 +30,16 @@ var _ = Describe("OffersHandler", func() {
 	})
 
 	Describe("GetForTimeRange", func() {
+
+		It("should return json", func(done Done) {
+			defer close(done)
+			handler(responseRecorder, request)
+			contentTypes := responseRecorder.HeaderMap["Content-Type"]
+			Expect(contentTypes).To(HaveLen(1))
+			Expect(contentTypes[0]).To(Equal("application/json"))
+			// TODO the header assertion could be made a custom matcher
+		})
+
 		Context("with simple mocked result from DB", func() {
 			var (
 				mockResult []*model.Offer
