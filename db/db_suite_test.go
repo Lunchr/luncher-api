@@ -10,9 +10,9 @@ import (
 
 var (
 	dbClient              *db.Client
-	offersCollection      *db.Offers
-	tagsCollection        *db.Tags
-	restaurantsCollection *db.Restaurants
+	offersCollection      db.Offers
+	tagsCollection        db.Tags
+	restaurantsCollection db.Restaurants
 	mocks                 *Mocks
 )
 

@@ -8,16 +8,21 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-type Offers struct {
+type Offers interface {
+	Insert(...*model.Offer) error
+	GetForTimeRange(time.Time, time.Time) ([]*model.Offer, error)
+}
+
+type offersCollection struct {
 	c *mgo.Collection
 }
 
-func NewOffers(client *Client) *Offers {
+func NewOffers(client *Client) Offers {
 	collection := client.database.C(model.OfferCollectionName)
-	return &Offers{collection}
+	return &offersCollection{collection}
 }
 
-func (collection Offers) Insert(offersToInsert ...*model.Offer) (err error) {
+func (collection offersCollection) Insert(offersToInsert ...*model.Offer) (err error) {
 	docs := make([]interface{}, len(offersToInsert))
 	for i, offer := range offersToInsert {
 		docs[i] = offer
@@ -25,7 +30,7 @@ func (collection Offers) Insert(offersToInsert ...*model.Offer) (err error) {
 	return collection.c.Insert(docs...)
 }
 
-func (collection Offers) GetForTimeRange(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
+func (collection offersCollection) GetForTimeRange(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
 	err = collection.c.Find(bson.M{
 		"fromTime": bson.M{
 			"$lte": endTime,

@@ -6,16 +6,21 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-type Restaurants struct {
+type Restaurants interface {
+	Insert(...*model.Restaurant) error
+	Get() ([]*model.Restaurant, error)
+}
+
+type restaurantsCollection struct {
 	c *mgo.Collection
 }
 
-func NewRestaurants(client *Client) *Restaurants {
+func NewRestaurants(client *Client) Restaurants {
 	collection := client.database.C(model.RestaurantCollectionName)
-	return &Restaurants{collection}
+	return &restaurantsCollection{collection}
 }
 
-func (collection *Restaurants) Insert(restaurantsToInsert ...*model.Restaurant) (err error) {
+func (collection restaurantsCollection) Insert(restaurantsToInsert ...*model.Restaurant) (err error) {
 	docs := make([]interface{}, len(restaurantsToInsert))
 	for i, restaurant := range restaurantsToInsert {
 		docs[i] = restaurant
@@ -23,7 +28,7 @@ func (collection *Restaurants) Insert(restaurantsToInsert ...*model.Restaurant) 
 	return collection.c.Insert(docs...)
 }
 
-func (collection Restaurants) Get() (restaurants []*model.Restaurant, err error) {
+func (collection restaurantsCollection) Get() (restaurants []*model.Restaurant, err error) {
 	err = collection.c.Find(bson.M{}).All(&restaurants)
 	return
 }

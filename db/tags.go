@@ -6,16 +6,21 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-type Tags struct {
+type Tags interface {
+	Insert(...*model.Tag) error
+	Get() ([]*model.Tag, error)
+}
+
+type tagsCollection struct {
 	c *mgo.Collection
 }
 
-func NewTags(client *Client) *Tags {
+func NewTags(client *Client) Tags {
 	collection := client.database.C(model.TagCollectionName)
-	return &Tags{collection}
+	return &tagsCollection{collection}
 }
 
-func (collection *Tags) Insert(tagsToInsert ...*model.Tag) (err error) {
+func (collection tagsCollection) Insert(tagsToInsert ...*model.Tag) (err error) {
 	docs := make([]interface{}, len(tagsToInsert))
 	for i, tag := range tagsToInsert {
 		docs[i] = tag
@@ -23,7 +28,7 @@ func (collection *Tags) Insert(tagsToInsert ...*model.Tag) (err error) {
 	return collection.c.Insert(docs...)
 }
 
-func (collection Tags) Get() (tags []*model.Tag, err error) {
+func (collection tagsCollection) Get() (tags []*model.Tag, err error) {
 	err = collection.c.Find(bson.M{}).All(&tags)
 	return
 }
