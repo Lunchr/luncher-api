@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"time"
 
 	"github.com/deiwin/praad-api/db"
 	"github.com/deiwin/praad-api/db/model"
@@ -14,22 +13,21 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("OffersHandler", func() {
+var _ = Describe("TagsHandler", func() {
 	var (
-		mockOffersCollection db.Offers
-		handler              handlerFunc
+		mockTagsCollection db.Tags
+		handler            handlerFunc
 	)
 
 	BeforeEach(func() {
-		mockOffersCollection = &mockOffers{}
+		mockTagsCollection = &mockTags{}
 	})
 
 	JustBeforeEach(func() {
-		handler = Offers(mockOffersCollection)
+		handler = Tags(mockTagsCollection)
 	})
 
-	Describe("GetForTimeRange", func() {
-
+	Describe("Get", func() {
 		It("should succeed", func(done Done) {
 			defer close(done)
 			handler(responseRecorder, request)
@@ -47,13 +45,13 @@ var _ = Describe("OffersHandler", func() {
 
 		Context("with simple mocked result from DB", func() {
 			var (
-				mockResult []*model.Offer
+				mockResult []*model.Tag
 			)
 			BeforeEach(func() {
-				mockResult = []*model.Offer{&model.Offer{Title: "sometitle"}}
-				mockOffersCollection = &mockOffers{
-					func(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
-						offers = mockResult
+				mockResult = []*model.Tag{&model.Tag{Name: "sometag"}}
+				mockTagsCollection = &mockTags{
+					func() (tags []*model.Tag, err error) {
+						tags = mockResult
 						return
 					},
 				}
@@ -62,11 +60,10 @@ var _ = Describe("OffersHandler", func() {
 			It("should write the returned data to responsewriter", func(done Done) {
 				defer close(done)
 				handler(responseRecorder, request)
-				// Expect(responseRecorder.Flushed).To(BeTrue()) // TODO check if this should be true
-				var result []*model.Offer
+				var result []*model.Tag
 				json.Unmarshal(responseRecorder.Body.Bytes(), &result)
 				Expect(result).To(HaveLen(1))
-				Expect(result[0].Title).To(Equal(mockResult[0].Title))
+				Expect(result[0].Name).To(Equal(mockResult[0].Name))
 			})
 		})
 
@@ -74,8 +71,8 @@ var _ = Describe("OffersHandler", func() {
 			var dbErr = errors.New("DB stuff failed")
 
 			BeforeEach(func() {
-				mockOffersCollection = &mockOffers{
-					func(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
+				mockTagsCollection = &mockTags{
+					func() (tags []*model.Tag, err error) {
 						err = dbErr
 						return
 					},
@@ -91,17 +88,17 @@ var _ = Describe("OffersHandler", func() {
 	})
 })
 
-type mockOffers struct {
-	getForTimeRangeFunc func(time.Time, time.Time) ([]*model.Offer, error)
+type mockTags struct {
+	getFunc func() ([]*model.Tag, error)
 }
 
-func (mock mockOffers) Insert(offersToInsert ...*model.Offer) (err error) {
+func (mock mockTags) Insert(tagsToInsert ...*model.Tag) (err error) {
 	return
 }
 
-func (mock mockOffers) GetForTimeRange(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
-	if mock.getForTimeRangeFunc != nil {
-		offers, err = mock.getForTimeRangeFunc(startTime, endTime)
+func (mock mockTags) Get() (tags []*model.Tag, err error) {
+	if mock.getFunc != nil {
+		tags, err = mock.getFunc()
 	}
 	return
 }

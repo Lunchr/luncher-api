@@ -15,6 +15,8 @@ func TestHandler(t *testing.T) {
 	RunSpecs(t, "Handler Suite")
 }
 
+type handlerFunc func(http.ResponseWriter, *http.Request)
+
 var (
 	responseRecorder *httptest.ResponseRecorder
 	request          *http.Request
