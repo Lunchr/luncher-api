@@ -69,9 +69,10 @@ func initRestaurantsCollection() {
 }
 
 func createTestDbConf() (dbConfig *db.Config) {
-	dbConfig = db.NewConfig()
-	dbConfig.DbURL = "mongodb://localhost/test"
-	dbConfig.DbName = "test"
+	dbConfig = &db.Config{
+		DbURL:  "mongodb://localhost/test",
+		DbName: "test",
+	}
 	return
 }
 
