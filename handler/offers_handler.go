@@ -16,6 +16,7 @@ func Offers(offersCollection db.Offers) func(http.ResponseWriter, *http.Request)
 		offers, err := offersCollection.GetForTimeRange(startTime, endTime)
 		if err != nil {
 			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
 		}
 		writeJson(w, offers)
 	}

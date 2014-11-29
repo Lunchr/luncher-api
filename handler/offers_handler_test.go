@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
@@ -30,6 +31,12 @@ var _ = Describe("OffersHandler", func() {
 	})
 
 	Describe("GetForTimeRange", func() {
+
+		It("should succeed", func(done Done) {
+			defer close(done)
+			handler(responseRecorder, request)
+			Expect(responseRecorder.Code).To(Equal(http.StatusOK))
+		})
 
 		It("should return json", func(done Done) {
 			defer close(done)
@@ -62,6 +69,25 @@ var _ = Describe("OffersHandler", func() {
 				json.Unmarshal(responseRecorder.Body.Bytes(), &result)
 				Expect(result).To(HaveLen(1))
 				Expect(result[0].Title).To(Equal(mockResult[0].Title))
+			})
+		})
+
+		Context("with an error returned from the DB", func() {
+			var dbErr = errors.New("DB stuff failed")
+
+			BeforeEach(func() {
+				mockOffersCollection = &mockOffers{
+					func(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
+						err = dbErr
+						return
+					},
+				}
+			})
+
+			It("should return error 500 without any data", func(done Done) {
+				defer close(done)
+				handler(responseRecorder, request)
+				Expect(responseRecorder.Code).To(Equal(http.StatusInternalServerError))
 			})
 		})
 	})
