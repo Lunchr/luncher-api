@@ -3,8 +3,8 @@ package db
 import "os"
 
 const (
-	dbURLEnvVariable  = "PRAAD_DB_ADDRESS"
-	dbNameEnvVariable = "PRAAD_DB_NAME"
+	dbURLEnvVariable  = "LUNCHER_DB_ADDRESS"
+	dbNameEnvVariable = "LUNCHER_DB_NAME"
 	defaultDbURL      = "mongodb://localhost/test"
 	defaultDbName     = ""
 )

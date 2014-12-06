@@ -5,9 +5,9 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/deiwin/praad-api/db"
-	"github.com/deiwin/praad-api/db/model"
-	. "github.com/deiwin/praad-api/handler"
+	"github.com/deiwin/luncher-api/db"
+	"github.com/deiwin/luncher-api/db/model"
+	. "github.com/deiwin/luncher-api/handler"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

@@ -1,7 +1,7 @@
 package db_test
 
 import (
-	"github.com/deiwin/praad-api/db"
+	"github.com/deiwin/luncher-api/db"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 

@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/deiwin/praad-api/db"
+	"github.com/deiwin/luncher-api/db"
 )
 
 func Restaurants(restaurantsCollection db.Restaurants) func(http.ResponseWriter, *http.Request) {

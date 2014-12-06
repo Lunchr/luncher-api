@@ -3,7 +3,7 @@ package db_test
 import (
 	"fmt"
 
-	"github.com/deiwin/praad-api/db/model"
+	"github.com/deiwin/luncher-api/db/model"
 	"github.com/onsi/gomega/types"
 )
 

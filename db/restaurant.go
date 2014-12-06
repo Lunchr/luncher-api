@@ -1,7 +1,7 @@
 package db
 
 import (
-	"github.com/deiwin/praad-api/db/model"
+	"github.com/deiwin/luncher-api/db/model"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )

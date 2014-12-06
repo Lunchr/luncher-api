@@ -4,8 +4,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/deiwin/praad-api/db"
-	"github.com/deiwin/praad-api/handler"
+	"github.com/deiwin/luncher-api/db"
+	"github.com/deiwin/luncher-api/handler"
 	"github.com/gorilla/mux"
 )
 

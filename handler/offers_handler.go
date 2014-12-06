@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/deiwin/praad-api/db"
+	"github.com/deiwin/luncher-api/db"
 )
 
 func Offers(offersCollection db.Offers) func(http.ResponseWriter, *http.Request) {
