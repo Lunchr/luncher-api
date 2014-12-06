@@ -3,8 +3,8 @@ package facebook
 import "github.com/deiwin/luncher-api/config"
 
 var (
-	appIDEnvProperty     = config.NewEnvProperty("LUNCHER_FACEBOOK_APP_ID", "1")
-	appSecretEnvProperty = config.NewEnvProperty("LUNCHER_FACEBOOK_APP_SECRET", "secret")
+	appIDEnvProperty     = config.NewRequiredEnvProperty("LUNCHER_FACEBOOK_APP_ID")
+	appSecretEnvProperty = config.NewRequiredEnvProperty("LUNCHER_FACEBOOK_APP_SECRET")
 )
 
 type Config struct {

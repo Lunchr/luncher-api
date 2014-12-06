@@ -18,18 +18,29 @@ a fields initialization. E.g.
 */
 package config
 
-import "os"
+import (
+	"log"
+	"os"
+)
 
 // Property can be used to define configuration properties with default values.
 type Property interface {
 	DefaultValue() string
 }
 
-// NewEnvProperty returns a Property that gets it's default value from the
+// NewRequiredEnvProperty returns a Property that gets its default value from
+// the specified environment variable. Panics if the variable is not set.
+func NewRequiredEnvProperty(envVariableName string) Property {
+	return requiredEnvProperty{
+		envVariableName: envVariableName,
+	}
+}
+
+// NewEnvProperty returns a Property that gets its default value from the
 // specified environment variable. If the environment vatiable is not set
 // the fallback value will be set as default instead
 func NewEnvProperty(envVariableName string, fallbackValue string) Property {
-	return &envProperty{
+	return envProperty{
 		envVariableName: envVariableName,
 		fallbackValue:   fallbackValue,
 	}
@@ -40,10 +51,22 @@ type envProperty struct {
 	fallbackValue   string
 }
 
-func (prop *envProperty) DefaultValue() (defaultValue string) {
+func (prop envProperty) DefaultValue() (defaultValue string) {
 	defaultValue = os.Getenv(prop.envVariableName)
 	if defaultValue == "" {
 		defaultValue = prop.fallbackValue
+	}
+	return
+}
+
+type requiredEnvProperty struct {
+	envVariableName string
+}
+
+func (prop requiredEnvProperty) DefaultValue() (defaultValue string) {
+	defaultValue = os.Getenv(prop.envVariableName)
+	if defaultValue == "" {
+		log.Fatalf("Please set the %s environment variable", prop.envVariableName)
 	}
 	return
 }
