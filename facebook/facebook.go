@@ -8,7 +8,7 @@ import (
 
 var domain = "haha" // XXX should this be in the FB conf?
 
-func something(conf Config, session string) {
+func something(conf Config, session string) string {
 	opts, err := oauth2.New(
 		oauth2.Client(conf.AppID, conf.AppSecret),
 		oauth2.RedirectURL(domain+"api/oauth/facebook/redirect"),
@@ -21,6 +21,5 @@ func something(conf Config, session string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	redirectUrl := opts.AuthCodeURL(session, "offline", "auto")
-
+	return opts.AuthCodeURL(session, "offline", "auto")
 }
