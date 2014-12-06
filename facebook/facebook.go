@@ -11,7 +11,7 @@ var domain = "haha" // XXX should this be in the FB conf?
 func something(conf Config, session string) string {
 	opts, err := oauth2.New(
 		oauth2.Client(conf.AppID, conf.AppSecret),
-		oauth2.RedirectURL(domain+"api/oauth/facebook/redirect"),
+		oauth2.RedirectURL(domain+"api/v1/oauth/facebook/redirect"),
 		oauth2.Scope("manage_pages", "publish_actions"),
 		oauth2.Endpoint(
 			"https://www.facebook.com/dialog/oauth",

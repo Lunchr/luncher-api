@@ -21,7 +21,7 @@ func main() {
 	offersCollection := db.NewOffers(dbClient)
 	tagsCollection := db.NewTags(dbClient)
 
-	r := mux.NewRouter().PathPrefix("/api").Subrouter()
+	r := mux.NewRouter().PathPrefix("/api/v1").Subrouter()
 	r.HandleFunc("/offers", handler.Offers(offersCollection))
 	r.HandleFunc("/tags", handler.Tags(tagsCollection))
 	http.Handle("/", r)
