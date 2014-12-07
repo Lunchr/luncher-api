@@ -6,8 +6,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-var domain = "haha" // XXX should this be in the FB conf?
-
 // Authenticator provides the authentication functionality for Facebook users
 // using Facebook's OAuth
 type Authenticator interface {
@@ -17,18 +15,19 @@ type Authenticator interface {
 	AuthURL(session string) string
 }
 
-func NewAuthenticator(conf Config) Authenticator {
-	return authenticator{conf}
+func NewAuthenticator(conf Config, domain string) Authenticator {
+	return authenticator{conf, domain}
 }
 
 type authenticator struct {
-	conf Config
+	conf   Config
+	domain string
 }
 
-func (auth authenticator) AuthURL(session string) string {
+func (a authenticator) AuthURL(session string) string {
 	opts, err := oauth2.New(
-		oauth2.Client(auth.conf.AppID, auth.conf.AppSecret),
-		oauth2.RedirectURL(domain+"api/v1/oauth/facebook/redirect"),
+		oauth2.Client(a.conf.AppID, a.conf.AppSecret),
+		oauth2.RedirectURL(a.domain+"api/v1/oauth/facebook/redirect"),
 		oauth2.Scope("manage_pages", "publish_actions"),
 		oauth2.Endpoint(
 			"https://www.facebook.com/dialog/oauth",
