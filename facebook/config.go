@@ -12,8 +12,8 @@ type Config struct {
 	AppSecret string
 }
 
-func NewConfig() *Config {
-	return &Config{
+func NewConfig() Config {
+	return Config{
 		AppID:     appIDEnvProperty.DefaultValue(),
 		AppSecret: appSecretEnvProperty.DefaultValue(),
 	}

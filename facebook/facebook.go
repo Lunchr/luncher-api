@@ -23,7 +23,7 @@ type Authenticator interface {
 func NewAuthenticator(conf Config, domain string) (a Authenticator, err error) {
 	opts, err := oauth2.New(
 		oauth2.Client(conf.AppID, conf.AppSecret),
-		oauth2.RedirectURL(domain+"api/v1/oauth/facebook/redirect"),
+		oauth2.RedirectURL(domain+"api/v1/login/facebook/redirect"),
 		oauth2.Scope("manage_pages", "publish_actions"),
 		oauth2.Endpoint(
 			"https://www.facebook.com/dialog/oauth",
