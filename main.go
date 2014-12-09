@@ -19,9 +19,11 @@ func main() {
 	defer dbClient.Disconnect()
 
 	offersCollection := db.NewOffers(dbClient)
+	tagsCollection := db.NewTags(dbClient)
 
 	r := mux.NewRouter().PathPrefix("/api").Subrouter()
 	r.HandleFunc("/offers", handler.Offers(offersCollection))
+	r.HandleFunc("/tags", handler.Tags(tagsCollection))
 	http.Handle("/", r)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
