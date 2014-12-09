@@ -1,12 +1,10 @@
 package db
 
-import "os"
+import "github.com/deiwin/luncher-api/config"
 
-const (
-	dbURLEnvVariable  = "LUNCHER_DB_ADDRESS"
-	dbNameEnvVariable = "LUNCHER_DB_NAME"
-	defaultDbURL      = "mongodb://localhost/test"
-	defaultDbName     = ""
+var (
+	dbURLEnvProperty  = config.NewEnvProperty("LUNCHER_DB_ADDRESS", "mongodb://localhost/test")
+	dbNameEnvProperty = config.NewEnvProperty("LUNCHER_DB_NAME", "")
 )
 
 type Config struct {
@@ -16,23 +14,7 @@ type Config struct {
 
 func NewConfig() *Config {
 	return &Config{
-		DbURL:  getEnvOrDefaultDbURL(),
-		DbName: getEnvOrDefaultDbName(),
+		DbURL:  dbURLEnvProperty.DefaultValue(),
+		DbName: dbNameEnvProperty.DefaultValue(),
 	}
-}
-
-func getEnvOrDefaultDbURL() (dbURL string) {
-	dbURL = os.Getenv(dbURLEnvVariable)
-	if dbURL == "" {
-		dbURL = defaultDbURL
-	}
-	return
-}
-
-func getEnvOrDefaultDbName() (dbName string) {
-	dbName = os.Getenv(dbNameEnvVariable)
-	if dbName == "" {
-		dbName = defaultDbName
-	}
-	return
 }

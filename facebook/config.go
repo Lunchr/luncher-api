@@ -1,12 +1,10 @@
 package facebook
 
-import "os"
+import "github.com/deiwin/luncher-api/config"
 
-const (
-	appIDEnvVariable     = "LUNCHER_FACEBOOK_APP_ID"
-	appSecretEnvVariable = "LUNCHER_FACEBOOK_APP_SECRET"
-	defaultAppID         = "1"
-	defaultAppSecret     = "secret"
+var (
+	appIDEnvProperty     = config.NewEnvProperty("LUNCHER_FACEBOOK_APP_ID", "1")
+	appSecretEnvProperty = config.NewEnvProperty("LUNCHER_FACEBOOK_APP_SECRET", "secret")
 )
 
 type Config struct {
@@ -16,23 +14,7 @@ type Config struct {
 
 func NewConfig() *Config {
 	return &Config{
-		AppID:     getEnvOrDefaultAppID(),
-		AppSecret: getEnvOrDefaultAppSecret(),
+		AppID:     appIDEnvProperty.DefaultValue(),
+		AppSecret: appSecretEnvProperty.DefaultValue(),
 	}
-}
-
-func getEnvOrDefaultAppID() (appID string) {
-	appID = os.Getenv(appIDEnvVariable)
-	if appID == "" {
-		appID = defaultAppID
-	}
-	return
-}
-
-func getEnvOrDefaultAppSecret() (appSecret string) {
-	appSecret = os.Getenv(appSecretEnvVariable)
-	if appSecret == "" {
-		appSecret = defaultAppSecret
-	}
-	return
 }
