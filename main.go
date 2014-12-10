@@ -34,6 +34,7 @@ func main() {
 	r.HandleFunc("/offers", handler.Offers(offersCollection))
 	r.HandleFunc("/tags", handler.Tags(tagsCollection))
 	r.HandleFunc("/login/facebook", handler.FacebookLogin(facebookAuthenticator, sessionManager))
+	r.HandleFunc("/login/facebook", handler.FacebookRedirected(facebookAuthenticator, sessionManager))
 	http.Handle("/", r)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
