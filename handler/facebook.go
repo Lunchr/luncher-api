@@ -9,14 +9,15 @@ import (
 )
 
 // FacebookLogin returns a handler that redirects the user to Facebook to log in
-func FacebookLogin(fbAuth facebook.Authenticator, sessMgr session.Manager) func(http.ResponseWriter, *http.Request) {
+func FacebookLogin(fbAuth facebook.Authenticator, sessMgr session.Manager) handler {
 	return func(w http.ResponseWriter, r *http.Request) {
 		session := sessMgr.GetOrInitSession(w, r)
 		redirectURL := fbAuth.AuthURL(session)
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 	}
 }
-func FacebookRedirected(fbAuth facebook.Authenticator, sessMgr session.Manager) func(http.ResponseWriter, *http.Request) {
+
+func FacebookRedirected(fbAuth facebook.Authenticator, sessMgr session.Manager) handler {
 	return func(w http.ResponseWriter, r *http.Request) {
 		session := sessMgr.GetOrInitSession(w, r)
 		state := r.FormValue("state")

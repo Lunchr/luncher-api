@@ -8,7 +8,7 @@ import (
 	"github.com/deiwin/luncher-api/db"
 )
 
-func Offers(offersCollection db.Offers) func(http.ResponseWriter, *http.Request) {
+func Offers(offersCollection db.Offers) handler {
 	return func(w http.ResponseWriter, r *http.Request) {
 		now := time.Now()
 		startTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
@@ -18,6 +18,6 @@ func Offers(offersCollection db.Offers) func(http.ResponseWriter, *http.Request)
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 		}
-		writeJson(w, offers)
+		writeJSON(w, offers)
 	}
 }

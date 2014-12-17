@@ -7,7 +7,9 @@ import (
 	"strconv"
 )
 
-func writeJson(w http.ResponseWriter, v interface{}) {
+type handler func(http.ResponseWriter, *http.Request)
+
+func writeJSON(w http.ResponseWriter, v interface{}) {
 	if data, err := json.Marshal(v); err != nil {
 		log.Printf("Error marshalling json: %v", err)
 		w.WriteHeader(http.StatusInternalServerError)
