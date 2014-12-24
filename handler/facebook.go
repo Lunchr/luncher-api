@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -8,18 +9,33 @@ import (
 	"github.com/deiwin/luncher-api/session"
 )
 
-// FacebookLogin returns a handler that redirects the user to Facebook to log in
-func FacebookLogin(fbAuth facebook.Authenticator, sessMgr session.Manager) handler {
+type Facebook interface {
+	// Login returns a handler that redirects the user to Facebook to log in
+	Login() handler
+	// Redirected returns a handler that TODO
+	Redirected() handler
+}
+
+type fbook struct {
+	auth           facebook.Authenticator
+	sessionManager session.Manager
+}
+
+func NewFacebook(fbAuth facebook.Authenticator, sessMgr session.Manager) Facebook {
+	return fbook{fbAuth, sessMgr}
+}
+
+func (fb fbook) Login() handler {
 	return func(w http.ResponseWriter, r *http.Request) {
-		session := sessMgr.GetOrInitSession(w, r)
-		redirectURL := fbAuth.AuthURL(session)
+		session := fb.sessionManager.GetOrInitSession(w, r)
+		redirectURL := fb.auth.AuthURL(session)
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 	}
 }
 
-func FacebookRedirected(fbAuth facebook.Authenticator, sessMgr session.Manager) handler {
+func (fb fbook) Redirected() handler {
 	return func(w http.ResponseWriter, r *http.Request) {
-		session := sessMgr.GetOrInitSession(w, r)
+		session := fb.sessionManager.GetOrInitSession(w, r)
 		state := r.FormValue("state")
 		if state == "" {
 			log.Println("A Facebook redirect request is missing the 'state' value")
@@ -37,11 +53,26 @@ func FacebookRedirected(fbAuth facebook.Authenticator, sessMgr session.Manager) 
 			http.Error(w, "Expecting a 'code' value", http.StatusBadRequest)
 			return
 		}
-		transport, err := fbAuth.CreateTransport(code)
+		client, err := fb.auth.CreateClient(code)
+		if err != nil {
+			log.Print(err)
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+		resp, err := client.Get("http://graph.facebook.com/v2.2/me")
+		if err != nil {
+			log.Print(err)
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
+		log.Print(body)
+		w.Write(body)
 	}
 }

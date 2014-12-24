@@ -21,11 +21,9 @@ func main() {
 	defer dbClient.Disconnect()
 
 	facebookConfig := facebook.NewConfig()
-	facebookAuthenticator, err := facebook.NewAuthenticator(facebookConfig, "localhost:8080")
-	if err != nil {
-		log.Fatal("Failed to set up facebook authenticator", err)
-	}
+	facebookAuthenticator := facebook.NewAuthenticator(facebookConfig, "localhost:8080")
 	sessionManager := session.NewManager()
+	facebookHandler := handler.NewFacebook(facebookAuthenticator, sessionManager)
 
 	offersCollection := db.NewOffers(dbClient)
 	tagsCollection := db.NewTags(dbClient)
@@ -33,8 +31,8 @@ func main() {
 	r := mux.NewRouter().PathPrefix("/api/v1").Subrouter()
 	r.HandleFunc("/offers", handler.Offers(offersCollection))
 	r.HandleFunc("/tags", handler.Tags(tagsCollection))
-	r.HandleFunc("/login/facebook", handler.FacebookLogin(facebookAuthenticator, sessionManager))
-	r.HandleFunc("/login/facebook", handler.FacebookRedirected(facebookAuthenticator, sessionManager))
+	r.HandleFunc("/login/facebook", facebookHandler.Login())
+	r.HandleFunc("/login/facebook/redirected", facebookHandler.Redirected())
 	http.Handle("/", r)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
