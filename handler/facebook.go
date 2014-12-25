@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -19,10 +18,11 @@ type Facebook interface {
 type fbook struct {
 	auth           facebook.Authenticator
 	sessionManager session.Manager
+	api            facebook.API
 }
 
-func NewFacebook(fbAuth facebook.Authenticator, sessMgr session.Manager) Facebook {
-	return fbook{fbAuth, sessMgr}
+func NewFacebook(fbAuth facebook.Authenticator, sessMgr session.Manager, api facebook.API) Facebook {
+	return fbook{fbAuth, sessMgr, api}
 }
 
 func (fb fbook) Login() handler {
@@ -61,19 +61,15 @@ func (fb fbook) Redirected() handler {
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
-		resp, err := client.Get("https://graph.facebook.com/v2.2/me")
-		if err != nil {
-			log.Print(err)
-			http.Error(w, "", http.StatusInternalServerError)
-			return
-		}
-		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
+
+		connection := facebook.NewConnection(fb.api, client)
+		user, err := connection.Me()
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
-		w.Write(body)
+
+		w.Write([]byte("id:" + user.Id))
 	}
 }
