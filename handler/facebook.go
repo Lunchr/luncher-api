@@ -6,8 +6,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/facebook"
-	"github.com/deiwin/luncher-api/facebook/model"
 	"github.com/deiwin/luncher-api/session"
 )
 
@@ -15,18 +15,20 @@ type Facebook interface {
 	// Login returns a handler that redirects the user to Facebook to log in
 	Login() Handler
 	// Redirected returns a handler that receives the user and page tokens for the
-	// user who has just logged in through Facebook
+	// user who has just logged in through Facebook. Updates the user and page
+	// access tokens in the DB
 	Redirected() Handler
 }
 
 type fbook struct {
-	auth           facebook.Authenticator
-	sessionManager session.Manager
-	api            facebook.API
+	auth            facebook.Authenticator
+	sessionManager  session.Manager
+	api             facebook.API
+	usersCollection db.Users
 }
 
-func NewFacebook(fbAuth facebook.Authenticator, sessMgr session.Manager, api facebook.API) Facebook {
-	return fbook{fbAuth, sessMgr, api}
+func NewFacebook(fbAuth facebook.Authenticator, sessMgr session.Manager, api facebook.API, usersCollection db.Users) Facebook {
+	return fbook{fbAuth, sessMgr, api, usersCollection}
 }
 
 func (fb fbook) Login() Handler {
@@ -61,14 +63,19 @@ func (fb fbook) Redirected() Handler {
 		client := fb.auth.Client(tok)
 
 		connection := facebook.NewConnection(fb.api, client)
-		accs, err := connection.Accounts()
+		userID, err := getUserID(connection)
 		if err != nil {
 			log.Print(err)
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
-		pageID := "" // TODO get from DB. This should have been recorded on account creation/linking
-		pageAccessToken, err := getPageAccessToken(accs, pageID)
+		pageID, err := fb.getPageID(userID)
+		if err != nil {
+			log.Print(err)
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+		pageAccessToken, err := fb.getPageAccessToken(connection, pageID)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, "", http.StatusInternalServerError)
@@ -79,7 +86,11 @@ func (fb fbook) Redirected() Handler {
 	}
 }
 
-func getPageAccessToken(accs model.Accounts, pageID string) (pageAccessToken string, err error) {
+func (fb fbook) getPageAccessToken(connection facebook.Connection, pageID string) (pageAccessToken string, err error) {
+	accs, err := connection.Accounts()
+	if err != nil {
+		return
+	}
 	for _, page := range accs.Data {
 		if page.ID == pageID {
 			pageAccessToken = page.AccessToken
@@ -99,4 +110,22 @@ func (fb fbook) checkState(w http.ResponseWriter, r *http.Request) error {
 		return errors.New("A Facebook redirect request's 'state' value does not match the session")
 	}
 	return nil
+}
+
+func getUserID(connection facebook.Connection) (userID string, err error) {
+	user, err := connection.Me()
+	if err != nil {
+		return
+	}
+	userID = user.Id
+	return
+}
+
+func (fb fbook) getPageID(userID string) (pageID string, err error) {
+	userInDB, err := fb.usersCollection.Get(userID)
+	if err != nil {
+		return
+	}
+	pageID = userInDB.FacebookPageID
+	return
 }

@@ -24,7 +24,8 @@ func main() {
 	facebookAuthenticator := facebook.NewAuthenticator(facebookConfig, "localhost:8080")
 	facebookAPI := facebook.NewAPI(facebookConfig)
 	sessionManager := session.NewManager()
-	facebookHandler := handler.NewFacebook(facebookAuthenticator, sessionManager, facebookAPI)
+	usersCollection := db.NewUsers(dbClient)
+	facebookHandler := handler.NewFacebook(facebookAuthenticator, sessionManager, facebookAPI, usersCollection)
 
 	offersCollection := db.NewOffers(dbClient)
 	tagsCollection := db.NewTags(dbClient)
