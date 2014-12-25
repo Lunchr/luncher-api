@@ -13,6 +13,7 @@ var (
 	offersCollection      db.Offers
 	tagsCollection        db.Tags
 	restaurantsCollection db.Restaurants
+	usersCollection       db.Users
 	mocks                 *Mocks
 )
 
@@ -48,6 +49,7 @@ func initCollections() {
 	initOffersCollection()
 	initTagsCollection()
 	initRestaurantsCollection()
+	initUsersCollection()
 }
 
 func initOffersCollection() {
@@ -65,6 +67,12 @@ func initTagsCollection() {
 func initRestaurantsCollection() {
 	restaurantsCollection = db.NewRestaurants(dbClient)
 	err := insertRestaurants()
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func initUsersCollection() {
+	usersCollection = db.NewUsers(dbClient)
+	err := insertUsers()
 	Expect(err).NotTo(HaveOccurred())
 }
 
@@ -86,6 +94,10 @@ func insertRestaurants() (err error) {
 
 func insertOffers() (err error) {
 	return offersCollection.Insert(mocks.offers...)
+}
+
+func insertUsers() (err error) {
+	return usersCollection.Insert(mocks.users...)
 }
 
 func wipeDb() {
