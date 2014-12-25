@@ -1,7 +1,6 @@
 package facebook
 
 import (
-	"fmt"
 	"net/http"
 
 	"golang.org/x/oauth2"
@@ -43,9 +42,6 @@ func (a authenticator) AuthURL(session string) string {
 }
 
 func (a authenticator) CreateClient(code string) (client *http.Client, err error) {
-	if _, err = fmt.Scan(&code); err != nil {
-		return
-	}
 	tok, err := a.Exchange(oauth2.NoContext, code)
 	if err != nil {
 		return

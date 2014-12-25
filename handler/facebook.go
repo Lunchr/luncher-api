@@ -42,6 +42,8 @@ func (fb fbook) Redirected() handler {
 			http.Error(w, "Expecting a 'state' value", http.StatusBadRequest)
 			return
 		} else if state != session {
+			log.Println(state)
+			log.Println(session)
 			log.Println("A Facebook redirect request's 'state' value does not match the session")
 			http.Error(w, "Wrong 'state' value", http.StatusBadRequest)
 			return
@@ -59,7 +61,7 @@ func (fb fbook) Redirected() handler {
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
-		resp, err := client.Get("http://graph.facebook.com/v2.2/me")
+		resp, err := client.Get("https://graph.facebook.com/v2.2/me")
 		if err != nil {
 			log.Print(err)
 			http.Error(w, "", http.StatusInternalServerError)
@@ -72,7 +74,6 @@ func (fb fbook) Redirected() handler {
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
-		log.Print(body)
 		w.Write(body)
 	}
 }
