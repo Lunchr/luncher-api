@@ -10,7 +10,10 @@ import (
 
 // Connection provides access to the Facebook API graph methods
 type Connection interface {
+	// /me
 	Me() (model.User, error)
+	// /me/accounts
+	Accounts() (model.Accounts, error)
 }
 
 type connection struct {
@@ -31,6 +34,15 @@ func (c connection) Me() (user model.User, err error) {
 		return
 	}
 	err = json.Unmarshal(resp, &user)
+	return
+}
+
+func (c connection) Accounts() (accs model.Accounts, err error) {
+	resp, err := c.get("/me/accounts")
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(resp, &accs)
 	return
 }
 
