@@ -13,9 +13,10 @@ type Authenticator interface {
 	// will then be asked to log in by Facebook at that URL and will be redirected
 	// back to our API by Facebook.
 	AuthURL(session string) string
-	// CreateClient returns an *http.Client that can be used to make authenticated
-	// requests to the Facebook API
-	CreateClient(code string) (*http.Client, error)
+	Token(code string) (*oauth2.Token, error)
+	// Client returns an *http.Client that can be used to make authenticated
+	// requests to the Facebook API.
+	Client(tok *oauth2.Token) *http.Client
 }
 
 // NewAuthenticator initializes and returns an Authenticator
@@ -41,11 +42,10 @@ func (a authenticator) AuthURL(session string) string {
 	return a.AuthCodeURL(session, oauth2.AccessTypeOffline)
 }
 
-func (a authenticator) CreateClient(code string) (client *http.Client, err error) {
-	tok, err := a.Exchange(oauth2.NoContext, code)
-	if err != nil {
-		return
-	}
-	client = a.Client(oauth2.NoContext, tok)
-	return
+func (a authenticator) Token(code string) (*oauth2.Token, error) {
+	return a.Exchange(oauth2.NoContext, code)
+}
+
+func (a authenticator) Client(tok *oauth2.Token) *http.Client {
+	return a.Config.Client(oauth2.NoContext, tok)
 }
