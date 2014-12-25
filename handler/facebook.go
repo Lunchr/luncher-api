@@ -11,7 +11,8 @@ import (
 type Facebook interface {
 	// Login returns a handler that redirects the user to Facebook to log in
 	Login() Handler
-	// Redirected returns a handler that TODO
+	// Redirected returns a handler that receives the user and page tokens for the
+	// user who has just logged in through Facebook
 	Redirected() Handler
 }
 
