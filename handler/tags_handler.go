@@ -7,7 +7,7 @@ import (
 	"github.com/deiwin/luncher-api/db"
 )
 
-func Tags(tagsCollection db.Tags) handler {
+func Tags(tagsCollection db.Tags) Handler {
 	return func(w http.ResponseWriter, r *http.Request) {
 		tags, err := tagsCollection.Get()
 		if err != nil {

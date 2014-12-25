@@ -16,7 +16,7 @@ import (
 var _ = Describe("TagsHandler", func() {
 	var (
 		mockTagsCollection db.Tags
-		handler            handlerFunc
+		handler            Handler
 	)
 
 	BeforeEach(func() {

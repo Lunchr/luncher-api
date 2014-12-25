@@ -10,9 +10,9 @@ import (
 
 type Facebook interface {
 	// Login returns a handler that redirects the user to Facebook to log in
-	Login() handler
+	Login() Handler
 	// Redirected returns a handler that TODO
-	Redirected() handler
+	Redirected() Handler
 }
 
 type fbook struct {
@@ -25,7 +25,7 @@ func NewFacebook(fbAuth facebook.Authenticator, sessMgr session.Manager, api fac
 	return fbook{fbAuth, sessMgr, api}
 }
 
-func (fb fbook) Login() handler {
+func (fb fbook) Login() Handler {
 	return func(w http.ResponseWriter, r *http.Request) {
 		session := fb.sessionManager.GetOrInitSession(w, r)
 		redirectURL := fb.auth.AuthURL(session)
@@ -33,7 +33,7 @@ func (fb fbook) Login() handler {
 	}
 }
 
-func (fb fbook) Redirected() handler {
+func (fb fbook) Redirected() Handler {
 	return func(w http.ResponseWriter, r *http.Request) {
 		session := fb.sessionManager.GetOrInitSession(w, r)
 		state := r.FormValue("state")

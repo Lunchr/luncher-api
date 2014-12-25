@@ -7,7 +7,7 @@ import (
 	"github.com/deiwin/luncher-api/db"
 )
 
-func Restaurants(restaurantsCollection db.Restaurants) handler {
+func Restaurants(restaurantsCollection db.Restaurants) Handler {
 	return func(w http.ResponseWriter, r *http.Request) {
 		restaurants, err := restaurantsCollection.Get()
 		if err != nil {

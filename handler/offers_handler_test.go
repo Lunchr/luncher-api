@@ -17,7 +17,7 @@ import (
 var _ = Describe("OffersHandler", func() {
 	var (
 		mockOffersCollection db.Offers
-		handler              handlerFunc
+		handler              Handler
 	)
 
 	BeforeEach(func() {

@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-type handler func(http.ResponseWriter, *http.Request)
+type Handler func(http.ResponseWriter, *http.Request)
 
 func writeJSON(w http.ResponseWriter, v interface{}) {
 	if data, err := json.Marshal(v); err != nil {
