@@ -9,6 +9,7 @@ import (
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/facebook"
 	"github.com/deiwin/luncher-api/session"
+	"golang.org/x/oauth2"
 )
 
 type Facebook interface {
@@ -81,9 +82,24 @@ func (fb fbook) Redirected() Handler {
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
-
+		err = fb.storeAccessTokensInDB(userID, tok, pageAccessToken)
+		if err != nil {
+			log.Print(err)
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+		// TODO redirect to the admin page
 		fmt.Fprint(w, pageAccessToken)
 	}
+}
+
+func (fb fbook) storeAccessTokensInDB(userID string, tok *oauth2.Token, pageAccessToken string) (err error) {
+	err = fb.usersCollection.SetAccessToken(userID, *tok)
+	if err != nil {
+		return
+	}
+	err = fb.usersCollection.SetPageAccessToken(userID, pageAccessToken)
+	return
 }
 
 func (fb fbook) getPageAccessToken(connection facebook.Connection, pageID string) (pageAccessToken string, err error) {
