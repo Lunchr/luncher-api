@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -20,15 +21,20 @@ func main() {
 	}
 	defer dbClient.Disconnect()
 
-	facebookConfig := facebook.NewConfig()
-	facebookAuthenticator := facebook.NewAuthenticator(facebookConfig, "localhost:8080")
-	facebookAPI := facebook.NewAPI(facebookConfig)
-	sessionManager := session.NewManager()
 	usersCollection := db.NewUsers(dbClient)
-	facebookHandler := handler.NewFacebook(facebookAuthenticator, sessionManager, facebookAPI, usersCollection)
-
 	offersCollection := db.NewOffers(dbClient)
 	tagsCollection := db.NewTags(dbClient)
+
+	sessionManager := session.NewManager()
+	mainConfig, err := NewConfig()
+	if err != nil {
+		panic(err)
+	}
+
+	facebookConfig := facebook.NewConfig()
+	facebookAuthenticator := facebook.NewAuthenticator(facebookConfig, mainConfig.Domain)
+	facebookAPI := facebook.NewAPI(facebookConfig)
+	facebookHandler := handler.NewFacebook(facebookAuthenticator, sessionManager, facebookAPI, usersCollection)
 
 	r := mux.NewRouter().PathPrefix("/api/v1").Subrouter()
 	r.HandleFunc("/offers", handler.Offers(offersCollection))
@@ -36,5 +42,6 @@ func main() {
 	r.HandleFunc("/login/facebook", facebookHandler.Login())
 	r.HandleFunc("/login/facebook/redirected", facebookHandler.Redirected())
 	http.Handle("/", r)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	portString := fmt.Sprintf(":%d", mainConfig.Port)
+	log.Fatal(http.ListenAndServe(portString, nil))
 }
