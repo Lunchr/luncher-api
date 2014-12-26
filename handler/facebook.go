@@ -78,7 +78,7 @@ func (fb fbook) Redirected() Handler {
 		}
 		pageAccessToken, err := fb.getPageAccessToken(connection, pageID)
 		if err != nil {
-			log.Println(err)
+			log.Print(err)
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
