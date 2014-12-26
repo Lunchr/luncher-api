@@ -6,26 +6,31 @@ import (
 	"golang.org/x/oauth2"
 )
 
+const (
+	facebookUserID = "1387231118239727"
+	facebookPageID = "1556442521239635"
+)
+
 var _ = Describe("User", func() {
 	Describe("Get", func() {
 		It("should get by facebook user id", func(done Done) {
 			defer close(done)
-			user, err := usersCollection.Get("1")
+			user, err := usersCollection.Get(facebookUserID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(user).NotTo(BeNil())
-			Expect(user.FacebookPageID).To(Equal("2"))
+			Expect(user.FacebookPageID).To(Equal(facebookPageID))
 		})
 
 		It("should get nothing for wrong facebook id", func(done Done) {
 			defer close(done)
-			user, err := usersCollection.Get("2")
+			user, err := usersCollection.Get(facebookPageID)
 			Expect(err).To(HaveOccurred())
 			Expect(user).To(BeNil())
 		})
 
 		It("should link to the restaurant", func(done Done) {
 			defer close(done)
-			user, err := usersCollection.Get("1")
+			user, err := usersCollection.Get(facebookUserID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(user).NotTo(BeNil())
 			// there's no get by ID method at the moment so just get all and see
@@ -51,13 +56,13 @@ var _ = Describe("User", func() {
 				token = oauth2.Token{
 					AccessToken: "asd",
 				}
-				err := usersCollection.SetAccessToken("1", token)
+				err := usersCollection.SetAccessToken(facebookUserID, token)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("should be included in the Get", func(done Done) {
 				defer close(done)
-				user, err := usersCollection.Get("1")
+				user, err := usersCollection.Get(facebookUserID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(user).NotTo(BeNil())
 				Expect(user.FacebookUserToken.AccessToken).To(Equal("asd"))
@@ -72,13 +77,13 @@ var _ = Describe("User", func() {
 			BeforeEach(func(done Done) {
 				defer close(done)
 				token = "bsd"
-				err := usersCollection.SetPageAccessToken("1", token)
+				err := usersCollection.SetPageAccessToken(facebookUserID, token)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("should be included in the Get", func(done Done) {
 				defer close(done)
-				user, err := usersCollection.Get("1")
+				user, err := usersCollection.Get(facebookUserID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(user).NotTo(BeNil())
 				Expect(user.FacebookPageToken).To(Equal("bsd"))

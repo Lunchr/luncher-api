@@ -92,8 +92,8 @@ func createMocks() *Mocks {
 		users: []*model.User{
 			&model.User{
 				RestaurantID:   restaurantID,
-				FacebookUserID: "1",
-				FacebookPageID: "2",
+				FacebookUserID: facebookUserID,
+				FacebookPageID: facebookPageID,
 			},
 		},
 	}
