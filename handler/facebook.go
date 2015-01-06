@@ -2,7 +2,6 @@ package handler
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -48,7 +47,6 @@ func (fb fbook) Redirected() Handler {
 			http.Error(w, "", http.StatusBadRequest)
 			return
 		}
-
 		code := r.FormValue("code")
 		if code == "" {
 			log.Println("A Facebook redirect request is missing the 'code' value")
@@ -62,7 +60,6 @@ func (fb fbook) Redirected() Handler {
 			return
 		}
 		client := fb.auth.Client(tok)
-
 		connection := facebook.NewConnection(fb.api, client)
 		userID, err := getUserID(connection)
 		if err != nil {
@@ -88,8 +85,7 @@ func (fb fbook) Redirected() Handler {
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
-		// TODO redirect to the admin page
-		fmt.Fprint(w, pageAccessToken)
+		http.Redirect(w, r, "/#/admin", http.StatusSeeOther)
 	}
 }
 
