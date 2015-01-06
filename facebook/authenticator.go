@@ -24,7 +24,7 @@ func NewAuthenticator(conf Config, domain string) Authenticator {
 	opts := &oauth2.Config{
 		ClientID:     conf.AppID,
 		ClientSecret: conf.AppSecret,
-		RedirectURL:  domain + "api/v1/login/facebook/redirected",
+		RedirectURL:  domain + "/api/v1/login/facebook/redirected",
 		Scopes:       []string{"manage_pages", "publish_actions"},
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  "https://www.facebook.com/dialog/oauth",
