@@ -5,15 +5,18 @@ import (
 
 	"github.com/deiwin/luncher-api/db/model"
 	. "github.com/onsi/gomega"
+	"gopkg.in/mgo.v2/bson"
 )
 
 type Mocks struct {
 	offers      []*model.Offer
 	tags        []*model.Tag
 	restaurants []*model.Restaurant
+	users       []*model.User
 }
 
 func createMocks() *Mocks {
+	restaurantID := bson.NewObjectId()
 	return &Mocks{
 		offers: []*model.Offer{&model.Offer{
 			Restaurant: model.OfferRestaurant{
@@ -77,12 +80,20 @@ func createMocks() *Mocks {
 				Address: "Võru 23, Tartu",
 			},
 			&model.Restaurant{
+				ID:      restaurantID,
 				Name:    "Asian Chef",
 				Address: "Võru 24, Tartu",
 			},
 			&model.Restaurant{
 				Name:    "Caesarian Kitchen",
 				Address: "Võru 25, Tartu",
+			},
+		},
+		users: []*model.User{
+			&model.User{
+				RestaurantID:   restaurantID,
+				FacebookUserID: facebookUserID,
+				FacebookPageID: facebookPageID,
 			},
 		},
 	}

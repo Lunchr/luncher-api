@@ -20,7 +20,7 @@ type manager struct{}
 
 // NewManager returns an implementation of the Manager interface
 func NewManager() Manager {
-	return &manager{}
+	return manager{}
 }
 
 func (mgr manager) GetOrInitSession(w http.ResponseWriter, r *http.Request) (session string) {

@@ -7,13 +7,13 @@ import (
 	"github.com/deiwin/luncher-api/db"
 )
 
-func Restaurants(restaurantsCollection db.Restaurants) func(http.ResponseWriter, *http.Request) {
+func Restaurants(restaurantsCollection db.Restaurants) Handler {
 	return func(w http.ResponseWriter, r *http.Request) {
 		restaurants, err := restaurantsCollection.Get()
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 		}
-		writeJson(w, restaurants)
+		writeJSON(w, restaurants)
 	}
 }

@@ -1,11 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/deiwin/luncher-api/db"
+	"github.com/deiwin/luncher-api/facebook"
 	"github.com/deiwin/luncher-api/handler"
+	"github.com/deiwin/luncher-api/session"
 	"github.com/gorilla/mux"
 )
 
@@ -18,12 +21,27 @@ func main() {
 	}
 	defer dbClient.Disconnect()
 
+	usersCollection := db.NewUsers(dbClient)
 	offersCollection := db.NewOffers(dbClient)
 	tagsCollection := db.NewTags(dbClient)
 
-	r := mux.NewRouter().PathPrefix("/api").Subrouter()
+	sessionManager := session.NewManager()
+	mainConfig, err := NewConfig()
+	if err != nil {
+		panic(err)
+	}
+
+	facebookConfig := facebook.NewConfig()
+	facebookAuthenticator := facebook.NewAuthenticator(facebookConfig, mainConfig.Domain)
+	facebookAPI := facebook.NewAPI(facebookConfig)
+	facebookHandler := handler.NewFacebook(facebookAuthenticator, sessionManager, facebookAPI, usersCollection)
+
+	r := mux.NewRouter().PathPrefix("/api/v1").Subrouter()
 	r.HandleFunc("/offers", handler.Offers(offersCollection))
 	r.HandleFunc("/tags", handler.Tags(tagsCollection))
+	r.HandleFunc("/login/facebook", facebookHandler.Login())
+	r.HandleFunc("/login/facebook/redirected", facebookHandler.Redirected())
 	http.Handle("/", r)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	portString := fmt.Sprintf(":%d", mainConfig.Port)
+	log.Fatal(http.ListenAndServe(portString, nil))
 }

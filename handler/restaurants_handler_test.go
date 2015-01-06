@@ -16,7 +16,7 @@ import (
 var _ = Describe("RestaurantsHandler", func() {
 	var (
 		mockRestaurantsCollection db.Restaurants
-		handler                   handlerFunc
+		handler                   Handler
 	)
 
 	BeforeEach(func() {
