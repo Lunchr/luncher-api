@@ -7,15 +7,28 @@ import (
 	"strconv"
 )
 
-type Handler func(http.ResponseWriter, *http.Request)
+type Handler func(http.ResponseWriter, *http.Request) *handlerError
 
-func writeJSON(w http.ResponseWriter, v interface{}) {
-	if data, err := json.Marshal(v); err != nil {
-		log.Printf("Error marshalling json: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-	} else {
-		w.Header().Set("Content-Length", strconv.Itoa(len(data)))
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(data)
+type handlerError struct {
+	Error   error
+	Message string
+	Code    int
+}
+
+func (fn Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if e := fn(w, r); e != nil {
+		log.Print(e.Error)
+		http.Error(w, e.Message, e.Code)
 	}
+}
+
+func writeJSON(w http.ResponseWriter, v interface{}) *handlerError {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return &handlerError{err, "", http.StatusInternalServerError}
+	}
+	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
+	return nil
 }

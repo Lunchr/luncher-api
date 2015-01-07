@@ -2,7 +2,6 @@ package handler
 
 import (
 	"errors"
-	"log"
 	"net/http"
 
 	"github.com/deiwin/luncher-api/db"
@@ -32,60 +31,49 @@ func NewFacebook(fbAuth facebook.Authenticator, sessMgr session.Manager, api fac
 }
 
 func (fb fbook) Login() Handler {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) *handlerError {
 		session := fb.sessionManager.GetOrInitSession(w, r)
 		redirectURL := fb.auth.AuthURL(session)
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+		return nil
 	}
 }
 
 func (fb fbook) Redirected() Handler {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) *handlerError {
 		err := fb.checkState(w, r)
 		if err != nil {
-			log.Print(err)
-			http.Error(w, "", http.StatusBadRequest)
-			return
+			return &handlerError{err, "", http.StatusBadRequest}
 		}
 		code := r.FormValue("code")
 		if code == "" {
-			log.Println("A Facebook redirect request is missing the 'code' value")
-			http.Error(w, "Expecting a 'code' value", http.StatusBadRequest)
-			return
+			err = errors.New("A Facebook redirect request is missing the 'code' value")
+			return &handlerError{err, "Expecting a 'code' value", http.StatusBadRequest}
 		}
 		tok, err := fb.auth.Token(code)
 		if err != nil {
-			log.Print(err)
-			http.Error(w, "", http.StatusInternalServerError)
-			return
+			return &handlerError{err, "", http.StatusInternalServerError}
 		}
 		client := fb.auth.Client(tok)
 		connection := facebook.NewConnection(fb.api, client)
 		userID, err := getUserID(connection)
 		if err != nil {
-			log.Print(err)
-			http.Error(w, "", http.StatusInternalServerError)
-			return
+			return &handlerError{err, "", http.StatusInternalServerError}
 		}
 		pageID, err := fb.getPageID(userID)
 		if err != nil {
-			log.Print(err)
-			http.Error(w, "", http.StatusInternalServerError)
-			return
+			return &handlerError{err, "", http.StatusInternalServerError}
 		}
 		pageAccessToken, err := fb.getPageAccessToken(connection, pageID)
 		if err != nil {
-			log.Print(err)
-			http.Error(w, "", http.StatusInternalServerError)
-			return
+			return &handlerError{err, "", http.StatusInternalServerError}
 		}
 		err = fb.storeAccessTokensInDB(userID, tok, pageAccessToken)
 		if err != nil {
-			log.Print(err)
-			http.Error(w, "", http.StatusInternalServerError)
-			return
+			return &handlerError{err, "", http.StatusInternalServerError}
 		}
 		http.Redirect(w, r, "/#/admin", http.StatusSeeOther)
+		return nil
 	}
 }
 

@@ -1,19 +1,17 @@
 package handler
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/deiwin/luncher-api/db"
 )
 
 func Restaurants(restaurantsCollection db.Restaurants) Handler {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) *handlerError {
 		restaurants, err := restaurantsCollection.Get()
 		if err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
+			return &handlerError{err, "", http.StatusInternalServerError}
 		}
-		writeJSON(w, restaurants)
+		return writeJSON(w, restaurants)
 	}
 }

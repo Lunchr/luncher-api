@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"log"
 	"net/http"
 	"time"
 
@@ -9,15 +8,14 @@ import (
 )
 
 func Offers(offersCollection db.Offers) Handler {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) *handlerError {
 		now := time.Now()
 		startTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 		endTime := startTime.AddDate(0, 0, 1)
 		offers, err := offersCollection.GetForTimeRange(startTime, endTime)
 		if err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
+			return &handlerError{err, "", http.StatusInternalServerError}
 		}
-		writeJSON(w, offers)
+		return writeJSON(w, offers)
 	}
 }
