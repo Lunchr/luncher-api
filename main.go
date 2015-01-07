@@ -36,7 +36,7 @@ func main() {
 	facebookAPI := facebook.NewAPI(facebookConfig)
 	facebookHandler := handler.NewFacebook(facebookAuthenticator, sessionManager, facebookAPI, usersCollection)
 
-	r := mux.NewRouter().PathPrefix("/api/v1").Subrouter()
+	r := mux.NewRouter().PathPrefix("/api/v1/").Subrouter()
 	r.Handle("/offers", handler.Offers(offersCollection))
 	r.Handle("/tags", handler.Tags(tagsCollection))
 	r.Handle("/login/facebook", facebookHandler.Login())
