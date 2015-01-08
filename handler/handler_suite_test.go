@@ -18,12 +18,18 @@ func TestHandler(t *testing.T) {
 var (
 	responseRecorder *httptest.ResponseRecorder
 	request          *http.Request
+	requestMethod    = "GET"
+	requestURL       string
 )
 
 var _ = BeforeEach(func(done Done) {
 	defer close(done)
 	responseRecorder = httptest.NewRecorder()
+
+})
+
+var _ = JustBeforeEach(func() {
 	var err error
-	request, err = http.NewRequest("", "", nil)
+	request, err = http.NewRequest(requestMethod, requestURL, nil)
 	Expect(err).NotTo(HaveOccurred())
 })
