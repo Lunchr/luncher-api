@@ -41,13 +41,12 @@ func (fb fbook) Login() Handler {
 
 func (fb fbook) Redirected() Handler {
 	return func(w http.ResponseWriter, r *http.Request) *handlerError {
-		err := fb.checkState(w, r)
-		if err != nil {
-			return &handlerError{err, "", http.StatusBadRequest}
+		if err := fb.checkState(w, r); err != nil {
+			return err
 		}
 		code := r.FormValue("code")
 		if code == "" {
-			err = errors.New("A Facebook redirect request is missing the 'code' value")
+			err := errors.New("A Facebook redirect request is missing the 'code' value")
 			return &handlerError{err, "Expecting a 'code' value", http.StatusBadRequest}
 		}
 		tok, err := fb.auth.Token(code)
@@ -101,13 +100,15 @@ func (fb fbook) getPageAccessToken(connection facebook.Connection, pageID string
 	return
 }
 
-func (fb fbook) checkState(w http.ResponseWriter, r *http.Request) error {
+func (fb fbook) checkState(w http.ResponseWriter, r *http.Request) *handlerError {
 	session := fb.sessionManager.GetOrInitSession(w, r)
 	state := r.FormValue("state")
 	if state == "" {
-		return errors.New("A Facebook redirect request is missing the 'state' value")
+		err := errors.New("A Facebook redirect request is missing the 'state' value")
+		return &handlerError{err, "Expecting a 'state' value", http.StatusBadRequest}
 	} else if state != session {
-		return errors.New("A Facebook redirect request's 'state' value does not match the session")
+		err := errors.New("A Facebook redirect request's 'state' value does not match the session")
+		return &handlerError{err, "Invalid 'state' value", http.StatusForbidden}
 	}
 	return nil
 }
