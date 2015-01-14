@@ -1,9 +1,6 @@
 package handler
 
 import (
-	"errors"
-	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/deiwin/luncher-api/db"
@@ -24,72 +21,57 @@ type Facebook interface {
 type fbook struct {
 	auth            facebook.Authenticator
 	sessionManager  session.Manager
-	api             facebook.API
 	usersCollection db.Users
 }
 
-func NewFacebook(fbAuth facebook.Authenticator, sessMgr session.Manager, api facebook.API, usersCollection db.Users) Facebook {
-	return fbook{fbAuth, sessMgr, api, usersCollection}
+func NewFacebook(fbAuth facebook.Authenticator, sessMgr session.Manager, usersCollection db.Users) Facebook {
+	return fbook{fbAuth, sessMgr, usersCollection}
 }
 
 func (fb fbook) Login() Handler {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) *handlerError {
 		session := fb.sessionManager.GetOrInitSession(w, r)
 		redirectURL := fb.auth.AuthURL(session)
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+		return nil
 	}
 }
 
 func (fb fbook) Redirected() Handler {
-	return func(w http.ResponseWriter, r *http.Request) {
-		err := fb.checkState(w, r)
+	return func(w http.ResponseWriter, r *http.Request) *handlerError {
+		session := fb.sessionManager.GetOrInitSession(w, r)
+		tok, err := fb.auth.Token(session, r)
 		if err != nil {
-			log.Print(err)
-			http.Error(w, "", http.StatusBadRequest)
-			return
+			if err == facebook.ErrMissingState {
+				return &handlerError{err, "Expecting a 'state' value", http.StatusBadRequest}
+			} else if err == facebook.ErrInvalidState {
+				return &handlerError{err, "Invalid 'state' value", http.StatusForbidden}
+			} else if err == facebook.ErrMissingCode {
+				return &handlerError{err, "Expecting a 'code' value", http.StatusBadRequest}
+			}
+			return &handlerError{err, "", http.StatusInternalServerError}
 		}
-
-		code := r.FormValue("code")
-		if code == "" {
-			log.Println("A Facebook redirect request is missing the 'code' value")
-			http.Error(w, "Expecting a 'code' value", http.StatusBadRequest)
-			return
-		}
-		tok, err := fb.auth.Token(code)
+		userID, err := fb.getUserID(tok)
 		if err != nil {
-			log.Print(err)
-			http.Error(w, "", http.StatusInternalServerError)
-			return
-		}
-		client := fb.auth.Client(tok)
-
-		connection := facebook.NewConnection(fb.api, client)
-		userID, err := getUserID(connection)
-		if err != nil {
-			log.Print(err)
-			http.Error(w, "", http.StatusInternalServerError)
-			return
+			return &handlerError{err, "", http.StatusInternalServerError}
 		}
 		pageID, err := fb.getPageID(userID)
 		if err != nil {
-			log.Print(err)
-			http.Error(w, "", http.StatusInternalServerError)
-			return
+			return &handlerError{err, "", http.StatusInternalServerError}
 		}
-		pageAccessToken, err := fb.getPageAccessToken(connection, pageID)
+		pageAccessToken, err := fb.auth.PageAccessToken(tok, pageID)
 		if err != nil {
-			log.Print(err)
-			http.Error(w, "", http.StatusInternalServerError)
-			return
+			if err == facebook.ErrNoSuchPage {
+				return &handlerError{err, "Access denied by Facebook to the managed page", http.StatusForbidden}
+			}
+			return &handlerError{err, "", http.StatusInternalServerError}
 		}
 		err = fb.storeAccessTokensInDB(userID, tok, pageAccessToken)
 		if err != nil {
-			log.Print(err)
-			http.Error(w, "", http.StatusInternalServerError)
-			return
+			return &handlerError{err, "", http.StatusInternalServerError}
 		}
-		// TODO redirect to the admin page
-		fmt.Fprint(w, pageAccessToken)
+		http.Redirect(w, r, "/#/admin", http.StatusSeeOther)
+		return nil
 	}
 }
 
@@ -102,46 +84,19 @@ func (fb fbook) storeAccessTokensInDB(userID string, tok *oauth2.Token, pageAcce
 	return
 }
 
-func (fb fbook) getPageAccessToken(connection facebook.Connection, pageID string) (pageAccessToken string, err error) {
-	accs, err := connection.Accounts()
-	if err != nil {
-		return
-	}
-	for _, page := range accs.Data {
-		if page.ID == pageID {
-			pageAccessToken = page.AccessToken
-			return
-		}
-	}
-	err = errors.New("Couldn't find the administered page")
-	return
-}
-
-func (fb fbook) checkState(w http.ResponseWriter, r *http.Request) error {
-	session := fb.sessionManager.GetOrInitSession(w, r)
-	state := r.FormValue("state")
-	if state == "" {
-		return errors.New("A Facebook redirect request is missing the 'state' value")
-	} else if state != session {
-		return errors.New("A Facebook redirect request's 'state' value does not match the session")
-	}
-	return nil
-}
-
-func getUserID(connection facebook.Connection) (userID string, err error) {
+func (fb fbook) getUserID(tok *oauth2.Token) (string, error) {
+	connection := fb.auth.APIConnection(tok)
 	user, err := connection.Me()
 	if err != nil {
-		return
+		return "", err
 	}
-	userID = user.Id
-	return
+	return user.Id, nil
 }
 
-func (fb fbook) getPageID(userID string) (pageID string, err error) {
+func (fb fbook) getPageID(userID string) (string, error) {
 	userInDB, err := fb.usersCollection.Get(userID)
 	if err != nil {
-		return
+		return "", err
 	}
-	pageID = userInDB.FacebookPageID
-	return
+	return userInDB.FacebookPageID, nil
 }

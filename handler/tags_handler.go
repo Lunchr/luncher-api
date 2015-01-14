@@ -1,19 +1,17 @@
 package handler
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/deiwin/luncher-api/db"
 )
 
 func Tags(tagsCollection db.Tags) Handler {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) *handlerError {
 		tags, err := tagsCollection.Get()
 		if err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
+			return &handlerError{err, "", http.StatusInternalServerError}
 		}
-		writeJSON(w, tags)
+		return writeJSON(w, tags)
 	}
 }

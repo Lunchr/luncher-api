@@ -32,13 +32,13 @@ var _ = Describe("OffersHandler", func() {
 
 		It("should succeed", func(done Done) {
 			defer close(done)
-			handler(responseRecorder, request)
+			handler.ServeHTTP(responseRecorder, request)
 			Expect(responseRecorder.Code).To(Equal(http.StatusOK))
 		})
 
 		It("should return json", func(done Done) {
 			defer close(done)
-			handler(responseRecorder, request)
+			handler.ServeHTTP(responseRecorder, request)
 			contentTypes := responseRecorder.HeaderMap["Content-Type"]
 			Expect(contentTypes).To(HaveLen(1))
 			Expect(contentTypes[0]).To(Equal("application/json"))
@@ -61,7 +61,7 @@ var _ = Describe("OffersHandler", func() {
 
 			It("should write the returned data to responsewriter", func(done Done) {
 				defer close(done)
-				handler(responseRecorder, request)
+				handler.ServeHTTP(responseRecorder, request)
 				// Expect(responseRecorder.Flushed).To(BeTrue()) // TODO check if this should be true
 				var result []*model.Offer
 				json.Unmarshal(responseRecorder.Body.Bytes(), &result)
@@ -84,7 +84,7 @@ var _ = Describe("OffersHandler", func() {
 
 			It("should return error 500", func(done Done) {
 				defer close(done)
-				handler(responseRecorder, request)
+				handler.ServeHTTP(responseRecorder, request)
 				Expect(responseRecorder.Code).To(Equal(http.StatusInternalServerError))
 			})
 		})

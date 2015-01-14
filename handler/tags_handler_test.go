@@ -30,13 +30,13 @@ var _ = Describe("TagsHandler", func() {
 	Describe("Get", func() {
 		It("should succeed", func(done Done) {
 			defer close(done)
-			handler(responseRecorder, request)
+			handler.ServeHTTP(responseRecorder, request)
 			Expect(responseRecorder.Code).To(Equal(http.StatusOK))
 		})
 
 		It("should return json", func(done Done) {
 			defer close(done)
-			handler(responseRecorder, request)
+			handler.ServeHTTP(responseRecorder, request)
 			contentTypes := responseRecorder.HeaderMap["Content-Type"]
 			Expect(contentTypes).To(HaveLen(1))
 			Expect(contentTypes[0]).To(Equal("application/json"))
@@ -59,7 +59,7 @@ var _ = Describe("TagsHandler", func() {
 
 			It("should write the returned data to responsewriter", func(done Done) {
 				defer close(done)
-				handler(responseRecorder, request)
+				handler.ServeHTTP(responseRecorder, request)
 				var result []*model.Tag
 				json.Unmarshal(responseRecorder.Body.Bytes(), &result)
 				Expect(result).To(HaveLen(1))
@@ -81,7 +81,7 @@ var _ = Describe("TagsHandler", func() {
 
 			It("should return error 500", func(done Done) {
 				defer close(done)
-				handler(responseRecorder, request)
+				handler.ServeHTTP(responseRecorder, request)
 				Expect(responseRecorder.Code).To(Equal(http.StatusInternalServerError))
 			})
 		})

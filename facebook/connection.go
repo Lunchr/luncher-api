@@ -18,14 +18,7 @@ type Connection interface {
 
 type connection struct {
 	*http.Client
-	api API
-}
-
-func NewConnection(api API, client *http.Client) Connection {
-	return connection{
-		api:    api,
-		Client: client,
-	}
+	api api
 }
 
 func (c connection) Me() (user model.User, err error) {
