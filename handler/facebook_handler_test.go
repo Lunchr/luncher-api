@@ -22,7 +22,6 @@ var _ = Describe("FacebookHandler", func() {
 	var (
 		auther              facebook.Authenticator
 		mockSessMgr         session.Manager
-		mockAPI             facebook.API
 		mockUsersCollection db.Users
 		handlers            Facebook
 	)
@@ -33,7 +32,7 @@ var _ = Describe("FacebookHandler", func() {
 	})
 
 	JustBeforeEach(func() {
-		handlers = NewFacebook(auther, mockSessMgr, mockAPI, mockUsersCollection)
+		handlers = NewFacebook(auther, mockSessMgr, mockUsersCollection)
 	})
 
 	Describe("Login", func() {
@@ -70,10 +69,14 @@ func (a authenticator) AuthURL(session string) string {
 	return testURL
 }
 
-func (a authenticator) Token(code string) (tok *oauth2.Token, err error) {
+func (a authenticator) Token(code string, r *http.Request) (tok *oauth2.Token, err error) {
 	return
 }
 
-func (a authenticator) Client(tok *oauth2.Token) (client *http.Client) {
-	return
+func (a authenticator) PageAccessToken(tok *oauth2.Token, pageID string) (string, error) {
+	return "", nil
+}
+
+func (a authenticator) APIConnection(tok *oauth2.Token) facebook.Connection {
+	return nil
 }
