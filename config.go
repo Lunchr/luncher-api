@@ -3,12 +3,12 @@ package main
 import (
 	"strconv"
 
-	"github.com/deiwin/luncher-api/config"
+	"github.com/deiwin/gonfigure"
 )
 
 var (
-	domainProperty = config.NewRequiredEnvProperty("LUNCHER_DOMAIN")
-	portProperty   = config.NewEnvProperty("LUNCHER_PORT", "8080")
+	domainProperty = gonfigure.NewRequiredEnvProperty("LUNCHER_DOMAIN")
+	portProperty   = gonfigure.NewEnvProperty("LUNCHER_PORT", "8080")
 )
 
 type Config struct {
@@ -17,12 +17,12 @@ type Config struct {
 }
 
 func NewConfig() (conf Config, err error) {
-	port, err := strconv.Atoi(portProperty.DefaultValue())
+	port, err := strconv.Atoi(portProperty.Value())
 	if err != nil {
 		return
 	}
 	conf = Config{
-		Domain: domainProperty.DefaultValue(),
+		Domain: domainProperty.Value(),
 		Port:   port,
 	}
 	return

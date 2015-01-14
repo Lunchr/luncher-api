@@ -1,10 +1,10 @@
 package db
 
-import "github.com/deiwin/luncher-api/config"
+import "github.com/deiwin/gonfigure"
 
 var (
-	dbURLEnvProperty  = config.NewEnvProperty("LUNCHER_DB_ADDRESS", "mongodb://localhost/test")
-	dbNameEnvProperty = config.NewEnvProperty("LUNCHER_DB_NAME", "")
+	dbURLEnvProperty  = gonfigure.NewEnvProperty("LUNCHER_DB_ADDRESS", "mongodb://localhost/test")
+	dbNameEnvProperty = gonfigure.NewEnvProperty("LUNCHER_DB_NAME", "")
 )
 
 type Config struct {
@@ -14,7 +14,7 @@ type Config struct {
 
 func NewConfig() *Config {
 	return &Config{
-		DbURL:  dbURLEnvProperty.DefaultValue(),
-		DbName: dbNameEnvProperty.DefaultValue(),
+		DbURL:  dbURLEnvProperty.Value(),
+		DbName: dbNameEnvProperty.Value(),
 	}
 }

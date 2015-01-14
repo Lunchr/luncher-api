@@ -1,11 +1,10 @@
 package facebook
 
-import "github.com/deiwin/luncher-api/config"
+import "github.com/deiwin/gonfigure"
 
 var (
-	appIDEnvProperty      = config.NewRequiredEnvProperty("LUNCHER_FACEBOOK_APP_ID")
-	appSecretEnvProperty  = config.NewRequiredEnvProperty("LUNCHER_FACEBOOK_APP_SECRET")
-	apiVersionEnvProperty = config.NewEnvProperty("LUNCHER_FACEBOOK_API_VERSION", "v2.2")
+	appIDEnvProperty     = gonfigure.NewRequiredEnvProperty("LUNCHER_FACEBOOK_APP_ID")
+	appSecretEnvProperty = gonfigure.NewRequiredEnvProperty("LUNCHER_FACEBOOK_APP_SECRET")
 )
 
 type Config struct {
@@ -16,8 +15,8 @@ type Config struct {
 
 func NewConfig() Config {
 	return Config{
-		AppID:      appIDEnvProperty.DefaultValue(),
-		AppSecret:  appSecretEnvProperty.DefaultValue(),
+		AppID:       appIDEnvProperty.Value(),
+		AppSecret:   appSecretEnvProperty.Value(),
 		ApiVersion: apiVersionEnvProperty.DefaultValue(),
 	}
 }
