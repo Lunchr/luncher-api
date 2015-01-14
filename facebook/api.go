@@ -1,11 +1,28 @@
 package facebook
 
-type API struct {
+import "net/http"
+
+const (
+	apiVersion = "v2.2"
+)
+
+type API interface {
+	Connection(*http.Client) Connection
+}
+
+type api struct {
 	graphURL string
 }
 
-func NewAPI(conf Config) API {
-	return API{
-		graphURL: "https://graph.facebook.com/" + conf.ApiVersion,
+func NewAPI() API {
+	return api{
+		graphURL: "https://graph.facebook.com/" + apiVersion,
+	}
+}
+
+func (a api) Connection(client *http.Client) Connection {
+	return connection{
+		api:    a,
+		Client: client,
 	}
 }

@@ -31,10 +31,12 @@ func main() {
 		panic(err)
 	}
 
-	facebookConfig := facebook.NewConfig()
-	facebookAuthenticator := facebook.NewAuthenticator(facebookConfig, mainConfig.Domain)
-	facebookAPI := facebook.NewAPI(facebookConfig)
-	facebookHandler := handler.NewFacebook(facebookAuthenticator, sessionManager, facebookAPI, usersCollection)
+	redirectURL := mainConfig.Domain + "/api/v1/login/facebook/redirected"
+	scopes := []string{"manage_pages", "publish_actions"}
+	facebookConfig := facebook.NewConfig(redirectURL, scopes)
+	facebookAPI := facebook.NewAPI()
+	facebookAuthenticator := facebook.NewAuthenticator(facebookConfig, facebookAPI)
+	facebookHandler := handler.NewFacebook(facebookAuthenticator, sessionManager, usersCollection)
 
 	r := mux.NewRouter().PathPrefix("/api/v1/").Subrouter()
 	r.Handle("/offers", handler.Offers(offersCollection))
