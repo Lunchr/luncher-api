@@ -3,8 +3,8 @@ package handler
 import (
 	"net/http"
 
+	"github.com/deiwin/facebook"
 	"github.com/deiwin/luncher-api/db"
-	"github.com/deiwin/luncher-api/facebook"
 	"github.com/deiwin/luncher-api/session"
 	"golang.org/x/oauth2"
 )
@@ -85,12 +85,12 @@ func (fb fbook) storeAccessTokensInDB(userID string, tok *oauth2.Token, pageAcce
 }
 
 func (fb fbook) getUserID(tok *oauth2.Token) (string, error) {
-	connection := fb.auth.APIConnection(tok)
-	user, err := connection.Me()
+	api := fb.auth.APIConnection(tok)
+	user, err := api.Me()
 	if err != nil {
 		return "", err
 	}
-	return user.Id, nil
+	return user.ID, nil
 }
 
 func (fb fbook) getPageID(userID string) (string, error) {

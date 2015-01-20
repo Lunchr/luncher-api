@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/deiwin/facebook"
 	"github.com/deiwin/luncher-api/db"
-	"github.com/deiwin/luncher-api/facebook"
 	. "github.com/deiwin/luncher-api/handler"
 	"github.com/deiwin/luncher-api/session"
 	"golang.org/x/oauth2"
@@ -77,6 +77,6 @@ func (a authenticator) PageAccessToken(tok *oauth2.Token, pageID string) (string
 	return "", nil
 }
 
-func (a authenticator) APIConnection(tok *oauth2.Token) facebook.Connection {
+func (a authenticator) APIConnection(tok *oauth2.Token) facebook.API {
 	return nil
 }

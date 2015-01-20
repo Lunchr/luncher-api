@@ -5,8 +5,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/deiwin/facebook"
 	"github.com/deiwin/luncher-api/db"
-	"github.com/deiwin/luncher-api/facebook"
 	"github.com/deiwin/luncher-api/handler"
 	"github.com/deiwin/luncher-api/session"
 	"github.com/gorilla/mux"
@@ -34,8 +34,7 @@ func main() {
 	redirectURL := mainConfig.Domain + "/api/v1/login/facebook/redirected"
 	scopes := []string{"manage_pages", "publish_actions"}
 	facebookConfig := facebook.NewConfig(redirectURL, scopes)
-	facebookAPI := facebook.NewAPI()
-	facebookAuthenticator := facebook.NewAuthenticator(facebookConfig, facebookAPI)
+	facebookAuthenticator := facebook.NewAuthenticator(facebookConfig)
 	facebookHandler := handler.NewFacebook(facebookAuthenticator, sessionManager, usersCollection)
 
 	r := mux.NewRouter().PathPrefix("/api/v1/").Subrouter()
