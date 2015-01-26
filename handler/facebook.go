@@ -66,7 +66,7 @@ func (fb fbook) Redirected() Handler {
 			}
 			return &handlerError{err, "", http.StatusInternalServerError}
 		}
-		err = fb.storeAccessTokensInDB(userID, tok, pageAccessToken)
+		err = fb.storeAccessTokensInDB(userID, tok, pageAccessToken, session)
 		if err != nil {
 			return &handlerError{err, "", http.StatusInternalServerError}
 		}
@@ -75,13 +75,16 @@ func (fb fbook) Redirected() Handler {
 	}
 }
 
-func (fb fbook) storeAccessTokensInDB(userID string, tok *oauth2.Token, pageAccessToken string) (err error) {
-	err = fb.usersCollection.SetAccessToken(userID, *tok)
+func (fb fbook) storeAccessTokensInDB(userID string, tok *oauth2.Token, pageAccessToken, sessionID string) error {
+	err := fb.usersCollection.SetAccessToken(userID, *tok)
 	if err != nil {
-		return
+		return err
 	}
 	err = fb.usersCollection.SetPageAccessToken(userID, pageAccessToken)
-	return
+	if err != nil {
+		return err
+	}
+	return fb.usersCollection.SetSessionID(userID, sessionID)
 }
 
 func (fb fbook) getUserID(tok *oauth2.Token) (string, error) {
