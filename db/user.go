@@ -38,12 +38,12 @@ func (collection usersCollection) Get(facebookUserID string) (user *model.User, 
 
 func (collection usersCollection) SetAccessToken(facebookUserID string, tok oauth2.Token) error {
 	return collection.c.Update(bson.M{"facebook_user_id": facebookUserID}, bson.M{
-		"$set": bson.M{"facebook_user_token": tok},
+		"$set": bson.M{"session.facebook_user_token": tok},
 	})
 }
 
 func (collection usersCollection) SetPageAccessToken(facebookUserID string, tok string) error {
 	return collection.c.Update(bson.M{"facebook_user_id": facebookUserID}, bson.M{
-		"$set": bson.M{"facebook_page_token": tok},
+		"$set": bson.M{"session.facebook_page_token": tok},
 	})
 }
