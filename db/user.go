@@ -10,8 +10,10 @@ import (
 type Users interface {
 	Insert(...*model.User) error
 	Get(string) (*model.User, error)
+	GetBySessionID(string) (*model.User, error)
 	SetAccessToken(string, oauth2.Token) error
 	SetPageAccessToken(string, string) error
+	SetSessionID(string, string) error
 }
 
 type usersCollection struct {
@@ -36,6 +38,11 @@ func (collection usersCollection) Get(facebookUserID string) (user *model.User, 
 	return
 }
 
+func (collection usersCollection) GetBySessionID(sessionID string) (user *model.User, err error) {
+	err = collection.c.Find(bson.M{"session.id": sessionID}).One(&user)
+	return
+}
+
 func (collection usersCollection) SetAccessToken(facebookUserID string, tok oauth2.Token) error {
 	return collection.c.Update(bson.M{"facebook_user_id": facebookUserID}, bson.M{
 		"$set": bson.M{"session.facebook_user_token": tok},
@@ -45,5 +52,11 @@ func (collection usersCollection) SetAccessToken(facebookUserID string, tok oaut
 func (collection usersCollection) SetPageAccessToken(facebookUserID string, tok string) error {
 	return collection.c.Update(bson.M{"facebook_user_id": facebookUserID}, bson.M{
 		"$set": bson.M{"session.facebook_page_token": tok},
+	})
+}
+
+func (collection usersCollection) SetSessionID(facebookUserID string, sessionID string) error {
+	return collection.c.Update(bson.M{"facebook_user_id": facebookUserID}, bson.M{
+		"$set": bson.M{"session.id": sessionID},
 	})
 }

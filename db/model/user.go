@@ -21,6 +21,7 @@ type (
 	// (facebook auth tokens, for example) may persist throughout multiple client
 	// sessions, however.
 	UserSession struct {
+		ID                string       `bson:"id,omitempty"`
 		FacebookUserToken oauth2.Token `bson:"facebook_user_token,omitempty"`
 		FacebookPageToken string       `bson:"facebook_page_token,omitempty"`
 	}

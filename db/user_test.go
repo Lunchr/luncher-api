@@ -90,4 +90,37 @@ var _ = Describe("User", func() {
 			})
 		})
 	})
+
+	Describe("SessionID", func() {
+		Context("with SessionID set", func() {
+			var id string
+
+			BeforeEach(func(done Done) {
+				defer close(done)
+				id = "someid"
+				err := usersCollection.SetSessionID(facebookUserID, id)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Describe("SetSessionID", func() {
+				It("should be included in the Get", func(done Done) {
+					defer close(done)
+					user, err := usersCollection.Get(facebookUserID)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(user).NotTo(BeNil())
+					Expect(user.Session.ID).To(Equal("someid"))
+				})
+			})
+
+			Describe("GetBySessionID", func() {
+				It("should be included in the Get", func(done Done) {
+					defer close(done)
+					user, err := usersCollection.GetBySessionID(id)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(user).NotTo(BeNil())
+					Expect(user.FacebookUserID).To(Equal(facebookUserID))
+				})
+			})
+		})
+	})
 })
