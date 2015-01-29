@@ -54,6 +54,7 @@ var _ = Describe("RestaurantsHandler", func() {
 						restaurants = mockResult
 						return
 					},
+					nil,
 				}
 			})
 
@@ -76,6 +77,7 @@ var _ = Describe("RestaurantsHandler", func() {
 						err = dbErr
 						return
 					},
+					nil,
 				}
 			})
 
@@ -90,10 +92,7 @@ var _ = Describe("RestaurantsHandler", func() {
 
 type mockRestaurants struct {
 	getFunc func() ([]*model.Restaurant, error)
-}
-
-func (mock mockRestaurants) Insert(restaurantsToInsert ...*model.Restaurant) (err error) {
-	return
+	db.Restaurants
 }
 
 func (mock mockRestaurants) Get() (restaurants []*model.Restaurant, err error) {

@@ -54,6 +54,7 @@ var _ = Describe("TagsHandler", func() {
 						tags = mockResult
 						return
 					},
+					nil,
 				}
 			})
 
@@ -76,6 +77,7 @@ var _ = Describe("TagsHandler", func() {
 						err = dbErr
 						return
 					},
+					nil,
 				}
 			})
 
@@ -90,10 +92,7 @@ var _ = Describe("TagsHandler", func() {
 
 type mockTags struct {
 	getFunc func() ([]*model.Tag, error)
-}
-
-func (mock mockTags) Insert(tagsToInsert ...*model.Tag) (err error) {
-	return
+	db.Tags
 }
 
 func (mock mockTags) Get() (tags []*model.Tag, err error) {

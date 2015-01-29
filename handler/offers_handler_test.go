@@ -56,6 +56,7 @@ var _ = Describe("OffersHandler", func() {
 						offers = mockResult
 						return
 					},
+					nil,
 				}
 			})
 
@@ -79,6 +80,7 @@ var _ = Describe("OffersHandler", func() {
 						err = dbErr
 						return
 					},
+					nil,
 				}
 			})
 
@@ -93,10 +95,7 @@ var _ = Describe("OffersHandler", func() {
 
 type mockOffers struct {
 	getForTimeRangeFunc func(time.Time, time.Time) ([]*model.Offer, error)
-}
-
-func (mock mockOffers) Insert(offersToInsert ...*model.Offer) (err error) {
-	return
+	db.Offers
 }
 
 func (mock mockOffers) GetForTimeRange(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {

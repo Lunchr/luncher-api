@@ -8,7 +8,6 @@ import (
 	"github.com/deiwin/luncher-api/db"
 	. "github.com/deiwin/luncher-api/handler"
 	"github.com/deiwin/luncher-api/session"
-	"golang.org/x/oauth2"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -62,21 +61,11 @@ func (mock mockManager) GetOrInitSession(w http.ResponseWriter, r *http.Request)
 	return "session"
 }
 
-type authenticator struct{}
+type authenticator struct {
+	facebook.Authenticator
+}
 
 func (a authenticator) AuthURL(session string) string {
 	Expect(session).To(Equal("session"))
 	return testURL
-}
-
-func (a authenticator) Token(code string, r *http.Request) (tok *oauth2.Token, err error) {
-	return
-}
-
-func (a authenticator) PageAccessToken(tok *oauth2.Token, pageID string) (string, error) {
-	return "", nil
-}
-
-func (a authenticator) APIConnection(tok *oauth2.Token) facebook.API {
-	return nil
 }
