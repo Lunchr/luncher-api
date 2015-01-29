@@ -26,8 +26,8 @@ var _ = Describe("FacebookHandler", func() {
 	)
 
 	BeforeEach(func() {
-		auther = &authenticator{}
-		mockSessMgr = &mockManager{}
+		auther = &mockAuthenticator{}
+		mockSessMgr = &mockSessionManager{}
 	})
 
 	JustBeforeEach(func() {
@@ -55,17 +55,17 @@ func ExpectLocationToBeMockedURL(responseRecorder *httptest.ResponseRecorder) {
 	Expect(location[0]).To(Equal(testURL))
 }
 
-type mockManager struct{}
+type mockSessionManager struct{}
 
-func (mock mockManager) GetOrInitSession(w http.ResponseWriter, r *http.Request) string {
+func (m mockSessionManager) GetOrInitSession(w http.ResponseWriter, r *http.Request) string {
 	return "session"
 }
 
-type authenticator struct {
+type mockAuthenticator struct {
 	facebook.Authenticator
 }
 
-func (a authenticator) AuthURL(session string) string {
+func (m mockAuthenticator) AuthURL(session string) string {
 	Expect(session).To(Equal("session"))
 	return testURL
 }

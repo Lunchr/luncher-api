@@ -6,29 +6,34 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/deiwin/facebook"
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
 	. "github.com/deiwin/luncher-api/handler"
+	"github.com/deiwin/luncher-api/session"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("OffersHandler", func() {
+
 	var (
-		mockOffersCollection db.Offers
-		handler              Handler
+		offersCollection db.Offers
 	)
 
 	BeforeEach(func() {
-		mockOffersCollection = &mockOffers{}
+		offersCollection = &mockOffers{}
 	})
 
-	JustBeforeEach(func() {
-		handler = Offers(mockOffersCollection)
-	})
+	Describe("Offers", func() {
+		var (
+			handler Handler
+		)
 
-	Describe("GetForTimeRange", func() {
+		JustBeforeEach(func() {
+			handler = Offers(offersCollection)
+		})
 
 		It("should succeed", func(done Done) {
 			defer close(done)
@@ -51,7 +56,7 @@ var _ = Describe("OffersHandler", func() {
 			)
 			BeforeEach(func() {
 				mockResult = []*model.Offer{&model.Offer{Title: "sometitle"}}
-				mockOffersCollection = &mockOffers{
+				offersCollection = &mockOffers{
 					func(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
 						offers = mockResult
 						return
@@ -75,7 +80,7 @@ var _ = Describe("OffersHandler", func() {
 			var dbErr = errors.New("DB stuff failed")
 
 			BeforeEach(func() {
-				mockOffersCollection = &mockOffers{
+				offersCollection = &mockOffers{
 					func(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
 						err = dbErr
 						return
@@ -91,7 +96,36 @@ var _ = Describe("OffersHandler", func() {
 			})
 		})
 	})
+
+	Describe("PostOffers", func() {
+		var (
+			usersCollection db.Users
+			handler         Handler
+			authenticator   facebook.Authenticator
+			sessionManager  session.Manager
+		)
+
+		BeforeEach(func() {
+			usersCollection = &mockUsers{}
+			authenticator = &mockAuthenticator{}
+			sessionManager = &mockSessionManager{}
+		})
+
+		JustBeforeEach(func() {
+			handler = PostOffers(offersCollection, usersCollection, sessionManager, authenticator)
+		})
+
+		It("should return HTTP 201: Created", func(done Done) {
+			defer close(done)
+			handler.ServeHTTP(responseRecorder, request)
+			Expect(responseRecorder.Code).To(Equal(http.StatusCreated))
+		})
+	})
 })
+
+type mockUsers struct {
+	db.Users
+}
 
 type mockOffers struct {
 	getForTimeRangeFunc func(time.Time, time.Time) ([]*model.Offer, error)
