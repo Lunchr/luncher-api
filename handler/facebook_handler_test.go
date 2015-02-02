@@ -1,6 +1,7 @@
 package handler_test
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 
@@ -56,7 +57,18 @@ func ExpectLocationToBeMockedURL(responseRecorder *httptest.ResponseRecorder) {
 }
 
 type mockSessionManager struct {
-	session.Manager
+	isSet bool
+	id    string
+}
+
+func (m mockSessionManager) Get(r *http.Request) (string, error) {
+	if !m.isSet {
+		return "", errors.New("no session")
+	}
+	if m.id == "" {
+		return "session", nil
+	}
+	return m.id, nil
 }
 
 func (m mockSessionManager) GetOrInit(w http.ResponseWriter, r *http.Request) string {

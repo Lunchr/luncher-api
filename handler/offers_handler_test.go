@@ -108,17 +108,43 @@ var _ = Describe("OffersHandler", func() {
 		BeforeEach(func() {
 			usersCollection = &mockUsers{}
 			authenticator = &mockAuthenticator{}
-			sessionManager = &mockSessionManager{}
 		})
 
 		JustBeforeEach(func() {
 			handler = PostOffers(offersCollection, usersCollection, sessionManager, authenticator)
 		})
+		Context("with no session set", func() {
+			BeforeEach(func() {
+				sessionManager = &mockSessionManager{}
+			})
 
-		It("should return HTTP 201: Created", func(done Done) {
-			defer close(done)
-			handler.ServeHTTP(responseRecorder, request)
-			Expect(responseRecorder.Code).To(Equal(http.StatusCreated))
+			It("should be forbidden", func(done Done) {
+				defer close(done)
+				handler.ServeHTTP(responseRecorder, request)
+				Expect(responseRecorder.Code).To(Equal(http.StatusForbidden))
+			})
+		})
+
+		Context("with session set, but no matching user in DB", func() {
+			BeforeEach(func() {
+				sessionManager = &mockSessionManager{isSet: true}
+			})
+
+			It("should be forbidden", func(done Done) {
+				defer close(done)
+				handler.ServeHTTP(responseRecorder, request)
+				Expect(responseRecorder.Code).To(Equal(http.StatusForbidden))
+			})
+		})
+
+		Context("with session set and a matching user in DB", func() {
+			BeforeEach(func() {
+				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
+			})
+
+			It("should post it to FB", func() {
+				Fail("not implemented")
+			})
 		})
 	})
 })
@@ -127,14 +153,21 @@ type mockUsers struct {
 	db.Users
 }
 
+func (m mockUsers) GetBySessionID(session string) (*model.User, error) {
+	if session != "correctSession" {
+		return nil, errors.New("wrong session")
+	}
+	return &model.User{}, nil
+}
+
 type mockOffers struct {
 	getForTimeRangeFunc func(time.Time, time.Time) ([]*model.Offer, error)
 	db.Offers
 }
 
-func (mock mockOffers) GetForTimeRange(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
-	if mock.getForTimeRangeFunc != nil {
-		offers, err = mock.getForTimeRangeFunc(startTime, endTime)
+func (m mockOffers) GetForTimeRange(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
+	if m.getForTimeRangeFunc != nil {
+		offers, err = m.getForTimeRangeFunc(startTime, endTime)
 	}
 	return
 }

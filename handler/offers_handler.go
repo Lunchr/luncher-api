@@ -27,6 +27,15 @@ func Offers(offersCollection db.Offers) Handler {
 // sends it to Facebook to be posted on the page's wall at the requested time.
 func PostOffers(offersCollection db.Offers, usersCollection db.Users, sessionManager session.Manager, fbAuth facebook.Authenticator) Handler {
 	return func(w http.ResponseWriter, r *http.Request) *handlerError {
+		session, err := sessionManager.Get(r)
+		if err != nil {
+			return &handlerError{err, "", http.StatusForbidden}
+		}
+		_, err = usersCollection.GetBySessionID(session)
+		if err != nil {
+			return &handlerError{err, "", http.StatusForbidden}
+		}
+
 		return nil
 	}
 }
