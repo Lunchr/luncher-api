@@ -17,15 +17,15 @@ const (
 )
 
 var _ = Describe("Manager", func() {
-	Describe("GetOrInitSession", func() {
-		var manager Manager
+	var manager Manager
 
-		BeforeEach(func() {
-			manager = NewManager()
-		})
+	BeforeEach(func() {
+		manager = NewManager()
+	})
 
+	Describe("GetOrInit", func() {
 		It("shoud return a non-empty string", func() {
-			cookieValue := manager.GetOrInitSession(responseRecorder, request)
+			cookieValue := manager.GetOrInit(responseRecorder, request)
 			Expect(cookieValue).NotTo(HaveLen(0))
 			verifySingleSessionCookie(responseRecorder, func(cookieValue string) {
 				Expect(cookieValue).NotTo(HaveLen(0))
@@ -44,7 +44,32 @@ var _ = Describe("Manager", func() {
 			})
 
 			It("should return the same cookie", func() {
-				cookieValue := manager.GetOrInitSession(responseRecorder, request)
+				cookieValue := manager.GetOrInit(responseRecorder, request)
+				Expect(cookieValue).To(Equal(requestCookieValue))
+			})
+		})
+	})
+
+	Describe("Get", func() {
+		It("should return an error", func() {
+			_, err := manager.Get(request)
+			Expect(err).NotTo(BeNil())
+		})
+
+		Context("with session cookie in request", func() {
+			var requestCookieValue = "k_bV590l1T7mkhmwQgAIDA=="
+
+			BeforeEach(func() {
+				cookie := &http.Cookie{
+					Name:  sessionCookieName,
+					Value: requestCookieValue,
+				}
+				request.AddCookie(cookie)
+			})
+
+			It("should return the same cookie", func() {
+				cookieValue, err := manager.Get(request)
+				Expect(err).To(BeNil())
 				Expect(cookieValue).To(Equal(requestCookieValue))
 			})
 		})

@@ -30,7 +30,7 @@ func NewFacebook(fbAuth facebook.Authenticator, sessMgr session.Manager, usersCo
 
 func (fb fbook) Login() Handler {
 	return func(w http.ResponseWriter, r *http.Request) *handlerError {
-		session := fb.sessionManager.GetOrInitSession(w, r)
+		session := fb.sessionManager.GetOrInit(w, r)
 		redirectURL := fb.auth.AuthURL(session)
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return nil
@@ -39,7 +39,7 @@ func (fb fbook) Login() Handler {
 
 func (fb fbook) Redirected() Handler {
 	return func(w http.ResponseWriter, r *http.Request) *handlerError {
-		session := fb.sessionManager.GetOrInitSession(w, r)
+		session := fb.sessionManager.GetOrInit(w, r)
 		tok, err := fb.auth.Token(session, r)
 		if err != nil {
 			if err == facebook.ErrMissingState {

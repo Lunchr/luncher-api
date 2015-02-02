@@ -55,9 +55,11 @@ func ExpectLocationToBeMockedURL(responseRecorder *httptest.ResponseRecorder) {
 	Expect(location[0]).To(Equal(testURL))
 }
 
-type mockSessionManager struct{}
+type mockSessionManager struct {
+	session.Manager
+}
 
-func (m mockSessionManager) GetOrInitSession(w http.ResponseWriter, r *http.Request) string {
+func (m mockSessionManager) GetOrInit(w http.ResponseWriter, r *http.Request) string {
 	return "session"
 }
 

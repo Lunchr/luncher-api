@@ -3,6 +3,7 @@ package session
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"io"
 	"net/http"
 )
@@ -11,9 +12,11 @@ const sessionCookieName = "luncher_session"
 
 // Manager for the current session
 type Manager interface {
-	// GetOrInitSession returns the current session ID stored in the request
+	// GetOrInit returns the current session ID stored in the request
 	// as a cookie or creates a new id and writes it into the response as a cookie
-	GetOrInitSession(http.ResponseWriter, *http.Request) string
+	GetOrInit(http.ResponseWriter, *http.Request) string
+	// Get returns the current session only if it exists. Returns an error otherwise
+	Get(*http.Request) (string, error)
 }
 
 type manager struct{}
@@ -23,19 +26,29 @@ func NewManager() Manager {
 	return manager{}
 }
 
-func (mgr manager) GetOrInitSession(w http.ResponseWriter, r *http.Request) (session string) {
-	if cookie, err := r.Cookie(sessionCookieName); err == nil && cookie.Value != "" {
-		session = cookie.Value
+func (m manager) Get(r *http.Request) (string, error) {
+	if cookie, err := r.Cookie(sessionCookieName); err != nil {
+		return "", err
+	} else if cookie.Value == "" {
+		return "", errors.New("session manager: no session found")
 	} else {
-		session = createNewSession()
-		cookie := &http.Cookie{
-			Name:  sessionCookieName,
-			Value: session,
-			// no MaxAge because we want this to be a session cookie
-		}
-		http.SetCookie(w, cookie)
+		return cookie.Value, nil
 	}
-	return
+}
+
+func (m manager) GetOrInit(w http.ResponseWriter, r *http.Request) string {
+	if cookie, err := r.Cookie(sessionCookieName); err == nil && cookie.Value != "" {
+		return cookie.Value
+	}
+
+	session := createNewSession()
+	cookie := &http.Cookie{
+		Name:  sessionCookieName,
+		Value: session,
+		// no MaxAge because we want this to be a session cookie
+	}
+	http.SetCookie(w, cookie)
+	return session
 }
 
 // createNewSession creates a new random session ID string
