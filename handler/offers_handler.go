@@ -31,9 +31,15 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, sessionMan
 		if err != nil {
 			return &handlerError{err, "", http.StatusForbidden}
 		}
-		_, err = usersCollection.GetBySessionID(session)
+		user, err := usersCollection.GetBySessionID(session)
 		if err != nil {
 			return &handlerError{err, "", http.StatusForbidden}
+		}
+		api := fbAuth.APIConnection(&user.Session.FacebookUserToken)
+		message := r.PostFormValue("message")
+		_, err = api.PagePublish(user.Session.FacebookPageToken, user.FacebookPageID, message)
+		if err != nil {
+			return &handlerError{err, "", http.StatusBadGateway}
 		}
 
 		return nil

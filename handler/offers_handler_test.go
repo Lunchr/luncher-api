@@ -4,13 +4,16 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/deiwin/facebook"
+	fbmodel "github.com/deiwin/facebook/model"
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
 	. "github.com/deiwin/luncher-api/handler"
 	"github.com/deiwin/luncher-api/session"
+	"golang.org/x/oauth2"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -47,7 +50,6 @@ var _ = Describe("OffersHandler", func() {
 			contentTypes := responseRecorder.HeaderMap["Content-Type"]
 			Expect(contentTypes).To(HaveLen(1))
 			Expect(contentTypes[0]).To(Equal("application/json"))
-			// TODO the header assertion could be made a custom matcher
 		})
 
 		Context("with simple mocked result from DB", func() {
@@ -140,10 +142,30 @@ var _ = Describe("OffersHandler", func() {
 		Context("with session set and a matching user in DB", func() {
 			BeforeEach(func() {
 				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
+				requestMethod = "POST"
+				requestData = url.Values{
+					"message": {"postmessage"},
+				}
 			})
 
-			It("should post it to FB", func() {
-				Fail("not implemented")
+			Context("with post to FB failing", func() {
+				BeforeEach(func() {
+					authenticator = &mockAuthenticator{
+						apiCallsShouldFail: true,
+					}
+				})
+
+				It("should fail", func(done Done) {
+					defer close(done)
+					handler.ServeHTTP(responseRecorder, request)
+					Expect(responseRecorder.Code).To(Equal(http.StatusBadGateway))
+				})
+			})
+
+			It("should succeed", func(done Done) {
+				defer close(done)
+				handler.ServeHTTP(responseRecorder, request)
+				Expect(responseRecorder.Code).To(Equal(http.StatusOK))
 			})
 		})
 	})
@@ -157,7 +179,16 @@ func (m mockUsers) GetBySessionID(session string) (*model.User, error) {
 	if session != "correctSession" {
 		return nil, errors.New("wrong session")
 	}
-	return &model.User{}, nil
+	user := &model.User{
+		FacebookPageID: "pageid",
+		Session: model.UserSession{
+			FacebookUserToken: oauth2.Token{
+				AccessToken: "usertoken",
+			},
+			FacebookPageToken: "pagetoken",
+		},
+	}
+	return user, nil
 }
 
 type mockOffers struct {
@@ -170,4 +201,31 @@ func (m mockOffers) GetForTimeRange(startTime time.Time, endTime time.Time) (off
 		offers, err = m.getForTimeRangeFunc(startTime, endTime)
 	}
 	return
+}
+
+func (m mockAuthenticator) APIConnection(tok *oauth2.Token) facebook.API {
+	Expect(tok.AccessToken).To(Equal("usertoken"))
+	return &mockAPI{
+		shouldFail: m.apiCallsShouldFail,
+	}
+}
+
+type mockAPI struct {
+	shouldFail bool
+	facebook.API
+}
+
+func (m mockAPI) PagePublish(pageAccessToken, pageID, message string) (*fbmodel.Post, error) {
+	Expect(pageAccessToken).To(Equal("pagetoken"))
+	Expect(pageID).To(Equal("pageid"))
+	Expect(message).To(Equal("postmessage"))
+
+	if m.shouldFail {
+		return nil, errors.New("post to FB failed")
+	}
+
+	post := &fbmodel.Post{
+		ID: "postid",
+	}
+	return post, nil
 }
