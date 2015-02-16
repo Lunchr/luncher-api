@@ -32,10 +32,10 @@ func (collection offersCollection) Insert(offersToInsert ...*model.Offer) (err e
 
 func (collection offersCollection) GetForTimeRange(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
 	err = collection.c.Find(bson.M{
-		"fromTime": bson.M{
+		"from_time": bson.M{
 			"$lte": endTime,
 		},
-		"toTime": bson.M{
+		"to_time": bson.M{
 			"$gte": startTime,
 		},
 	}).All(&offers)
