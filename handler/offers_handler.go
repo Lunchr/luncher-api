@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/deiwin/facebook"
 	"github.com/deiwin/luncher-api/db"
+	"github.com/deiwin/luncher-api/db/model"
 	"github.com/deiwin/luncher-api/session"
 )
 
@@ -36,12 +38,27 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, sessionMan
 			return &handlerError{err, "", http.StatusForbidden}
 		}
 		api := fbAuth.APIConnection(&user.Session.FacebookUserToken)
-		message := r.PostFormValue("message")
+		offer := parseOffer(r)
+		// if err != nil {
+		// 	return &handlerError{err, "", http.StatusBadRequest}
+		// } TODO maybe check that all the required fields are actually set?
+		message := formFBOfferMessage(offer)
 		_, err = api.PagePublish(user.Session.FacebookPageToken, user.FacebookPageID, message)
 		if err != nil {
 			return &handlerError{err, "", http.StatusBadGateway}
 		}
 
 		return nil
+	}
+}
+
+func formFBOfferMessage(o model.Offer) string {
+	return fmt.Sprintf("%s - %s", o.Title, o.Description)
+}
+
+func parseOffer(r *http.Request) model.Offer {
+	return model.Offer{
+		Title:       r.PostFormValue("title"),
+		Description: r.PostFormValue("description"),
 	}
 }

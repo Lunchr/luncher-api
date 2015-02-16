@@ -76,7 +76,7 @@ func (m mockSessionManager) GetOrInit(w http.ResponseWriter, r *http.Request) st
 }
 
 type mockAuthenticator struct {
-	apiCallsShouldFail bool
+	api facebook.API
 	facebook.Authenticator
 }
 

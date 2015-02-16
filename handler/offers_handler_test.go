@@ -144,14 +144,23 @@ var _ = Describe("OffersHandler", func() {
 				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
 				requestMethod = "POST"
 				requestData = url.Values{
-					"message": {"postmessage"},
+					"title":       {"thetitle"},
+					"description": {"thedescription"},
+				}
+				authenticator = &mockAuthenticator{
+					api: &mockAPI{
+						message: "thetitle - thedescription",
+					},
 				}
 			})
 
 			Context("with post to FB failing", func() {
 				BeforeEach(func() {
 					authenticator = &mockAuthenticator{
-						apiCallsShouldFail: true,
+						api: &mockAPI{
+							message:    "postmessage",
+							shouldFail: true,
+						},
 					}
 				})
 
@@ -205,24 +214,23 @@ func (m mockOffers) GetForTimeRange(startTime time.Time, endTime time.Time) (off
 
 func (m mockAuthenticator) APIConnection(tok *oauth2.Token) facebook.API {
 	Expect(tok.AccessToken).To(Equal("usertoken"))
-	return &mockAPI{
-		shouldFail: m.apiCallsShouldFail,
-	}
+	return m.api
 }
 
 type mockAPI struct {
 	shouldFail bool
+	message    string
 	facebook.API
 }
 
 func (m mockAPI) PagePublish(pageAccessToken, pageID, message string) (*fbmodel.Post, error) {
-	Expect(pageAccessToken).To(Equal("pagetoken"))
-	Expect(pageID).To(Equal("pageid"))
-	Expect(message).To(Equal("postmessage"))
-
 	if m.shouldFail {
 		return nil, errors.New("post to FB failed")
 	}
+
+	Expect(pageAccessToken).To(Equal("pagetoken"))
+	Expect(pageID).To(Equal("pageid"))
+	Expect(message).To(Equal(m.message))
 
 	post := &fbmodel.Post{
 		ID: "postid",
