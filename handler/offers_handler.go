@@ -43,9 +43,13 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, sessionMan
 		// 	return &handlerError{err, "", http.StatusBadRequest}
 		// } TODO maybe check that all the required fields are actually set?
 		message := formFBOfferMessage(offer)
-		_, err = api.PagePublish(user.Session.FacebookPageToken, user.FacebookPageID, message)
+		post, err := api.PagePublish(user.Session.FacebookPageToken, user.FacebookPageID, message)
 		if err != nil {
 			return &handlerError{err, "", http.StatusBadGateway}
+		}
+		offer.FBPostID = post.ID
+		if err := offersCollection.Insert(&offer); err != nil {
+			return &handlerError{err, "", http.StatusInternalServerError}
 		}
 
 		return nil

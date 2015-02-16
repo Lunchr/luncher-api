@@ -83,11 +83,10 @@ var _ = Describe("OffersHandler", func() {
 
 			BeforeEach(func() {
 				offersCollection = &mockOffers{
-					func(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
+					getForTimeRangeFunc: func(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
 						err = dbErr
 						return
 					},
-					nil,
 				}
 			})
 
@@ -210,6 +209,16 @@ func (m mockOffers) GetForTimeRange(startTime time.Time, endTime time.Time) (off
 		offers, err = m.getForTimeRangeFunc(startTime, endTime)
 	}
 	return
+}
+
+func (m mockOffers) Insert(offers ...*model.Offer) error {
+	Expect(offers).To(HaveLen(1))
+	offer := offers[0]
+	Expect(offer.FBPostID).To(Equal("postid"))
+	Expect(offer.Title).To(Equal("thetitle"))
+	Expect(offer.Description).To(Equal("thedescription"))
+
+	return nil
 }
 
 func (m mockAuthenticator) APIConnection(tok *oauth2.Token) facebook.API {
