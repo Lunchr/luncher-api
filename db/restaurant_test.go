@@ -14,4 +14,14 @@ var _ = Describe("Restaurant", func() {
 			Expect(restaurants).To(HaveLen(3))
 		})
 	})
+
+	Describe("GetByID", func() {
+		It("should get by id", func(done Done) {
+			defer close(done)
+			res, err := restaurantsCollection.GetByID(mocks.restaurantID)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res).NotTo(BeNil())
+			Expect(res.ID).To(Equal(mocks.restaurantID))
+		})
+	})
 })

@@ -34,16 +34,10 @@ var _ = Describe("User", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(user).NotTo(BeNil())
 			// there's no get by ID method at the moment so just get all and see
-			restaurants, err := restaurantsCollection.Get()
+			restaurant, err := restaurantsCollection.GetByID(user.RestaurantID)
 			Expect(err).NotTo(HaveOccurred())
-			found := false
-			for _, restaurant := range restaurants {
-				if restaurant.ID == user.RestaurantID {
-					found = true
-					Expect(restaurant.Name).To(Equal("Asian Chef"))
-				}
-			}
-			Expect(found).To(BeTrue())
+			Expect(restaurant).NotTo(BeNil())
+			Expect(restaurant.Name).To(Equal("Asian Chef"))
 		})
 	})
 

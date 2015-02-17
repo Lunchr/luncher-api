@@ -9,6 +9,7 @@ import (
 type Restaurants interface {
 	Insert(...*model.Restaurant) error
 	Get() ([]*model.Restaurant, error)
+	GetByID(bson.ObjectId) (*model.Restaurant, error)
 }
 
 type restaurantsCollection struct {
@@ -31,4 +32,10 @@ func (collection restaurantsCollection) Insert(restaurantsToInsert ...*model.Res
 func (collection restaurantsCollection) Get() (restaurants []*model.Restaurant, err error) {
 	err = collection.c.Find(bson.M{}).All(&restaurants)
 	return
+}
+
+func (collection restaurantsCollection) GetByID(id bson.ObjectId) (*model.Restaurant, error) {
+	var restaurant *model.Restaurant
+	err := collection.c.Find(bson.M{"_id": id}).One(&restaurant)
+	return restaurant, err
 }

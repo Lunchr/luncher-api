@@ -9,15 +9,17 @@ import (
 )
 
 type Mocks struct {
-	offers      []*model.Offer
-	tags        []*model.Tag
-	restaurants []*model.Restaurant
-	users       []*model.User
+	offers       []*model.Offer
+	tags         []*model.Tag
+	restaurants  []*model.Restaurant
+	restaurantID bson.ObjectId
+	users        []*model.User
 }
 
 func createMocks() *Mocks {
 	restaurantID := bson.NewObjectId()
 	return &Mocks{
+		restaurantID: restaurantID,
 		offers: []*model.Offer{&model.Offer{
 			Restaurant: model.OfferRestaurant{
 				Name: "Asian Chef",
