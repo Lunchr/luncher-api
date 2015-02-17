@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/deiwin/facebook"
@@ -38,17 +39,17 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, sessionMan
 			return &handlerError{err, "", http.StatusForbidden}
 		}
 		api := fbAuth.APIConnection(&user.Session.FacebookUserToken)
-		offer := parseOffer(r)
-		// if err != nil {
-		// 	return &handlerError{err, "", http.StatusBadRequest}
-		// } TODO maybe check that all the required fields are actually set?
-		message := formFBOfferMessage(offer)
+		offer, err := parseOffer(r)
+		if err != nil {
+			return &handlerError{err, "", http.StatusBadRequest}
+		}
+		message := formFBOfferMessage(*offer)
 		post, err := api.PagePublish(user.Session.FacebookPageToken, user.FacebookPageID, message)
 		if err != nil {
 			return &handlerError{err, "", http.StatusBadGateway}
 		}
 		offer.FBPostID = post.ID
-		if err := offersCollection.Insert(&offer); err != nil {
+		if err := offersCollection.Insert(offer); err != nil {
 			return &handlerError{err, "", http.StatusInternalServerError}
 		}
 
@@ -60,9 +61,17 @@ func formFBOfferMessage(o model.Offer) string {
 	return fmt.Sprintf("%s - %s", o.Title, o.Description)
 }
 
-func parseOffer(r *http.Request) model.Offer {
-	return model.Offer{
+func parseOffer(r *http.Request) (*model.Offer, error) {
+	price, err := strconv.ParseFloat(r.PostFormValue("price"), 64)
+	if err != nil {
+		return nil, err
+	}
+
+	offer := &model.Offer{
 		Title:       r.PostFormValue("title"),
 		Description: r.PostFormValue("description"),
+		Tags:        r.Form["tags"],
+		Price:       price,
 	}
+	return offer, nil
 }

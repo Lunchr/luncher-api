@@ -145,6 +145,8 @@ var _ = Describe("OffersHandler", func() {
 				requestData = url.Values{
 					"title":       {"thetitle"},
 					"description": {"thedescription"},
+					"tags":        {"tag1", "tag2"},
+					"price":       {"123.58"},
 				}
 				authenticator = &mockAuthenticator{
 					api: &mockAPI{
@@ -217,6 +219,10 @@ func (m mockOffers) Insert(offers ...*model.Offer) error {
 	Expect(offer.FBPostID).To(Equal("postid"))
 	Expect(offer.Title).To(Equal("thetitle"))
 	Expect(offer.Description).To(Equal("thedescription"))
+	Expect(offer.Tags).To(HaveLen(2))
+	Expect(offer.Tags).To(ContainElement("tag1"))
+	Expect(offer.Tags).To(ContainElement("tag2"))
+	Expect(offer.Price).To(BeNumerically("~", 123.58))
 
 	return nil
 }
