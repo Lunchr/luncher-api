@@ -14,6 +14,7 @@ import (
 	. "github.com/deiwin/luncher-api/handler"
 	"github.com/deiwin/luncher-api/session"
 	"golang.org/x/oauth2"
+	"gopkg.in/mgo.v2/bson"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -100,19 +101,21 @@ var _ = Describe("OffersHandler", func() {
 
 	Describe("PostOffers", func() {
 		var (
-			usersCollection db.Users
-			handler         Handler
-			authenticator   facebook.Authenticator
-			sessionManager  session.Manager
+			usersCollection       db.Users
+			restaurantsCollection db.Restaurants
+			handler               Handler
+			authenticator         facebook.Authenticator
+			sessionManager        session.Manager
 		)
 
 		BeforeEach(func() {
 			usersCollection = &mockUsers{}
+			restaurantsCollection = &mockRestaurants{}
 			authenticator = &mockAuthenticator{}
 		})
 
 		JustBeforeEach(func() {
-			handler = PostOffers(offersCollection, usersCollection, sessionManager, authenticator)
+			handler = PostOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, authenticator)
 		})
 		Context("with no session set", func() {
 			BeforeEach(func() {
@@ -191,6 +194,7 @@ func (m mockUsers) GetBySessionID(session string) (*model.User, error) {
 	}
 	user := &model.User{
 		FacebookPageID: "pageid",
+		RestaurantID:   "restid",
 		Session: model.UserSession{
 			FacebookUserToken: oauth2.Token{
 				AccessToken: "usertoken",
@@ -223,8 +227,17 @@ func (m mockOffers) Insert(offers ...*model.Offer) error {
 	Expect(offer.Tags).To(ContainElement("tag1"))
 	Expect(offer.Tags).To(ContainElement("tag2"))
 	Expect(offer.Price).To(BeNumerically("~", 123.58))
+	Expect(offer.Restaurant.Name).To(Equal("Asian Chef"))
 
 	return nil
+}
+
+func (m mockRestaurants) GetByID(id bson.ObjectId) (*model.Restaurant, error) {
+	Expect(id).To(Equal(bson.ObjectId("restid")))
+	restaurant := &model.Restaurant{
+		Name: "Asian Chef",
+	}
+	return restaurant, nil
 }
 
 func (m mockAuthenticator) APIConnection(tok *oauth2.Token) facebook.API {

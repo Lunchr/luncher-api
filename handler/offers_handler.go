@@ -28,7 +28,8 @@ func Offers(offersCollection db.Offers) Handler {
 
 // PostOffers handles POST requests to /offers. It stores the offer in the DB and
 // sends it to Facebook to be posted on the page's wall at the requested time.
-func PostOffers(offersCollection db.Offers, usersCollection db.Users, sessionManager session.Manager, fbAuth facebook.Authenticator) Handler {
+func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants,
+	sessionManager session.Manager, fbAuth facebook.Authenticator) Handler {
 	return func(w http.ResponseWriter, r *http.Request) *handlerError {
 		session, err := sessionManager.Get(r)
 		if err != nil {
@@ -39,7 +40,11 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, sessionMan
 			return &handlerError{err, "", http.StatusForbidden}
 		}
 		api := fbAuth.APIConnection(&user.Session.FacebookUserToken)
-		offer, err := parseOffer(r)
+		restaurant, err := restaurantsCollection.GetByID(user.RestaurantID)
+		if err != nil {
+			return &handlerError{err, "", http.StatusInternalServerError}
+		}
+		offer, err := parseOffer(r, restaurant)
 		if err != nil {
 			return &handlerError{err, "", http.StatusBadRequest}
 		}
@@ -61,7 +66,7 @@ func formFBOfferMessage(o model.Offer) string {
 	return fmt.Sprintf("%s - %s", o.Title, o.Description)
 }
 
-func parseOffer(r *http.Request) (*model.Offer, error) {
+func parseOffer(r *http.Request, restaurant *model.Restaurant) (*model.Offer, error) {
 	price, err := strconv.ParseFloat(r.PostFormValue("price"), 64)
 	if err != nil {
 		return nil, err
@@ -72,6 +77,9 @@ func parseOffer(r *http.Request) (*model.Offer, error) {
 		Description: r.PostFormValue("description"),
 		Tags:        r.Form["tags"],
 		Price:       price,
+		Restaurant: model.OfferRestaurant{
+			Name: restaurant.Name,
+		},
 	}
 	return offer, nil
 }
