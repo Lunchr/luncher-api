@@ -72,6 +72,15 @@ func parseOffer(r *http.Request, restaurant *model.Restaurant) (*model.Offer, er
 		return nil, err
 	}
 
+	fromTime, err := time.Parse(time.RFC3339, r.PostFormValue("from_time"))
+	if err != nil {
+		return nil, err
+	}
+	toTime, err := time.Parse(time.RFC3339, r.PostFormValue("to_time"))
+	if err != nil {
+		return nil, err
+	}
+
 	offer := &model.Offer{
 		Title:       r.PostFormValue("title"),
 		Description: r.PostFormValue("description"),
@@ -80,6 +89,8 @@ func parseOffer(r *http.Request, restaurant *model.Restaurant) (*model.Offer, er
 		Restaurant: model.OfferRestaurant{
 			Name: restaurant.Name,
 		},
+		FromTime: fromTime,
+		ToTime:   toTime,
 	}
 	return offer, nil
 }
