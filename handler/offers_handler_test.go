@@ -182,9 +182,28 @@ var _ = Describe("OffersHandler", func() {
 				handler.ServeHTTP(responseRecorder, request)
 				Expect(responseRecorder.Code).To(Equal(http.StatusOK))
 			})
+
+			It("should return json", func(done Done) {
+				defer close(done)
+				handler.ServeHTTP(responseRecorder, request)
+				contentTypes := responseRecorder.HeaderMap["Content-Type"]
+				Expect(contentTypes).To(HaveLen(1))
+				Expect(contentTypes[0]).To(Equal("application/json"))
+			})
+
+			It("should include the offer with the new ID", func(done Done) {
+				defer close(done)
+				handler.ServeHTTP(responseRecorder, request)
+				var offer *model.Offer
+				json.Unmarshal(responseRecorder.Body.Bytes(), &offer)
+				Expect(offer.ID).To(Equal(objectID))
+				Expect(offer.FBPostID).To(Equal("postid"))
+			})
 		})
 	})
 })
+
+var objectID = bson.NewObjectId()
 
 type mockUsers struct {
 	db.Users
@@ -233,6 +252,7 @@ func (m mockOffers) Insert(offers ...*model.Offer) ([]*model.Offer, error) {
 	Expect(offer.FromTime).To(Equal(time.Date(2014, 11, 11, 9, 0, 0, 0, time.UTC)))
 	Expect(offer.ToTime).To(Equal(time.Date(2014, 11, 11, 11, 0, 0, 0, time.UTC)))
 
+	offers[0].ID = objectID
 	return offers, nil
 }
 

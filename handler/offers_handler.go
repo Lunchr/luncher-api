@@ -54,11 +54,12 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 			return &handlerError{err, "", http.StatusBadGateway}
 		}
 		offer.FBPostID = post.ID
-		if _, err := offersCollection.Insert(offer); err != nil {
+		offers, err := offersCollection.Insert(offer)
+		if err != nil {
 			return &handlerError{err, "", http.StatusInternalServerError}
 		}
 
-		return nil
+		return writeJSON(w, offers[0])
 	}
 }
 
