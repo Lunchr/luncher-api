@@ -3,11 +3,36 @@ package db_test
 import (
 	"time"
 
+	"github.com/deiwin/luncher-api/db/model"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"gopkg.in/mgo.v2/bson"
 )
 
 var _ = Describe("Offers", func() {
+
+	Describe("Insert", func() {
+		It("should return the offers with new IDs", func(done Done) {
+			defer close(done)
+			offers, err := offersCollection.Insert(&model.Offer{}, &model.Offer{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(offers).To(HaveLen(2))
+			Expect(offers[0].ID).NotTo(BeEmpty())
+			Expect(offers[1].ID).NotTo(BeEmpty())
+		})
+
+		It("should keep current ID if exists", func(done Done) {
+			defer close(done)
+			id := bson.NewObjectId()
+			offers, err := offersCollection.Insert(&model.Offer{
+				ID: id,
+			}, &model.Offer{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(offers).To(HaveLen(2))
+			Expect(offers[0].ID).To(Equal(id))
+			Expect(offers[1].ID).NotTo(Equal(id))
+		})
+	})
 
 	Describe("GetForTimeRange", func() {
 		var (

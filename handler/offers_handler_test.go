@@ -219,7 +219,7 @@ func (m mockOffers) GetForTimeRange(startTime time.Time, endTime time.Time) (off
 	return
 }
 
-func (m mockOffers) Insert(offers ...*model.Offer) error {
+func (m mockOffers) Insert(offers ...*model.Offer) ([]*model.Offer, error) {
 	Expect(offers).To(HaveLen(1))
 	offer := offers[0]
 	Expect(offer.FBPostID).To(Equal("postid"))
@@ -233,7 +233,7 @@ func (m mockOffers) Insert(offers ...*model.Offer) error {
 	Expect(offer.FromTime).To(Equal(time.Date(2014, 11, 11, 9, 0, 0, 0, time.UTC)))
 	Expect(offer.ToTime).To(Equal(time.Date(2014, 11, 11, 11, 0, 0, 0, time.UTC)))
 
-	return nil
+	return offers, nil
 }
 
 func (m mockRestaurants) GetByID(id bson.ObjectId) (*model.Restaurant, error) {

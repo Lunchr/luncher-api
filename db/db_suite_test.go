@@ -2,6 +2,7 @@ package db_test
 
 import (
 	"github.com/deiwin/luncher-api/db"
+	"github.com/deiwin/luncher-api/db/model"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -54,7 +55,7 @@ func initCollections() {
 
 func initOffersCollection() {
 	offersCollection = db.NewOffers(dbClient)
-	err := insertOffers()
+	_, err := insertOffers()
 	Expect(err).NotTo(HaveOccurred())
 }
 
@@ -92,7 +93,7 @@ func insertRestaurants() (err error) {
 	return restaurantsCollection.Insert(mocks.restaurants...)
 }
 
-func insertOffers() (err error) {
+func insertOffers() ([]*model.Offer, error) {
 	return offersCollection.Insert(mocks.offers...)
 }
 

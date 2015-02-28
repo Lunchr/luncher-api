@@ -9,7 +9,7 @@ import (
 )
 
 type Offers interface {
-	Insert(...*model.Offer) error
+	Insert(...*model.Offer) ([]*model.Offer, error)
 	GetForTimeRange(time.Time, time.Time) ([]*model.Offer, error)
 }
 
@@ -22,12 +22,17 @@ func NewOffers(client *Client) Offers {
 	return &offersCollection{collection}
 }
 
-func (collection offersCollection) Insert(offersToInsert ...*model.Offer) (err error) {
+func (collection offersCollection) Insert(offersToInsert ...*model.Offer) ([]*model.Offer, error) {
+	for _, offer := range offersToInsert {
+		if offer.ID == "" {
+			offer.ID = bson.NewObjectId()
+		}
+	}
 	docs := make([]interface{}, len(offersToInsert))
 	for i, offer := range offersToInsert {
 		docs[i] = offer
 	}
-	return collection.c.Insert(docs...)
+	return offersToInsert, collection.c.Insert(docs...)
 }
 
 func (collection offersCollection) GetForTimeRange(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
