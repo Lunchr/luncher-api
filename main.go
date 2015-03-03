@@ -24,6 +24,7 @@ func main() {
 	usersCollection := db.NewUsers(dbClient)
 	offersCollection := db.NewOffers(dbClient)
 	tagsCollection := db.NewTags(dbClient)
+	regionsCollection := db.NewRegions(dbClient)
 
 	sessionManager := session.NewManager()
 	mainConfig, err := NewConfig()
@@ -38,7 +39,7 @@ func main() {
 	facebookHandler := handler.NewFacebook(facebookAuthenticator, sessionManager, usersCollection)
 
 	r := mux.NewRouter().PathPrefix("/api/v1/").Subrouter()
-	r.Methods("GET").Path("/offers").Handler(handler.Offers(offersCollection))
+	r.Methods("GET").Path("/offers").Handler(handler.Offers(offersCollection, regionsCollection))
 	// r.Methods("POST").Path("/offers").Handler(handler.PostOffers())
 	r.Methods("GET").Path("/tags").Handler(handler.Tags(tagsCollection))
 	r.Methods("GET").Path("/login/facebook").Handler(facebookHandler.Login())

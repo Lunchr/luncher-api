@@ -32,15 +32,20 @@ var _ = Describe("OffersHandler", func() {
 
 	Describe("Offers", func() {
 		var (
-			handler Handler
+			handler           Handler
+			regionsCollection db.Regions
 		)
 
+		BeforeEach(func() {
+			regionsCollection = &mockRegions{}
+		})
+
 		JustBeforeEach(func() {
-			handler = Offers(offersCollection)
+			handler = Offers(offersCollection, regionsCollection)
 		})
 
 		Context("with no region specified", func() {
-			It("should be fail", func(done Done) {
+			It("should fail", func(done Done) {
 				defer close(done)
 				handler.ServeHTTP(responseRecorder, request)
 				Expect(responseRecorder.Code).To(Equal(http.StatusBadRequest))
@@ -48,7 +53,6 @@ var _ = Describe("OffersHandler", func() {
 		})
 
 		Context("with region specified", func() {
-
 			BeforeEach(func() {
 				requestQuery = url.Values{
 					"region": {"Tartu"},
@@ -77,6 +81,16 @@ var _ = Describe("OffersHandler", func() {
 					mockResult = []*model.Offer{&model.Offer{Title: "sometitle"}}
 					offersCollection = &mockOffers{
 						func(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
+							duration := endTime.Sub(startTime)
+							// Due to daylight saving etc it's not always exactly 24h, but
+							// I think with +- 1h it should always pass.
+							Expect(duration).To(BeNumerically("~", 24*time.Hour, time.Hour))
+
+							loc, err := time.LoadLocation("Europe/Tallinn")
+							Expect(err).NotTo(HaveOccurred())
+							Expect(startTime.Location()).To(Equal(loc))
+							Expect(endTime.Location()).To(Equal(loc))
+
 							offers = mockResult
 							return
 						},
@@ -308,4 +322,17 @@ func (m mockAPI) PagePublish(pageAccessToken, pageID, message string) (*fbmodel.
 		ID: "postid",
 	}
 	return post, nil
+}
+
+type mockRegions struct {
+	db.Regions
+}
+
+func (m mockRegions) Get(name string) (*model.Region, error) {
+	Expect(name).To(Equal("Tartu"))
+	region := &model.Region{
+		Name:     "Tartu",
+		Location: "Europe/Tallinn",
+	}
+	return region, nil
 }

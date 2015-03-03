@@ -14,16 +14,24 @@ import (
 )
 
 // Offers handles GET requests to /offers. It returns all current day's offers.
-func Offers(offersCollection db.Offers) Handler {
+func Offers(offersCollection db.Offers, regionsCollection db.Regions) Handler {
 	return func(w http.ResponseWriter, r *http.Request) *handlerError {
-		region := r.FormValue("region")
-		if region == "" {
+		regionName := r.FormValue("region")
+		if regionName == "" {
 			return &handlerError{errors.New("Region not specified for GET /offers"), "Please specify a region", http.StatusBadRequest}
 		}
+		region, err := regionsCollection.Get(regionName)
+		if err != nil {
+			return &handlerError{err, "", http.StatusInternalServerError}
+		}
+		loc, err := time.LoadLocation(region.Location)
+		if err != nil {
+			return &handlerError{err, "", http.StatusInternalServerError}
+		}
 		now := time.Now()
-		startTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+		startTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 		endTime := startTime.AddDate(0, 0, 1)
-		offers, err := offersCollection.Get(region, startTime, endTime)
+		offers, err := offersCollection.Get(regionName, startTime, endTime)
 		if err != nil {
 			return &handlerError{err, "", http.StatusInternalServerError}
 		}
