@@ -83,15 +83,18 @@ func createMocks() *Mocks {
 			&model.Restaurant{
 				Name:    "Bulgarian Dude",
 				Address: "Võru 23, Tartu",
+				Region:  "Tallinn",
 			},
 			&model.Restaurant{
 				ID:      restaurantID,
 				Name:    "Asian Chef",
 				Address: "Võru 24, Tartu",
+				Region:  "Tartu",
 			},
 			&model.Restaurant{
 				Name:    "Caesarian Kitchen",
 				Address: "Võru 25, Tartu",
+				Region:  "Tartu",
 			},
 		},
 		users: []*model.User{

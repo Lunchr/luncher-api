@@ -11,5 +11,6 @@ type (
 		ID      bson.ObjectId `json:"_id,omitempty" bson:"_id,omitempty"`
 		Name    string        `json:"name"          bson:"name"`
 		Address string        `json:"address"       bson:"address"`
+		Region  string        `json:"region"       bson:"region"`
 	}
 )
