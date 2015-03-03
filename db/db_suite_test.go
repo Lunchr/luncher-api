@@ -13,6 +13,7 @@ var (
 	dbClient              *db.Client
 	offersCollection      db.Offers
 	tagsCollection        db.Tags
+	regionsCollection     db.Regions
 	restaurantsCollection db.Restaurants
 	usersCollection       db.Users
 	mocks                 *Mocks
@@ -49,6 +50,7 @@ func createClient() {
 func initCollections() {
 	initOffersCollection()
 	initTagsCollection()
+	initRegionsCollection()
 	initRestaurantsCollection()
 	initUsersCollection()
 }
@@ -62,6 +64,12 @@ func initOffersCollection() {
 func initTagsCollection() {
 	tagsCollection = db.NewTags(dbClient)
 	err := insertTags()
+	Expect(err).NotTo(HaveOccurred())
+}
+
+func initRegionsCollection() {
+	regionsCollection = db.NewRegions(dbClient)
+	err := insertRegions()
 	Expect(err).NotTo(HaveOccurred())
 }
 
@@ -87,6 +95,10 @@ func createTestDbConf() (dbConfig *db.Config) {
 
 func insertTags() (err error) {
 	return tagsCollection.Insert(mocks.tags...)
+}
+
+func insertRegions() (err error) {
+	return regionsCollection.Insert(mocks.regions...)
 }
 
 func insertRestaurants() (err error) {

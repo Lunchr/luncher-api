@@ -11,6 +11,7 @@ import (
 type Mocks struct {
 	offers       []*model.Offer
 	tags         []*model.Tag
+	regions      []*model.Region
 	restaurants  []*model.Restaurant
 	restaurantID bson.ObjectId
 	users        []*model.User
@@ -77,6 +78,20 @@ func createMocks() *Mocks {
 			&model.Tag{
 				Name:        "lammas",
 				DisplayName: "Lambast",
+			},
+		},
+		regions: []*model.Region{
+			&model.Region{
+				Name:     "Tartu",
+				Location: "Europe/Tallinn",
+			},
+			&model.Region{
+				Name:     "Tallinn",
+				Location: "Europe/Tallinn",
+			},
+			&model.Region{
+				Name:     "London",
+				Location: "Europe/London",
 			},
 		},
 		restaurants: []*model.Restaurant{
