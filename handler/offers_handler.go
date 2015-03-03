@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -15,6 +16,10 @@ import (
 // Offers handles GET requests to /offers. It returns all current day's offers.
 func Offers(offersCollection db.Offers) Handler {
 	return func(w http.ResponseWriter, r *http.Request) *handlerError {
+		region := r.FormValue("region")
+		if region == "" {
+			return &handlerError{errors.New("Region not specified for GET /offers"), "Please specify a region", http.StatusBadRequest}
+		}
 		now := time.Now()
 		startTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 		endTime := startTime.AddDate(0, 0, 1)

@@ -22,8 +22,9 @@ var (
 	responseRecorder *httptest.ResponseRecorder
 	request          *http.Request
 	requestMethod    = "GET"
-	requestURL       string
+	requestPath      string
 	requestData      url.Values
+	requestQuery     url.Values
 )
 
 var _ = BeforeEach(func(done Done) {
@@ -33,6 +34,12 @@ var _ = BeforeEach(func(done Done) {
 
 var _ = JustBeforeEach(func() {
 	var err error
+	requestURL := (&url.URL{
+		Scheme:   "http",
+		Host:     "localhost",
+		Path:     requestPath,
+		RawQuery: requestQuery.Encode(),
+	}).String()
 	request, err = http.NewRequest(requestMethod, requestURL, bytes.NewBufferString(requestData.Encode()))
 	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	request.Header.Add("Content-Length", strconv.Itoa(len(requestData.Encode())))

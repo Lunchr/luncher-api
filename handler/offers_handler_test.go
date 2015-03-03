@@ -39,62 +39,79 @@ var _ = Describe("OffersHandler", func() {
 			handler = Offers(offersCollection)
 		})
 
-		It("should succeed", func(done Done) {
-			defer close(done)
-			handler.ServeHTTP(responseRecorder, request)
-			Expect(responseRecorder.Code).To(Equal(http.StatusOK))
+		Context("with no region specified", func() {
+			It("should be fail", func(done Done) {
+				defer close(done)
+				handler.ServeHTTP(responseRecorder, request)
+				Expect(responseRecorder.Code).To(Equal(http.StatusBadRequest))
+			})
 		})
 
-		It("should return json", func(done Done) {
-			defer close(done)
-			handler.ServeHTTP(responseRecorder, request)
-			contentTypes := responseRecorder.HeaderMap["Content-Type"]
-			Expect(contentTypes).To(HaveLen(1))
-			Expect(contentTypes[0]).To(Equal("application/json"))
-		})
+		Context("with region specified", func() {
 
-		Context("with simple mocked result from DB", func() {
-			var (
-				mockResult []*model.Offer
-			)
 			BeforeEach(func() {
-				mockResult = []*model.Offer{&model.Offer{Title: "sometitle"}}
-				offersCollection = &mockOffers{
-					func(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
-						offers = mockResult
-						return
-					},
-					nil,
+				requestQuery = url.Values{
+					"region": {"Tartu"},
 				}
 			})
 
-			It("should write the returned data to responsewriter", func(done Done) {
+			It("should succeed", func(done Done) {
 				defer close(done)
 				handler.ServeHTTP(responseRecorder, request)
-				// Expect(responseRecorder.Flushed).To(BeTrue()) // TODO check if this should be true
-				var result []*model.Offer
-				json.Unmarshal(responseRecorder.Body.Bytes(), &result)
-				Expect(result).To(HaveLen(1))
-				Expect(result[0].Title).To(Equal(mockResult[0].Title))
-			})
-		})
-
-		Context("with an error returned from the DB", func() {
-			var dbErr = errors.New("DB stuff failed")
-
-			BeforeEach(func() {
-				offersCollection = &mockOffers{
-					getForTimeRangeFunc: func(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
-						err = dbErr
-						return
-					},
-				}
+				Expect(responseRecorder.Code).To(Equal(http.StatusOK))
 			})
 
-			It("should return error 500", func(done Done) {
+			It("should return json", func(done Done) {
 				defer close(done)
 				handler.ServeHTTP(responseRecorder, request)
-				Expect(responseRecorder.Code).To(Equal(http.StatusInternalServerError))
+				contentTypes := responseRecorder.HeaderMap["Content-Type"]
+				Expect(contentTypes).To(HaveLen(1))
+				Expect(contentTypes[0]).To(Equal("application/json"))
+			})
+
+			Context("with simple mocked result from DB", func() {
+				var (
+					mockResult []*model.Offer
+				)
+				BeforeEach(func() {
+					mockResult = []*model.Offer{&model.Offer{Title: "sometitle"}}
+					offersCollection = &mockOffers{
+						func(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
+							offers = mockResult
+							return
+						},
+						nil,
+					}
+				})
+
+				It("should write the returned data to responsewriter", func(done Done) {
+					defer close(done)
+					handler.ServeHTTP(responseRecorder, request)
+					// Expect(responseRecorder.Flushed).To(BeTrue()) // TODO check if this should be true
+					var result []*model.Offer
+					json.Unmarshal(responseRecorder.Body.Bytes(), &result)
+					Expect(result).To(HaveLen(1))
+					Expect(result[0].Title).To(Equal(mockResult[0].Title))
+				})
+			})
+
+			Context("with an error returned from the DB", func() {
+				var dbErr = errors.New("DB stuff failed")
+
+				BeforeEach(func() {
+					offersCollection = &mockOffers{
+						getForTimeRangeFunc: func(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
+							err = dbErr
+							return
+						},
+					}
+				})
+
+				It("should return error 500", func(done Done) {
+					defer close(done)
+					handler.ServeHTTP(responseRecorder, request)
+					Expect(responseRecorder.Code).To(Equal(http.StatusInternalServerError))
+				})
 			})
 		})
 	})
