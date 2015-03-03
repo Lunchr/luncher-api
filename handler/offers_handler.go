@@ -23,7 +23,7 @@ func Offers(offersCollection db.Offers) Handler {
 		now := time.Now()
 		startTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 		endTime := startTime.AddDate(0, 0, 1)
-		offers, err := offersCollection.GetForTimeRange(startTime, endTime)
+		offers, err := offersCollection.Get(region, startTime, endTime)
 		if err != nil {
 			return &handlerError{err, "", http.StatusInternalServerError}
 		}
@@ -93,7 +93,8 @@ func parseOffer(r *http.Request, restaurant *model.Restaurant) (*model.Offer, er
 		Tags:        r.Form["tags"],
 		Price:       price,
 		Restaurant: model.OfferRestaurant{
-			Name: restaurant.Name,
+			Name:   restaurant.Name,
+			Region: restaurant.Region,
 		},
 		FromTime: fromTime,
 		ToTime:   toTime,

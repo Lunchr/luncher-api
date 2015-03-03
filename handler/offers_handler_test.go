@@ -248,7 +248,8 @@ type mockOffers struct {
 	db.Offers
 }
 
-func (m mockOffers) GetForTimeRange(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
+func (m mockOffers) Get(region string, startTime, endTime time.Time) (offers []*model.Offer, err error) {
+	Expect(region).To(Equal("Tartu"))
 	if m.getForTimeRangeFunc != nil {
 		offers, err = m.getForTimeRangeFunc(startTime, endTime)
 	}
@@ -266,6 +267,7 @@ func (m mockOffers) Insert(offers ...*model.Offer) ([]*model.Offer, error) {
 	Expect(offer.Tags).To(ContainElement("tag2"))
 	Expect(offer.Price).To(BeNumerically("~", 123.58))
 	Expect(offer.Restaurant.Name).To(Equal("Asian Chef"))
+	Expect(offer.Restaurant.Region).To(Equal("Tartu"))
 	Expect(offer.FromTime).To(Equal(time.Date(2014, 11, 11, 9, 0, 0, 0, time.UTC)))
 	Expect(offer.ToTime).To(Equal(time.Date(2014, 11, 11, 11, 0, 0, 0, time.UTC)))
 
@@ -276,7 +278,8 @@ func (m mockOffers) Insert(offers ...*model.Offer) ([]*model.Offer, error) {
 func (m mockRestaurants) GetByID(id bson.ObjectId) (*model.Restaurant, error) {
 	Expect(id).To(Equal(bson.ObjectId("restid")))
 	restaurant := &model.Restaurant{
-		Name: "Asian Chef",
+		Name:   "Asian Chef",
+		Region: "Tartu",
 	}
 	return restaurant, nil
 }
