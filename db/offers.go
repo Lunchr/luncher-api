@@ -10,7 +10,7 @@ import (
 
 type Offers interface {
 	Insert(...*model.Offer) ([]*model.Offer, error)
-	GetForTimeRange(time.Time, time.Time) ([]*model.Offer, error)
+	Get(region string, startTime, endTime time.Time) ([]*model.Offer, error)
 }
 
 type offersCollection struct {
@@ -35,7 +35,7 @@ func (collection offersCollection) Insert(offersToInsert ...*model.Offer) ([]*mo
 	return offersToInsert, collection.c.Insert(docs...)
 }
 
-func (collection offersCollection) GetForTimeRange(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
+func (collection offersCollection) Get(region string, startTime, endTime time.Time) (offers []*model.Offer, err error) {
 	err = collection.c.Find(bson.M{
 		"from_time": bson.M{
 			"$lte": endTime,
@@ -43,6 +43,7 @@ func (collection offersCollection) GetForTimeRange(startTime time.Time, endTime 
 		"to_time": bson.M{
 			"$gte": startTime,
 		},
+		"restaurant.region": region,
 	}).All(&offers)
 	return
 }

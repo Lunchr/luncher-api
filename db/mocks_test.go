@@ -22,7 +22,8 @@ func createMocks() *Mocks {
 		restaurantID: restaurantID,
 		offers: []*model.Offer{&model.Offer{
 			Restaurant: model.OfferRestaurant{
-				Name: "Asian Chef",
+				Name:   "Asian Chef",
+				Region: "Tartu",
 			},
 			Title:       "Sweet & Sour Chicken",
 			Description: "Kanafilee aedviljadega rikkalikus magushapus kastmes.",
@@ -33,7 +34,8 @@ func createMocks() *Mocks {
 		},
 			&model.Offer{
 				Restaurant: model.OfferRestaurant{
-					Name: "Bulgarian Dude",
+					Name:   "Bulgarian Dude",
+					Region: "Tallinn",
 				},
 				Title:       "Sweet & Sour Pork",
 				Description: "Seafilee aedviljadega rikkalikus magushapus kastmes.",
@@ -44,7 +46,8 @@ func createMocks() *Mocks {
 			},
 			&model.Offer{
 				Restaurant: model.OfferRestaurant{
-					Name: "Caesarian Kitchen",
+					Name:   "Caesarian Kitchen",
+					Region: "Tartu",
 				},
 				Title:       "Sweet & Sour Duck",
 				Description: "Pardifilee aedviljadega rikkalikus magushapus kastmes.",
