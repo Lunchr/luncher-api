@@ -3,6 +3,7 @@ package db_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"gopkg.in/mgo.v2"
 )
 
 var _ = Describe("Regions", func() {
@@ -21,6 +22,12 @@ var _ = Describe("Regions", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(region.Name).To(Equal("London"))
 			Expect(region.Location).To(Equal("Europe/London"))
+		})
+
+		It("should return nothing if doesn't exist", func(done Done) {
+			defer close(done)
+			_, err := regionsCollection.Get("blablabla")
+			Expect(err).To(Equal(mgo.ErrNotFound))
 		})
 	})
 })
