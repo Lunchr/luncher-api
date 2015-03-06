@@ -16,7 +16,7 @@ var (
 // ConfirmDefault specifies what an empty user input defaults to
 type ConfirmDefault int
 
-// Possibel options for what an empty user input defaults to
+// Possible options for what an empty user input defaults to
 const (
 	ConfirmDefaultToYes ConfirmDefault = iota
 	ConfirmDefaultToNo
