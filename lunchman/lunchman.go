@@ -55,8 +55,8 @@ func main() {
 	case addRegion.FullCommand():
 		regionsCollection := db.NewRegions(dbClient)
 		checkUnique := getRegionUniquenessCheck(regionsCollection)
-		name := interact.GetInputAndRetry("Please enter a name for the new region", checkNotEmpty, checkSingleArg, checkUnique)
-		locInput := interact.GetInputAndRetry("Please enter the region's location (IANA tz)", checkNotEmpty, checkSingleArg, checkValidLocation)
+		name := getInputOrExit("Please enter a name for the new region", checkNotEmpty, checkSingleArg, checkUnique)
+		locInput := getInputOrExit("Please enter the region's location (IANA tz)", checkNotEmpty, checkSingleArg, checkValidLocation)
 		region := &model.Region{
 			Name:     name,
 			Location: locInput,
@@ -69,6 +69,15 @@ func main() {
 	case addRestaurant.FullCommand():
 		fmt.Println("add restaurant!")
 	}
+}
+
+func getInputOrExit(message string, checks ...interact.InputCheck) string {
+	input, err := interact.GetInputAndRetry(message, checks...)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	return input
 }
 
 func getRegionUniquenessCheck(c db.Regions) interact.InputCheck {

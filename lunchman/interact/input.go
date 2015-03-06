@@ -18,28 +18,27 @@ type InputCheck func(string) error
 // GetInputAndRetry asks the user for input and performs the list of added checks
 // on the provided input. If any of the checks fail to pass the error will be
 // displayed to the user and they will then be asked if they want to try again.
-// If the user does not want to retry the program will exit with an error code 1.
-func GetInputAndRetry(message string, checks ...InputCheck) string {
+// If the user does not want to retry the program will return an error.
+func GetInputAndRetry(message string, checks ...InputCheck) (string, error) {
 	for {
 		input, err := GetInput(message, checks...)
 		if err != nil {
 			for {
 				confirmed, err := Confirm(fmt.Sprintf("%v\nDo you want to try again?", err), ConfirmDefaultToNo)
 				if err != nil {
-					fmt.Println(err)
 					if err == ErrNoOptionSelected {
+						fmt.Println(err)
 						continue
 					}
-					os.Exit(1)
+					return "", err
 				} else if !confirmed {
-					fmt.Println(errCanceled)
-					os.Exit(1)
+					return "", errCanceled
 				}
 				break
 			}
 			continue
 		}
-		return input
+		return input, nil
 	}
 }
 
