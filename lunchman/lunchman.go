@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/deiwin/luncher-api/db"
+	"github.com/deiwin/luncher-api/db/model"
 	"github.com/deiwin/luncher-api/lunchman/interact"
 	"gopkg.in/alecthomas/kingpin.v1"
 	"gopkg.in/mgo.v2"
@@ -30,6 +32,14 @@ var (
 		}
 		return nil
 	}
+	checkValidLocation = func(i string) error {
+		if i == "Local" {
+			return errors.New("Can't use region 'Local'!")
+		} else if _, err := time.LoadLocation(i); err != nil {
+			return err
+		}
+		return nil
+	}
 )
 
 func main() {
@@ -46,8 +56,16 @@ func main() {
 		regionsCollection := db.NewRegions(dbClient)
 		checkUnique := getRegionUniquenessCheck(regionsCollection)
 		name := interact.GetInputAndRetry("Please enter a name for the new region", checkNotEmpty, checkSingleArg, checkUnique)
-
-		fmt.Println("name: " + name)
+		locInput := interact.GetInputAndRetry("Please enter the region's location (IANA tz)", checkNotEmpty, checkSingleArg, checkValidLocation)
+		region := &model.Region{
+			Name:     name,
+			Location: locInput,
+		}
+		if err = regionsCollection.Insert(region); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		fmt.Println("Region successfully added!")
 	case addRestaurant.FullCommand():
 		fmt.Println("add restaurant!")
 	}
