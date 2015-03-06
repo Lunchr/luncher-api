@@ -69,6 +69,12 @@ func main() {
 		}
 		fmt.Println("Region successfully added!")
 	case addRestaurant.FullCommand():
+		restaurantsCollection := db.NewRestaurants(dbClient)
+		checkUnique := getRestaurantUniquenessCheck(restaurantsCollection)
+		name := getInputOrExit(interact, "Please enter a name for the new region", checkNotEmpty, checkUnique)
+		address := getInputOrExit(interact, "Please enter the restaurant's address", checkNotEmpty)
+		// FB user ID
+		// FB page ID
 		fmt.Println("add restaurant!")
 	}
 }
@@ -89,6 +95,17 @@ func getRegionUniquenessCheck(c db.Regions) interact.InputCheck {
 				return err
 			}
 			return errors.New("A region with the same name already exists!")
+		}
+		return nil
+	}
+}
+
+func getRestaurantUniquenessCheck(c db.Restaurants) interact.InputCheck {
+	return func(i string) error {
+		if exists, err := c.Exists(i); err != nil {
+			return err
+		} else if exists {
+			return errors.New("A restaurant with the same name already exists!")
 		}
 		return nil
 	}
