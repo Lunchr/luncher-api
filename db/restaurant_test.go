@@ -24,4 +24,20 @@ var _ = Describe("Restaurant", func() {
 			Expect(res.ID).To(Equal(mocks.restaurantID))
 		})
 	})
+
+	Describe("Exists", func() {
+		It("should return true for an existing restaurant", func(done Done) {
+			defer close(done)
+			exists, err := restaurantsCollection.Exists("Asian Chef")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(exists).To(BeTrue())
+		})
+
+		It("should return false for a nonexisting restaurant", func(done Done) {
+			defer close(done)
+			exists, err := restaurantsCollection.Exists("bla bla bla")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(exists).To(BeFalse())
+		})
+	})
 })
