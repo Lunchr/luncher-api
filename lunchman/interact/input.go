@@ -23,16 +23,19 @@ func GetInputAndRetry(message string, checks ...InputCheck) string {
 	for {
 		input, err := GetInput(message, checks...)
 		if err != nil {
-			confirmed, err := Confirm(fmt.Sprintf("%v\nDo you want to try again?", err), ConfirmDefaultToNo)
-			if err != nil {
-				fmt.Println(err)
-				if err == ErrNoOptionSelected {
-					continue
+			for {
+				confirmed, err := Confirm(fmt.Sprintf("%v\nDo you want to try again?", err), ConfirmDefaultToNo)
+				if err != nil {
+					fmt.Println(err)
+					if err == ErrNoOptionSelected {
+						continue
+					}
+					os.Exit(1)
+				} else if !confirmed {
+					fmt.Println(errCanceled)
+					os.Exit(1)
 				}
-				os.Exit(1)
-			} else if !confirmed {
-				fmt.Println(errCanceled)
-				os.Exit(1)
+				break
 			}
 			continue
 		}
