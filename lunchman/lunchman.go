@@ -46,12 +46,11 @@ func getInputAndRetry(message string, checks ...func(string) error) string {
 	for {
 		input, err := getInput(message, checks...)
 		if err != nil {
-			fmt.Printf("%v\nDo you want to try again? [y/N]: ", err)
-			rd := bufio.NewReader(os.Stdin)
-			if line, err := rd.ReadString('\n'); err != nil {
+			c, err := confirm(fmt.Sprintf("%v\nDo you want to try again?", err), confirmDefaultToNo)
+			if err != nil {
 				fmt.Println(err)
 				os.Exit(1)
-			} else if strings.TrimSpace(line) != "y" {
+			} else if c == no {
 				fmt.Println(errCanceled)
 				os.Exit(1)
 			}
