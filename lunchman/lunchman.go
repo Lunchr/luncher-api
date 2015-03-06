@@ -1,13 +1,15 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
 
+	"github.com/deiwin/luncher-api/db"
+	"github.com/deiwin/luncher-api/lunchman/interact"
 	"gopkg.in/alecthomas/kingpin.v1"
+	"gopkg.in/mgo.v2"
 )
 
 var (
@@ -15,8 +17,6 @@ var (
 	add           = lunchman.Command("add", "Add a new value to the DB")
 	addRegion     = add.Command("region", "Add a region")
 	addRestaurant = add.Command("restaurant", "Add a restarant")
-
-	errCanceled = errors.New("Command aborted")
 
 	checkNotEmpty = func(i string) error {
 		if i == "" {
@@ -33,46 +33,34 @@ var (
 )
 
 func main() {
+	dbConfig := db.NewConfig()
+	dbClient := db.NewClient(dbConfig)
+	err := dbClient.Connect()
+	if err != nil {
+		panic(err)
+	}
+	defer dbClient.Disconnect()
+
 	switch kingpin.MustParse(lunchman.Parse(os.Args[1:])) {
 	case addRegion.FullCommand():
-		name := getInputAndRetry("Please enter a name for the new region", checkNotEmpty, checkSingleArg)
+		regionsCollection := db.NewRegions(dbClient)
+		checkUnique := getRegionUniquenessCheck(regionsCollection)
+		name := interact.GetInputAndRetry("Please enter a name for the new region", checkNotEmpty, checkSingleArg, checkUnique)
+
 		fmt.Println("name: " + name)
 	case addRestaurant.FullCommand():
 		fmt.Println("add restaurant!")
 	}
 }
 
-func getInputAndRetry(message string, checks ...func(string) error) string {
-	for {
-		input, err := getInput(message, checks...)
-		if err != nil {
-			c, err := confirm(fmt.Sprintf("%v\nDo you want to try again?", err), confirmDefaultToNo)
+func getRegionUniquenessCheck(c db.Regions) interact.InputCheck {
+	return func(i string) error {
+		if _, err := c.Get(i); err != mgo.ErrNotFound {
 			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			} else if c == no {
-				fmt.Println(errCanceled)
-				os.Exit(1)
+				return err
 			}
-			continue
+			return errors.New("A region with the same name already exists!")
 		}
-		return input
+		return nil
 	}
-}
-
-func getInput(message string, checks ...func(string) error) (string, error) {
-	fmt.Print(message + ": ")
-	rd := bufio.NewReader(os.Stdin)
-	line, err := rd.ReadString('\n')
-	if err != nil {
-		return "", err
-	}
-	input := strings.TrimSpace(line)
-	for _, check := range checks {
-		err = check(input)
-		if err != nil {
-			return "", err
-		}
-	}
-	return input, nil
 }
