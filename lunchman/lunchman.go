@@ -58,17 +58,12 @@ func main() {
 	case addRegion.FullCommand():
 		regionsCollection := db.NewRegions(dbClient)
 		checkUnique := getRegionUniquenessCheck(regionsCollection)
+
 		name := getInputOrExit(actor, "Please enter a name for the new region", checkNotEmpty, checkSingleArg, checkUnique)
-		locInput := getInputOrExit(actor, "Please enter the region's location (IANA tz)", checkNotEmpty, checkSingleArg, checkValidLocation)
-		region := &model.Region{
-			Name:     name,
-			Location: locInput,
-		}
-		confirmDBInsertion(actor, region)
-		if err = regionsCollection.Insert(region); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+		location := getInputOrExit(actor, "Please enter the region's location (IANA tz)", checkNotEmpty, checkSingleArg, checkValidLocation)
+
+		insertRegion(actor, regionsCollection, name, location)
+
 		fmt.Println("Region successfully added!")
 	case addRestaurant.FullCommand():
 		restaurantsCollection := db.NewRestaurants(dbClient)
@@ -87,6 +82,18 @@ func main() {
 		insertUser(actor, usersCollection, restaurantID, fbPageID, fbUserID)
 
 		fmt.Println("Restaurant (and user) successfully added!")
+	}
+}
+
+func insertRegion(actor interact.Actor, regionsCollection db.Regions, name, location string) {
+	region := &model.Region{
+		Name:     name,
+		Location: location,
+	}
+	confirmDBInsertion(actor, region)
+	if err := regionsCollection.Insert(region); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 }
 
@@ -121,7 +128,7 @@ func insertUser(actor interact.Actor, usersCollection db.Users, restaurantID bso
 }
 
 func confirmDBInsertion(actor interact.Actor, o interface{}) {
-	confirmationMessage := fmt.Sprintf("Going to enter the following into the DB:\n%v\nAre you sure you want to continue?", o)
+	confirmationMessage := fmt.Sprintf("Going to enter the following into the DB:\n%+v\nAre you sure you want to continue?", o)
 	confirmed, err := actor.Confirm(confirmationMessage, interact.ConfirmDefaultToYes)
 	if err != nil {
 		fmt.Println(err)
