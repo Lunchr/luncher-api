@@ -51,14 +51,14 @@ func main() {
 	}
 	defer dbClient.Disconnect()
 
-	interact := interact.New(os.Stdin)
+	actor := interact.NewActor(os.Stdin)
 
 	switch kingpin.MustParse(lunchman.Parse(os.Args[1:])) {
 	case addRegion.FullCommand():
 		regionsCollection := db.NewRegions(dbClient)
 		checkUnique := getRegionUniquenessCheck(regionsCollection)
-		name := getInputOrExit(interact, "Please enter a name for the new region", checkNotEmpty, checkSingleArg, checkUnique)
-		locInput := getInputOrExit(interact, "Please enter the region's location (IANA tz)", checkNotEmpty, checkSingleArg, checkValidLocation)
+		name := getInputOrExit(actor, "Please enter a name for the new region", checkNotEmpty, checkSingleArg, checkUnique)
+		locInput := getInputOrExit(actor, "Please enter the region's location (IANA tz)", checkNotEmpty, checkSingleArg, checkValidLocation)
 		region := &model.Region{
 			Name:     name,
 			Location: locInput,
@@ -71,16 +71,16 @@ func main() {
 	case addRestaurant.FullCommand():
 		restaurantsCollection := db.NewRestaurants(dbClient)
 		checkUnique := getRestaurantUniquenessCheck(restaurantsCollection)
-		name := getInputOrExit(interact, "Please enter a name for the new region", checkNotEmpty, checkUnique)
-		address := getInputOrExit(interact, "Please enter the restaurant's address", checkNotEmpty)
+		name := getInputOrExit(actor, "Please enter a name for the new region", checkNotEmpty, checkUnique)
+		address := getInputOrExit(actor, "Please enter the restaurant's address", checkNotEmpty)
 		// FB user ID
 		// FB page ID
 		fmt.Println("add restaurant!")
 	}
 }
 
-func getInputOrExit(i interact.Interact, message string, checks ...interact.InputCheck) string {
-	input, err := i.GetInputAndRetry(message, checks...)
+func getInputOrExit(a interact.Actor, message string, checks ...interact.InputCheck) string {
+	input, err := a.GetInputAndRetry(message, checks...)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
