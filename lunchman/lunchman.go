@@ -63,6 +63,7 @@ func main() {
 			Name:     name,
 			Location: locInput,
 		}
+		confirmDBInsertion(actor, region)
 		if err = regionsCollection.Insert(region); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -71,11 +72,49 @@ func main() {
 	case addRestaurant.FullCommand():
 		restaurantsCollection := db.NewRestaurants(dbClient)
 		checkUnique := getRestaurantUniquenessCheck(restaurantsCollection)
+
 		name := getInputOrExit(actor, "Please enter a name for the new region", checkNotEmpty, checkUnique)
 		address := getInputOrExit(actor, "Please enter the restaurant's address", checkNotEmpty)
-		// FB user ID
-		// FB page ID
-		fmt.Println("add restaurant!")
+		fbUserID := getInputOrExit(actor, "Please enter the restaurant administrator's Facebook user ID", checkNotEmpty)
+		fbPageID := getInputOrExit(actor, "Please enter the restaurant's Facebook page ID", checkNotEmpty)
+
+		restaurant := &model.Restaurant{
+			Name:    name,
+			Address: address,
+		}
+		confirmDBInsertion(actor, restaurant)
+		insertedRestaurants, err := restaurantsCollection.Insert(restaurant)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		restaurantID := insertedRestaurants[0].ID
+
+		usersCollection := db.NewUsers(dbClient)
+		user := &model.User{
+			RestaurantID:   restaurantID,
+			FacebookUserID: fbUserID,
+			FacebookPageID: fbPageID,
+		}
+		err = usersCollection.Insert(user)
+		if err != nil {
+			fmt.Println(err)
+			fmt.Println("Failed to enter the new user to the DB while the restaurant was already inserted. Make sure to check the DB for consistency!")
+			os.Exit(1)
+		}
+		fmt.Println("Restaurant (and user) successfully added!")
+	}
+}
+
+func confirmDBInsertion(actor interact.Actor, o interface{}) {
+	confirmationMessage := fmt.Sprintf("Going to enter the following into the DB:\n%v\nAre you sure you want to continue?", o)
+	confirmed, err := actor.Confirm(confirmationMessage, interact.ConfirmDefaultToYes)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	} else if !confirmed {
+		fmt.Println("Aborted")
+		os.Exit(1)
 	}
 }
 
