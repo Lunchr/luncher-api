@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 )
 
@@ -26,7 +25,7 @@ const (
 // Confirm provides the message to the user and asks yes or no. If the user
 // doesn't select either of the possible answers ErrNoOptionSelected will be
 // returned
-func Confirm(message string, def ConfirmDefault) (bool, error) {
+func (i Interact) Confirm(message string, def ConfirmDefault) (bool, error) {
 	var options string
 	switch def {
 	case ConfirmDefaultToYes:
@@ -38,7 +37,7 @@ func Confirm(message string, def ConfirmDefault) (bool, error) {
 	}
 	fmt.Printf("%s %s: ", message, options)
 
-	rd := bufio.NewReader(os.Stdin)
+	rd := bufio.NewReader(i.rd)
 	line, err := rd.ReadString('\n')
 	input := strings.TrimSpace(line)
 	if err != nil {

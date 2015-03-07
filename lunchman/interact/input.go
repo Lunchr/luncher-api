@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 )
 
@@ -19,12 +18,12 @@ type InputCheck func(string) error
 // on the provided input. If any of the checks fail to pass the error will be
 // displayed to the user and they will then be asked if they want to try again.
 // If the user does not want to retry the program will return an error.
-func GetInputAndRetry(message string, checks ...InputCheck) (string, error) {
+func (i Interact) GetInputAndRetry(message string, checks ...InputCheck) (string, error) {
 	for {
-		input, err := GetInput(message, checks...)
+		input, err := i.GetInput(message, checks...)
 		if err != nil {
 			for {
-				confirmed, err := Confirm(fmt.Sprintf("%v\nDo you want to try again?", err), ConfirmDefaultToNo)
+				confirmed, err := i.Confirm(fmt.Sprintf("%v\nDo you want to try again?", err), ConfirmDefaultToNo)
 				if err != nil {
 					if err == ErrNoOptionSelected {
 						fmt.Println(err)
@@ -44,9 +43,9 @@ func GetInputAndRetry(message string, checks ...InputCheck) (string, error) {
 
 // GetInput asks the user for input and performs the list of added checks on the
 // provided input. If any of the checks fail, the error will be returned.
-func GetInput(message string, checks ...InputCheck) (string, error) {
+func (i Interact) GetInput(message string, checks ...InputCheck) (string, error) {
 	fmt.Print(message + ": ")
-	rd := bufio.NewReader(os.Stdin)
+	rd := bufio.NewReader(i.rd)
 	line, err := rd.ReadString('\n')
 	if err != nil {
 		return "", err

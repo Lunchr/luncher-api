@@ -51,12 +51,14 @@ func main() {
 	}
 	defer dbClient.Disconnect()
 
+	interact := interact.New(os.Stdin)
+
 	switch kingpin.MustParse(lunchman.Parse(os.Args[1:])) {
 	case addRegion.FullCommand():
 		regionsCollection := db.NewRegions(dbClient)
 		checkUnique := getRegionUniquenessCheck(regionsCollection)
-		name := getInputOrExit("Please enter a name for the new region", checkNotEmpty, checkSingleArg, checkUnique)
-		locInput := getInputOrExit("Please enter the region's location (IANA tz)", checkNotEmpty, checkSingleArg, checkValidLocation)
+		name := getInputOrExit(interact, "Please enter a name for the new region", checkNotEmpty, checkSingleArg, checkUnique)
+		locInput := getInputOrExit(interact, "Please enter the region's location (IANA tz)", checkNotEmpty, checkSingleArg, checkValidLocation)
 		region := &model.Region{
 			Name:     name,
 			Location: locInput,
@@ -71,8 +73,8 @@ func main() {
 	}
 }
 
-func getInputOrExit(message string, checks ...interact.InputCheck) string {
-	input, err := interact.GetInputAndRetry(message, checks...)
+func getInputOrExit(i interact.Interact, message string, checks ...interact.InputCheck) string {
+	input, err := i.GetInputAndRetry(message, checks...)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
