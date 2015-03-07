@@ -1,11 +1,43 @@
 package db_test
 
 import (
+	"github.com/deiwin/luncher-api/db/model"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"gopkg.in/mgo.v2/bson"
 )
 
 var _ = Describe("Restaurant", func() {
+	Describe("Insert", func() {
+		// Return the DB to the original state after these tests
+		AfterEach(func(done Done) {
+			defer close(done)
+			wipeDb()
+			initCollections()
+		})
+
+		It("should return the restaurants with new IDs", func(done Done) {
+			defer close(done)
+			restaurants, err := restaurantsCollection.Insert(&model.Restaurant{}, &model.Restaurant{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(restaurants).To(HaveLen(2))
+			Expect(restaurants[0].ID).NotTo(BeEmpty())
+			Expect(restaurants[1].ID).NotTo(BeEmpty())
+		})
+
+		It("should keep current ID if exists", func(done Done) {
+			defer close(done)
+			id := bson.NewObjectId()
+			restaurants, err := restaurantsCollection.Insert(&model.Restaurant{
+				ID: id,
+			}, &model.Restaurant{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(restaurants).To(HaveLen(2))
+			Expect(restaurants[0].ID).To(Equal(id))
+			Expect(restaurants[1].ID).NotTo(Equal(id))
+		})
+	})
+
 	Describe("Get", func() {
 		It("should get all restaurants", func(done Done) {
 			defer close(done)

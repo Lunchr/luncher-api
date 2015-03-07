@@ -7,7 +7,7 @@ import (
 )
 
 type Restaurants interface {
-	Insert(...*model.Restaurant) error
+	Insert(...*model.Restaurant) ([]*model.Restaurant, error)
 	Get() ([]*model.Restaurant, error)
 	GetByID(bson.ObjectId) (*model.Restaurant, error)
 	Exists(name string) (bool, error)
@@ -22,12 +22,17 @@ func NewRestaurants(client *Client) Restaurants {
 	return &restaurantsCollection{collection}
 }
 
-func (c restaurantsCollection) Insert(restaurantsToInsert ...*model.Restaurant) (err error) {
+func (c restaurantsCollection) Insert(restaurantsToInsert ...*model.Restaurant) ([]*model.Restaurant, error) {
+	for _, restaurant := range restaurantsToInsert {
+		if restaurant.ID == "" {
+			restaurant.ID = bson.NewObjectId()
+		}
+	}
 	docs := make([]interface{}, len(restaurantsToInsert))
 	for i, restaurant := range restaurantsToInsert {
 		docs[i] = restaurant
 	}
-	return c.c.Insert(docs...)
+	return restaurantsToInsert, c.c.Insert(docs...)
 }
 
 func (c restaurantsCollection) Get() (restaurants []*model.Restaurant, err error) {

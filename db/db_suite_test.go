@@ -75,7 +75,7 @@ func initRegionsCollection() {
 
 func initRestaurantsCollection() {
 	restaurantsCollection = db.NewRestaurants(dbClient)
-	err := insertRestaurants()
+	_, err := insertRestaurants()
 	Expect(err).NotTo(HaveOccurred())
 }
 
@@ -101,7 +101,7 @@ func insertRegions() (err error) {
 	return regionsCollection.Insert(mocks.regions...)
 }
 
-func insertRestaurants() (err error) {
+func insertRestaurants() ([]*model.Restaurant, error) {
 	return restaurantsCollection.Insert(mocks.restaurants...)
 }
 
