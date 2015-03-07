@@ -6,9 +6,10 @@ import "io"
 // An Actor provides methods to interact with the user
 type Actor struct {
 	rd io.Reader
+	w  io.Writer
 }
 
-// New creates a new Actor instance with the specified io.Reader
-func NewActor(rd io.Reader) Actor {
-	return Actor{rd}
+// NewActor creates a new Actor instance with the specified io.Reader
+func NewActor(rd io.Reader, w io.Writer) Actor {
+	return Actor{rd, w}
 }

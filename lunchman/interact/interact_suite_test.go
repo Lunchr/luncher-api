@@ -6,6 +6,7 @@ import (
 	"github.com/deiwin/luncher-api/lunchman/interact"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 
 	"testing"
 )
@@ -17,10 +18,14 @@ func TestInteract(t *testing.T) {
 
 var (
 	actor     interact.Actor
-	userInput string
+	userInput = "\n"
+	output    *gbytes.Buffer
 )
 
-var _ = JustBeforeEach(func(done Done) {
-	defer close(done)
-	actor = interact.NewActor(strings.NewReader(userInput))
+var _ = BeforeEach(func() {
+	output = gbytes.NewBuffer()
+})
+
+var _ = JustBeforeEach(func() {
+	actor = interact.NewActor(strings.NewReader(userInput), output)
 })

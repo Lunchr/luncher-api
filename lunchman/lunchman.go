@@ -51,7 +51,7 @@ func main() {
 	}
 	defer dbClient.Disconnect()
 
-	actor := interact.NewActor(os.Stdin)
+	actor := interact.NewActor(os.Stdin, os.Stdout)
 
 	switch kingpin.MustParse(lunchman.Parse(os.Args[1:])) {
 	case addRegion.FullCommand():

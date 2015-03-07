@@ -35,7 +35,7 @@ func (a Actor) Confirm(message string, def ConfirmDefault) (bool, error) {
 	case ConfirmNoDefault:
 		options = "[y/n]"
 	}
-	fmt.Printf("%s %s: ", message, options)
+	fmt.Fprintf(a.w, "%s %s: ", message, options)
 
 	rd := bufio.NewReader(a.rd)
 	line, err := rd.ReadString('\n')
