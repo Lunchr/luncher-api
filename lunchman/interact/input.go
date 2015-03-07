@@ -21,19 +21,12 @@ func (a Actor) GetInputAndRetry(message string, checks ...InputCheck) (string, e
 	for {
 		input, err := a.GetInput(message, checks...)
 		if err != nil {
-			for {
-				retryMessage := fmt.Sprintf("%v\nDo you want to try again?", err)
-				confirmed, err := a.Confirm(retryMessage, ConfirmDefaultToNo)
-				if err != nil {
-					if err == ErrNoOptionSelected {
-						fmt.Fprintln(a.w, err)
-						continue
-					}
-					return "", err
-				} else if !confirmed {
-					return "", errCanceled
-				}
-				break
+			retryMessage := fmt.Sprintf("%v\nDo you want to try again?", err)
+			confirmed, err := a.Confirm(retryMessage, ConfirmDefaultToNo)
+			if err != nil {
+				return "", err
+			} else if !confirmed {
+				return "", errCanceled
 			}
 			continue
 		}

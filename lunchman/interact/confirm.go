@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	// ErrNoOptionSelected is returned when the user has not selected either yes or no
-	ErrNoOptionSelected = errors.New("Please select y/n!")
+	// errNoOptionSelected is returned when the user has not selected either yes or no
+	errNoOptionSelected = errors.New("Please select y/n!")
 )
 
 // ConfirmDefault specifies what an empty user input defaults to
@@ -22,9 +22,20 @@ const (
 )
 
 // Confirm provides the message to the user and asks yes or no. If the user
-// doesn't select either of the possible answers ErrNoOptionSelected will be
-// returned
+// doesn't select either of the possible answers they will be prompted to answer
+// again until they do
 func (a Actor) Confirm(message string, def ConfirmDefault) (bool, error) {
+	for {
+		confirmed, err := a.confirmOnce(message, def)
+		if err == errNoOptionSelected {
+			fmt.Fprintln(a.w, err)
+			continue
+		}
+		return confirmed, err
+	}
+}
+
+func (a Actor) confirmOnce(message string, def ConfirmDefault) (bool, error) {
 	var options string
 	switch def {
 	case ConfirmDefaultToYes:
@@ -47,7 +58,7 @@ func (a Actor) Confirm(message string, def ConfirmDefault) (bool, error) {
 		case ConfirmDefaultToNo:
 			return false, nil
 		case ConfirmNoDefault:
-			return false, ErrNoOptionSelected
+			return false, errNoOptionSelected
 		}
 	}
 	switch input {
@@ -56,5 +67,5 @@ func (a Actor) Confirm(message string, def ConfirmDefault) (bool, error) {
 	case "n":
 		return false, nil
 	}
-	return false, ErrNoOptionSelected
+	return false, errNoOptionSelected
 }

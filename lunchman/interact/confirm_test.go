@@ -48,25 +48,34 @@ var _ = Describe("Confirm", func() {
 			})
 		})
 
-		Context("with user answering nothing", func() {
+		Context("with user answering nothing and then y", func() {
 			BeforeEach(func() {
-				userInput = "\n"
+				userInput = "\ny\n"
 			})
 
-			It("should return an error", func() {
-				_, err := actor.Confirm(message, def)
-				Expect(err).To(Equal(interact.ErrNoOptionSelected))
+			It("should return true", func() {
+				confirmed, err := actor.Confirm(message, def)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(confirmed).To(BeTrue())
 			})
 		})
 
-		Context("with user answering gibberish", func() {
+		Context("with user answering gibberish and then y", func() {
 			BeforeEach(func() {
-				userInput = "asdfsadfa\n"
+				userInput = "asdfsadfa\ny\n"
 			})
 
-			It("should return an error", func() {
-				_, err := actor.Confirm(message, def)
-				Expect(err).To(Equal(interact.ErrNoOptionSelected))
+			It("should return true", func() {
+				confirmed, err := actor.Confirm(message, def)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(confirmed).To(BeTrue())
+			})
+
+			It("should ask twice with yes displayed as default", func() {
+				actor.Confirm(message, def)
+				Eventually(output).Should(gbytes.Say(`Are you sure\? \[y/n\]: `))
+				Eventually(output).Should(gbytes.Say(`Please select y/n`))
+				Eventually(output).Should(gbytes.Say(`Are you sure\? \[y/n\]: `))
 			})
 		})
 	})
@@ -117,14 +126,15 @@ var _ = Describe("Confirm", func() {
 			})
 		})
 
-		Context("with user answering gibberish", func() {
+		Context("with user answering gibberish and then y", func() {
 			BeforeEach(func() {
-				userInput = "asdfasdf\n"
+				userInput = "asdfasdf\ny\n"
 			})
 
-			It("should return an error", func() {
-				_, err := actor.Confirm(message, def)
-				Expect(err).To(Equal(interact.ErrNoOptionSelected))
+			It("should return true", func() {
+				confirmed, err := actor.Confirm(message, def)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(confirmed).To(BeTrue())
 			})
 		})
 	})
@@ -175,14 +185,15 @@ var _ = Describe("Confirm", func() {
 			})
 		})
 
-		Context("with user answering gibberish", func() {
+		Context("with user answering gibberish and then y", func() {
 			BeforeEach(func() {
-				userInput = "sadfasdf\n"
+				userInput = "sadfasdf\ny\n"
 			})
 
-			It("should return an error", func() {
-				_, err := actor.Confirm(message, def)
-				Expect(err).To(Equal(interact.ErrNoOptionSelected))
+			It("should return true", func() {
+				confirmed, err := actor.Confirm(message, def)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(confirmed).To(BeTrue())
 			})
 		})
 	})
