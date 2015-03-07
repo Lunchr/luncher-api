@@ -1,7 +1,6 @@
 package interact
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"strings"
@@ -37,8 +36,7 @@ func (a Actor) Confirm(message string, def ConfirmDefault) (bool, error) {
 	}
 	fmt.Fprintf(a.w, "%s %s: ", message, options)
 
-	rd := bufio.NewReader(a.rd)
-	line, err := rd.ReadString('\n')
+	line, err := a.rd.ReadString('\n')
 	input := strings.TrimSpace(line)
 	if err != nil {
 		return false, err

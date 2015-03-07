@@ -1,7 +1,6 @@
 package interact
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"strings"
@@ -23,10 +22,11 @@ func (a Actor) GetInputAndRetry(message string, checks ...InputCheck) (string, e
 		input, err := a.GetInput(message, checks...)
 		if err != nil {
 			for {
-				confirmed, err := a.Confirm(fmt.Sprintf("%v\nDo you want to try again?", err), ConfirmDefaultToNo)
+				retryMessage := fmt.Sprintf("%v\nDo you want to try again?", err)
+				confirmed, err := a.Confirm(retryMessage, ConfirmDefaultToNo)
 				if err != nil {
 					if err == ErrNoOptionSelected {
-						fmt.Println(err)
+						fmt.Fprintln(a.w, err)
 						continue
 					}
 					return "", err
@@ -45,8 +45,7 @@ func (a Actor) GetInputAndRetry(message string, checks ...InputCheck) (string, e
 // provided input. If any of the checks fail, the error will be returned.
 func (a Actor) GetInput(message string, checks ...InputCheck) (string, error) {
 	fmt.Fprint(a.w, message+": ")
-	rd := bufio.NewReader(a.rd)
-	line, err := rd.ReadString('\n')
+	line, err := a.rd.ReadString('\n')
 	if err != nil {
 		return "", err
 	}
