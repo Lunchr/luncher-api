@@ -11,7 +11,7 @@ var (
 	errCanceled = errors.New("Command aborted")
 )
 
-// InputCheck specifiec the function signature for an input check
+// InputCheck specifies the function signature for an input check
 type InputCheck func(string) error
 
 // GetInputAndRetry asks the user for input and performs the list of added checks
@@ -44,7 +44,7 @@ func (a Actor) GetInputAndRetry(message string, checks ...InputCheck) (string, e
 // GetInput asks the user for input and performs the list of added checks on the
 // provided input. If any of the checks fail, the error will be returned.
 func (a Actor) GetInput(message string, checks ...InputCheck) (string, error) {
-	fmt.Print(message + ": ")
+	fmt.Fprint(a.w, message+": ")
 	rd := bufio.NewReader(a.rd)
 	line, err := rd.ReadString('\n')
 	if err != nil {
