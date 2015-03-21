@@ -17,7 +17,7 @@ type (
 		Title       string          `json:"title"                bson:"title"`
 		FromTime    time.Time       `json:"from_time"            bson:"from_time"`
 		ToTime      time.Time       `json:"to_time"              bson:"to_time"`
-		Description string          `json:"description"          bson:"description"`
+		Ingredients []string        `json:"ingredients"          bson:"ingredients"`
 		Price       float64         `json:"price"                bson:"price"`
 		Tags        []string        `json:"tags"                 bson:"tags"`
 		FBPostID    string          `json:"fb_post_id,omitempty" bson:"fb_post_id,omitempty"`

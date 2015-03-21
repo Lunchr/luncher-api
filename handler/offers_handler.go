@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/deiwin/facebook"
 	"github.com/deiwin/luncher-api/db"
@@ -77,7 +80,17 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 }
 
 func formFBOfferMessage(o model.Offer) string {
-	return fmt.Sprintf("%s - %s", o.Title, o.Description)
+	ingredients := strings.Join(o.Ingredients, ", ")
+	capitalizedIngredients := capitalizeString(ingredients)
+	return fmt.Sprintf("%s - %s", o.Title, capitalizedIngredients)
+}
+
+func capitalizeString(s string) string {
+	if s == "" {
+		return ""
+	}
+	r, n := utf8.DecodeRuneInString(s)
+	return string(unicode.ToUpper(r)) + s[n:]
 }
 
 func parseOffer(r *http.Request, restaurant *model.Restaurant) (*model.Offer, error) {
@@ -97,7 +110,7 @@ func parseOffer(r *http.Request, restaurant *model.Restaurant) (*model.Offer, er
 
 	offer := &model.Offer{
 		Title:       r.PostFormValue("title"),
-		Description: r.PostFormValue("description"),
+		Ingredients: r.Form["ingredients"],
 		Tags:        r.Form["tags"],
 		Price:       price,
 		Restaurant: model.OfferRestaurant{

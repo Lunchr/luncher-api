@@ -178,7 +178,7 @@ var _ = Describe("OffersHandler", func() {
 				requestMethod = "POST"
 				requestData = url.Values{
 					"title":       {"thetitle"},
-					"description": {"thedescription"},
+					"ingredients": {"ingredient1", "ingredient2", "ingredient3"},
 					"tags":        {"tag1", "tag2"},
 					"price":       {"123.58"},
 					"from_time":   {"2014-11-11T09:00:00.000Z"},
@@ -186,7 +186,7 @@ var _ = Describe("OffersHandler", func() {
 				}
 				authenticator = &mockAuthenticator{
 					api: &mockAPI{
-						message: "thetitle - thedescription",
+						message: "thetitle - Ingredient1, ingredient2, ingredient3",
 					},
 				}
 			})
@@ -275,7 +275,10 @@ func (m mockOffers) Insert(offers ...*model.Offer) ([]*model.Offer, error) {
 	offer := offers[0]
 	Expect(offer.FBPostID).To(Equal("postid"))
 	Expect(offer.Title).To(Equal("thetitle"))
-	Expect(offer.Description).To(Equal("thedescription"))
+	Expect(offer.Ingredients).To(HaveLen(3))
+	Expect(offer.Ingredients).To(ContainElement("ingredient1"))
+	Expect(offer.Ingredients).To(ContainElement("ingredient2"))
+	Expect(offer.Ingredients).To(ContainElement("ingredient3"))
 	Expect(offer.Tags).To(HaveLen(2))
 	Expect(offer.Tags).To(ContainElement("tag1"))
 	Expect(offer.Tags).To(ContainElement("tag2"))
