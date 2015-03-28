@@ -55,14 +55,14 @@ func main() {
 	imageStorage := imstor.New(imageStorageConf)
 
 	r := httprouter.New()
-	pathPrefix := "/api/v1"
-	r.Handler("GET", pathPrefix+"/offers", handler.Offers(offersCollection, regionsCollection, imageStorage))
-	r.Handler("POST", pathPrefix+"/offers", handler.PostOffers(offersCollection, usersCollection,
+	r.Handler("GET", "/offers", handler.Offers(offersCollection, regionsCollection, imageStorage))
+	r.Handler("POST", "/offers", handler.PostOffers(offersCollection, usersCollection,
 		restaurantsCollection, sessionManager, facebookAuthenticator, imageStorage))
-	r.Handler("GET", pathPrefix+"/tags", handler.Tags(tagsCollection))
-	r.Handler("GET", pathPrefix+"/login/facebook", facebookHandler.Login())
-	r.Handler("GET", pathPrefix+"/login/facebook/redirected", facebookHandler.Redirected())
-	http.Handle("/", r)
+	r.Handler("GET", "/tags", handler.Tags(tagsCollection))
+	r.Handler("GET", "/login/facebook", facebookHandler.Login())
+	r.Handler("GET", "/login/facebook/redirected", facebookHandler.Redirected())
+
+	http.Handle("/api/v1/", http.StripPrefix("/api/v1/", r))
 	portString := fmt.Sprintf(":%d", mainConfig.Port)
 	log.Fatal(http.ListenAndServe(portString, nil))
 }
