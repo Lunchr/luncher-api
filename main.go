@@ -10,7 +10,7 @@ import (
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/handler"
 	"github.com/deiwin/luncher-api/session"
-	"github.com/gorilla/mux"
+	"github.com/julienschmidt/httprouter"
 )
 
 func main() {
@@ -26,6 +26,7 @@ func main() {
 	offersCollection := db.NewOffers(dbClient)
 	tagsCollection := db.NewTags(dbClient)
 	regionsCollection := db.NewRegions(dbClient)
+	restaurantsCollection := db.NewRestaurants(dbClient)
 
 	sessionManager := session.NewManager()
 	mainConfig, err := NewConfig()
@@ -53,12 +54,14 @@ func main() {
 	imageStorageConf := imstor.NewConfig(imageSizes, imageFormats)
 	imageStorage := imstor.New(imageStorageConf)
 
-	r := mux.NewRouter().PathPrefix("/api/v1/").Subrouter()
-	r.Methods("GET").Path("/offers").Handler(handler.Offers(offersCollection, regionsCollection, imageStorage))
-	// r.Methods("POST").Path("/offers").Handler(handler.PostOffers())
-	r.Methods("GET").Path("/tags").Handler(handler.Tags(tagsCollection))
-	r.Methods("GET").Path("/login/facebook").Handler(facebookHandler.Login())
-	r.Methods("GET").Path("/login/facebook/redirected").Handler(facebookHandler.Redirected())
+	r := httprouter.New()
+	pathPrefix := "/api/v1"
+	r.Handler("GET", pathPrefix+"/offers", handler.Offers(offersCollection, regionsCollection, imageStorage))
+	r.Handler("POST", pathPrefix+"/offers", handler.PostOffers(offersCollection, usersCollection,
+		restaurantsCollection, sessionManager, facebookAuthenticator, imageStorage))
+	r.Handler("GET", pathPrefix+"/tags", handler.Tags(tagsCollection))
+	r.Handler("GET", pathPrefix+"/login/facebook", facebookHandler.Login())
+	r.Handler("GET", pathPrefix+"/login/facebook/redirected", facebookHandler.Redirected())
 	http.Handle("/", r)
 	portString := fmt.Sprintf(":%d", mainConfig.Port)
 	log.Fatal(http.ListenAndServe(portString, nil))
