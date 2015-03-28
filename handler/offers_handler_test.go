@@ -9,6 +9,7 @@ import (
 
 	"github.com/deiwin/facebook"
 	fbmodel "github.com/deiwin/facebook/model"
+	"github.com/deiwin/imstor"
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
 	. "github.com/deiwin/luncher-api/handler"
@@ -34,6 +35,7 @@ var _ = Describe("OffersHandler", func() {
 		var (
 			handler           Handler
 			regionsCollection db.Regions
+			imageStorage      imstor.Storage
 		)
 
 		BeforeEach(func() {
@@ -41,7 +43,7 @@ var _ = Describe("OffersHandler", func() {
 		})
 
 		JustBeforeEach(func() {
-			handler = Offers(offersCollection, regionsCollection)
+			handler = Offers(offersCollection, regionsCollection, imageStorage)
 		})
 
 		Context("with no region specified", func() {
@@ -78,7 +80,12 @@ var _ = Describe("OffersHandler", func() {
 					mockResult []*model.Offer
 				)
 				BeforeEach(func() {
-					mockResult = []*model.Offer{&model.Offer{Title: "sometitle"}}
+					mockResult = []*model.Offer{
+						&model.Offer{
+							Title: "sometitle",
+							Image: "image checksum",
+						},
+					}
 					offersCollection = &mockOffers{
 						func(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
 							duration := endTime.Sub(startTime)
@@ -96,16 +103,17 @@ var _ = Describe("OffersHandler", func() {
 						},
 						nil,
 					}
+					imageStorage = mockImageStorage{}
 				})
 
 				It("should write the returned data to responsewriter", func(done Done) {
 					defer close(done)
 					handler.ServeHTTP(responseRecorder, request)
-					// Expect(responseRecorder.Flushed).To(BeTrue()) // TODO check if this should be true
 					var result []*model.Offer
 					json.Unmarshal(responseRecorder.Body.Bytes(), &result)
 					Expect(result).To(HaveLen(1))
 					Expect(result[0].Title).To(Equal(mockResult[0].Title))
+					Expect(result[0].Image).To(Equal("a large image path"))
 				})
 			})
 
@@ -137,6 +145,7 @@ var _ = Describe("OffersHandler", func() {
 			handler               Handler
 			authenticator         facebook.Authenticator
 			sessionManager        session.Manager
+			imageStorage          imstor.Storage
 		)
 
 		BeforeEach(func() {
@@ -146,7 +155,7 @@ var _ = Describe("OffersHandler", func() {
 		})
 
 		JustBeforeEach(func() {
-			handler = PostOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, authenticator)
+			handler = PostOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, authenticator, imageStorage)
 		})
 		Context("with no session set", func() {
 			BeforeEach(func() {
@@ -183,12 +192,14 @@ var _ = Describe("OffersHandler", func() {
 					"price":       {"123.58"},
 					"from_time":   {"2014-11-11T09:00:00.000Z"},
 					"to_time":     {"2014-11-11T11:00:00.000Z"},
+					"image":       {"image data url"},
 				}
 				authenticator = &mockAuthenticator{
 					api: &mockAPI{
 						message: "thetitle - Ingredient1, ingredient2, ingredient3",
 					},
 				}
+				imageStorage = mockImageStorage{}
 			})
 
 			Context("with post to FB failing", func() {
@@ -287,6 +298,7 @@ func (m mockOffers) Insert(offers ...*model.Offer) ([]*model.Offer, error) {
 	Expect(offer.Restaurant.Region).To(Equal("Tartu"))
 	Expect(offer.FromTime).To(Equal(time.Date(2014, 11, 11, 9, 0, 0, 0, time.UTC)))
 	Expect(offer.ToTime).To(Equal(time.Date(2014, 11, 11, 11, 0, 0, 0, time.UTC)))
+	Expect(offer.Image).To(Equal("image checksum"))
 
 	offers[0].ID = objectID
 	return offers, nil
@@ -338,4 +350,24 @@ func (m mockRegions) Get(name string) (*model.Region, error) {
 		Location: "Europe/Tallinn",
 	}
 	return region, nil
+}
+
+type mockImageStorage struct {
+	imstor.Storage
+}
+
+func (m mockImageStorage) ChecksumDataURL(dataURL string) (string, error) {
+	Expect(dataURL).To(Equal("image data url"))
+	return "image checksum", nil
+}
+
+func (m mockImageStorage) StoreDataURL(dataURL string) error {
+	Expect(dataURL).To(Equal("image data url"))
+	return nil
+}
+
+func (m mockImageStorage) PathForSize(checksum, size string) (string, error) {
+	Expect(checksum).To(Equal("image checksum"))
+	Expect(size).To(Equal("large"))
+	return "a large image path", nil
 }

@@ -11,13 +11,14 @@ import (
 	"unicode/utf8"
 
 	"github.com/deiwin/facebook"
+	"github.com/deiwin/imstor"
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
 	"github.com/deiwin/luncher-api/session"
 )
 
 // Offers handles GET requests to /offers. It returns all current day's offers.
-func Offers(offersCollection db.Offers, regionsCollection db.Regions) Handler {
+func Offers(offersCollection db.Offers, regionsCollection db.Regions, imageStorage imstor.Storage) Handler {
 	return func(w http.ResponseWriter, r *http.Request) *handlerError {
 		regionName := r.FormValue("region")
 		if regionName == "" {
@@ -38,6 +39,11 @@ func Offers(offersCollection db.Offers, regionsCollection db.Regions) Handler {
 		if err != nil {
 			return &handlerError{err, "", http.StatusInternalServerError}
 		}
+		for _, offer := range offers {
+			if offer.Image, err = imageStorage.PathForSize(offer.Image, "large"); err != nil {
+				return &handlerError{err, "", http.StatusInternalServerError}
+			}
+		}
 		return writeJSON(w, offers)
 	}
 }
@@ -45,7 +51,7 @@ func Offers(offersCollection db.Offers, regionsCollection db.Regions) Handler {
 // PostOffers handles POST requests to /offers. It stores the offer in the DB and
 // sends it to Facebook to be posted on the page's wall at the requested time.
 func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants,
-	sessionManager session.Manager, fbAuth facebook.Authenticator) Handler {
+	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage imstor.Storage) Handler {
 	return func(w http.ResponseWriter, r *http.Request) *handlerError {
 		session, err := sessionManager.Get(r)
 		if err != nil {
@@ -60,7 +66,7 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 		if err != nil {
 			return &handlerError{err, "", http.StatusInternalServerError}
 		}
-		offer, err := parseOffer(r, restaurant)
+		offer, err := parseOffer(r, restaurant, imageStorage)
 		if err != nil {
 			return &handlerError{err, "", http.StatusBadRequest}
 		}
@@ -93,7 +99,7 @@ func capitalizeString(s string) string {
 	return string(unicode.ToUpper(r)) + s[n:]
 }
 
-func parseOffer(r *http.Request, restaurant *model.Restaurant) (*model.Offer, error) {
+func parseOffer(r *http.Request, restaurant *model.Restaurant, imageStorage imstor.Storage) (*model.Offer, error) {
 	price, err := strconv.ParseFloat(r.PostFormValue("price"), 64)
 	if err != nil {
 		return nil, err
@@ -108,6 +114,15 @@ func parseOffer(r *http.Request, restaurant *model.Restaurant) (*model.Offer, er
 		return nil, err
 	}
 
+	imageDataURL := r.PostFormValue("image")
+	imageChecksum, err := imageStorage.ChecksumDataURL(imageDataURL)
+	if err != nil {
+		return nil, err
+	}
+	if err = imageStorage.StoreDataURL(imageDataURL); err != nil {
+		return nil, err
+	}
+
 	offer := &model.Offer{
 		Title:       r.PostFormValue("title"),
 		Ingredients: r.Form["ingredients"],
@@ -119,6 +134,7 @@ func parseOffer(r *http.Request, restaurant *model.Restaurant) (*model.Offer, er
 		},
 		FromTime: fromTime,
 		ToTime:   toTime,
+		Image:    imageChecksum,
 	}
 	return offer, nil
 }

@@ -20,6 +20,7 @@ type (
 		Ingredients []string        `json:"ingredients"          bson:"ingredients"`
 		Price       float64         `json:"price"                bson:"price"`
 		Tags        []string        `json:"tags"                 bson:"tags"`
+		Image       string          `json:"image,omitempty"      bson:"image,omitempty"`
 		FBPostID    string          `json:"fb_post_id,omitempty" bson:"fb_post_id,omitempty"`
 	}
 

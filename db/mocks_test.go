@@ -32,6 +32,7 @@ func createMocks() *Mocks {
 			ToTime:      parseTime("2014-11-10T11:00:00.000Z"),
 			Price:       3.4,
 			Tags:        []string{"lind"},
+			Image:       "08446744073709551615",
 		},
 			&model.Offer{
 				Restaurant: model.OfferRestaurant{
@@ -44,6 +45,7 @@ func createMocks() *Mocks {
 				ToTime:      parseTime("2014-11-10T12:00:00.000Z"),
 				Price:       3.3,
 				Tags:        []string{"lind"},
+				Image:       "07446744073709551615",
 			},
 			&model.Offer{
 				Restaurant: model.OfferRestaurant{
@@ -56,6 +58,7 @@ func createMocks() *Mocks {
 				ToTime:      parseTime("2014-11-12T11:00:00.000Z"),
 				Price:       3.6,
 				Tags:        []string{"lind"},
+				Image:       "06446744073709551615",
 			},
 		},
 		tags: []*model.Tag{
