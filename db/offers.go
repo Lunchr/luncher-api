@@ -11,6 +11,7 @@ import (
 type Offers interface {
 	Insert(...*model.Offer) ([]*model.Offer, error)
 	Get(region string, startTime, endTime time.Time) ([]*model.Offer, error)
+	GetForRestaurant(restaurantName string, startTime time.Time) ([]*model.Offer, error)
 	UpdateID(bson.ObjectId, *model.Offer) error
 	GetByID(bson.ObjectId) (*model.Offer, error)
 }
@@ -41,8 +42,9 @@ func (c offersCollection) UpdateID(id bson.ObjectId, offer *model.Offer) error {
 	return c.c.UpdateId(id, bson.M{"$set": offer})
 }
 
-func (c offersCollection) Get(region string, startTime, endTime time.Time) (offers []*model.Offer, err error) {
-	err = c.c.Find(bson.M{
+func (c offersCollection) Get(region string, startTime, endTime time.Time) ([]*model.Offer, error) {
+	var offers []*model.Offer
+	err := c.c.Find(bson.M{
 		"from_time": bson.M{
 			"$lte": endTime,
 		},
@@ -51,7 +53,18 @@ func (c offersCollection) Get(region string, startTime, endTime time.Time) (offe
 		},
 		"restaurant.region": region,
 	}).All(&offers)
-	return
+	return offers, err
+}
+
+func (c offersCollection) GetForRestaurant(restaurantName string, startTime time.Time) ([]*model.Offer, error) {
+	var offers []*model.Offer
+	err := c.c.Find(bson.M{
+		"to_time": bson.M{
+			"$gte": startTime,
+		},
+		"restaurant.name": restaurantName,
+	}).All(&offers)
+	return offers, err
 }
 
 func (c offersCollection) GetByID(id bson.ObjectId) (*model.Offer, error) {

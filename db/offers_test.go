@@ -215,4 +215,69 @@ var _ = Describe("Offers", func() {
 			})
 		})
 	})
+
+	Describe("GetForRestaurant", func() {
+		var (
+			startTime      time.Time
+			restaurant     string
+			offerStartTime = time.Date(2014, 11, 10, 9, 0, 0, 0, time.UTC)
+			offerEndTime   = time.Date(2014, 11, 10, 11, 0, 0, 0, time.UTC)
+		)
+
+		Context("with an existing restaurant", func() {
+			BeforeEach(func() {
+				restaurant = "Asian Chef"
+			})
+
+			Context("with time right before an offer", func() {
+				BeforeEach(func() {
+					startTime = offerStartTime.Add(-1 * time.Second)
+				})
+
+				It("should include the offer", func() {
+					offers, err := offersCollection.GetForRestaurant(restaurant, startTime)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(offers).To(HaveLen(1))
+					Expect(offers).To(ContainOfferMock(0))
+				})
+			})
+
+			Context("with time right before an offer ends", func() {
+				BeforeEach(func() {
+					startTime = offerEndTime.Add(-1 * time.Second)
+				})
+
+				It("should include the offer", func() {
+					offers, err := offersCollection.GetForRestaurant(restaurant, startTime)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(offers).To(HaveLen(1))
+					Expect(offers).To(ContainOfferMock(0))
+				})
+			})
+			Context("with time right after an offer offer has ended", func() {
+				BeforeEach(func() {
+					startTime = offerEndTime.Add(1 * time.Second)
+				})
+
+				It("should NOT include the offer", func() {
+					offers, err := offersCollection.GetForRestaurant(restaurant, startTime)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(offers).To(HaveLen(0))
+				})
+			})
+		})
+
+		Context("with a non-existing restaurant", func() {
+			BeforeEach(func() {
+				restaurant = "something random"
+				startTime = offerStartTime.Add(-24 * 10 * time.Hour)
+			})
+
+			It("should NOT include the offer", func() {
+				offers, err := offersCollection.GetForRestaurant(restaurant, startTime)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(offers).To(HaveLen(0))
+			})
+		})
+	})
 })
