@@ -5,6 +5,7 @@ import (
 
 	"github.com/deiwin/facebook"
 	"github.com/deiwin/luncher-api/db"
+	. "github.com/deiwin/luncher-api/router"
 	"github.com/deiwin/luncher-api/session"
 	"golang.org/x/oauth2"
 )
@@ -29,7 +30,7 @@ func NewFacebook(fbAuth facebook.Authenticator, sessMgr session.Manager, usersCo
 }
 
 func (fb fbook) Login() Handler {
-	return func(w http.ResponseWriter, r *http.Request) *handlerError {
+	return func(w http.ResponseWriter, r *http.Request) *HandlerError {
 		session := fb.sessionManager.GetOrInit(w, r)
 		redirectURL := fb.auth.AuthURL(session)
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
@@ -38,37 +39,37 @@ func (fb fbook) Login() Handler {
 }
 
 func (fb fbook) Redirected() Handler {
-	return func(w http.ResponseWriter, r *http.Request) *handlerError {
+	return func(w http.ResponseWriter, r *http.Request) *HandlerError {
 		session := fb.sessionManager.GetOrInit(w, r)
 		tok, err := fb.auth.Token(session, r)
 		if err != nil {
 			if err == facebook.ErrMissingState {
-				return &handlerError{err, "Expecting a 'state' value", http.StatusBadRequest}
+				return &HandlerError{err, "Expecting a 'state' value", http.StatusBadRequest}
 			} else if err == facebook.ErrInvalidState {
-				return &handlerError{err, "Invalid 'state' value", http.StatusForbidden}
+				return &HandlerError{err, "Invalid 'state' value", http.StatusForbidden}
 			} else if err == facebook.ErrMissingCode {
-				return &handlerError{err, "Expecting a 'code' value", http.StatusBadRequest}
+				return &HandlerError{err, "Expecting a 'code' value", http.StatusBadRequest}
 			}
-			return &handlerError{err, "", http.StatusInternalServerError}
+			return &HandlerError{err, "", http.StatusInternalServerError}
 		}
 		userID, err := fb.getUserID(tok)
 		if err != nil {
-			return &handlerError{err, "", http.StatusInternalServerError}
+			return &HandlerError{err, "", http.StatusInternalServerError}
 		}
 		pageID, err := fb.getPageID(userID)
 		if err != nil {
-			return &handlerError{err, "", http.StatusInternalServerError}
+			return &HandlerError{err, "", http.StatusInternalServerError}
 		}
 		pageAccessToken, err := fb.auth.PageAccessToken(tok, pageID)
 		if err != nil {
 			if err == facebook.ErrNoSuchPage {
-				return &handlerError{err, "Access denied by Facebook to the managed page", http.StatusForbidden}
+				return &HandlerError{err, "Access denied by Facebook to the managed page", http.StatusForbidden}
 			}
-			return &handlerError{err, "", http.StatusInternalServerError}
+			return &HandlerError{err, "", http.StatusInternalServerError}
 		}
 		err = fb.storeAccessTokensInDB(userID, tok, pageAccessToken, session)
 		if err != nil {
-			return &handlerError{err, "", http.StatusInternalServerError}
+			return &HandlerError{err, "", http.StatusInternalServerError}
 		}
 		http.Redirect(w, r, "/#/admin", http.StatusSeeOther)
 		return nil

@@ -2,30 +2,16 @@ package handler
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
+
+	. "github.com/deiwin/luncher-api/router"
 )
 
-type Handler func(http.ResponseWriter, *http.Request) *handlerError
-
-type handlerError struct {
-	Error   error
-	Message string
-	Code    int
-}
-
-func (fn Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if e := fn(w, r); e != nil {
-		log.Print(e.Error)
-		http.Error(w, e.Message, e.Code)
-	}
-}
-
-func writeJSON(w http.ResponseWriter, v interface{}) *handlerError {
+func writeJSON(w http.ResponseWriter, v interface{}) *HandlerError {
 	data, err := json.Marshal(v)
 	if err != nil {
-		return &handlerError{err, "", http.StatusInternalServerError}
+		return &HandlerError{err, "", http.StatusInternalServerError}
 	}
 	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 	w.Header().Set("Content-Type", "application/json")

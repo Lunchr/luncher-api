@@ -38,13 +38,13 @@ var _ = Describe("FacebookHandler", func() {
 	Describe("Login", func() {
 		It("should redirect", func(done Done) {
 			defer close(done)
-			handlers.Login().ServeHTTP(responseRecorder, request)
+			handlers.Login()(responseRecorder, request)
 			Expect(responseRecorder.Code).To(Equal(http.StatusSeeOther))
 		})
 
 		It("should redirect to mocked URL", func(done Done) {
 			defer close(done)
-			handlers.Login().ServeHTTP(responseRecorder, request)
+			handlers.Login()(responseRecorder, request)
 			ExpectLocationToBeMockedURL(responseRecorder)
 		})
 	})

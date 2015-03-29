@@ -13,6 +13,7 @@ import (
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
 	. "github.com/deiwin/luncher-api/handler"
+	. "github.com/deiwin/luncher-api/router"
 	"github.com/deiwin/luncher-api/session"
 	"golang.org/x/oauth2"
 	"gopkg.in/mgo.v2/bson"
@@ -49,8 +50,8 @@ var _ = Describe("OffersHandler", func() {
 		Context("with no region specified", func() {
 			It("should fail", func(done Done) {
 				defer close(done)
-				handler.ServeHTTP(responseRecorder, request)
-				Expect(responseRecorder.Code).To(Equal(http.StatusBadRequest))
+				err := handler(responseRecorder, request)
+				Expect(err.Code).To(Equal(http.StatusBadRequest))
 			})
 		})
 
@@ -63,13 +64,13 @@ var _ = Describe("OffersHandler", func() {
 
 			It("should succeed", func(done Done) {
 				defer close(done)
-				handler.ServeHTTP(responseRecorder, request)
-				Expect(responseRecorder.Code).To(Equal(http.StatusOK))
+				err := handler(responseRecorder, request)
+				Expect(err).To(BeNil())
 			})
 
 			It("should return json", func(done Done) {
 				defer close(done)
-				handler.ServeHTTP(responseRecorder, request)
+				handler(responseRecorder, request)
 				contentTypes := responseRecorder.HeaderMap["Content-Type"]
 				Expect(contentTypes).To(HaveLen(1))
 				Expect(contentTypes[0]).To(Equal("application/json"))
@@ -108,7 +109,7 @@ var _ = Describe("OffersHandler", func() {
 
 				It("should write the returned data to responsewriter", func(done Done) {
 					defer close(done)
-					handler.ServeHTTP(responseRecorder, request)
+					handler(responseRecorder, request)
 					var result []*model.Offer
 					json.Unmarshal(responseRecorder.Body.Bytes(), &result)
 					Expect(result).To(HaveLen(1))
@@ -131,8 +132,8 @@ var _ = Describe("OffersHandler", func() {
 
 				It("should return error 500", func(done Done) {
 					defer close(done)
-					handler.ServeHTTP(responseRecorder, request)
-					Expect(responseRecorder.Code).To(Equal(http.StatusInternalServerError))
+					err := handler(responseRecorder, request)
+					Expect(err.Code).To(Equal(http.StatusInternalServerError))
 				})
 			})
 		})
@@ -164,8 +165,8 @@ var _ = Describe("OffersHandler", func() {
 
 			It("should be forbidden", func(done Done) {
 				defer close(done)
-				handler.ServeHTTP(responseRecorder, request)
-				Expect(responseRecorder.Code).To(Equal(http.StatusForbidden))
+				err := handler(responseRecorder, request)
+				Expect(err.Code).To(Equal(http.StatusForbidden))
 			})
 		})
 
@@ -176,8 +177,8 @@ var _ = Describe("OffersHandler", func() {
 
 			It("should be forbidden", func(done Done) {
 				defer close(done)
-				handler.ServeHTTP(responseRecorder, request)
-				Expect(responseRecorder.Code).To(Equal(http.StatusForbidden))
+				err := handler(responseRecorder, request)
+				Expect(err.Code).To(Equal(http.StatusForbidden))
 			})
 		})
 
@@ -214,20 +215,20 @@ var _ = Describe("OffersHandler", func() {
 
 				It("should fail", func(done Done) {
 					defer close(done)
-					handler.ServeHTTP(responseRecorder, request)
-					Expect(responseRecorder.Code).To(Equal(http.StatusBadGateway))
+					err := handler(responseRecorder, request)
+					Expect(err.Code).To(Equal(http.StatusBadGateway))
 				})
 			})
 
 			It("should succeed", func(done Done) {
 				defer close(done)
-				handler.ServeHTTP(responseRecorder, request)
-				Expect(responseRecorder.Code).To(Equal(http.StatusOK))
+				err := handler(responseRecorder, request)
+				Expect(err).To(BeNil())
 			})
 
 			It("should return json", func(done Done) {
 				defer close(done)
-				handler.ServeHTTP(responseRecorder, request)
+				handler(responseRecorder, request)
 				contentTypes := responseRecorder.HeaderMap["Content-Type"]
 				Expect(contentTypes).To(HaveLen(1))
 				Expect(contentTypes[0]).To(Equal("application/json"))
@@ -235,7 +236,7 @@ var _ = Describe("OffersHandler", func() {
 
 			It("should include the offer with the new ID", func(done Done) {
 				defer close(done)
-				handler.ServeHTTP(responseRecorder, request)
+				handler(responseRecorder, request)
 				var offer *model.Offer
 				json.Unmarshal(responseRecorder.Body.Bytes(), &offer)
 				Expect(offer.ID).To(Equal(objectID))

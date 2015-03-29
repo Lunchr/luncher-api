@@ -9,8 +9,8 @@ import (
 	"github.com/deiwin/imstor"
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/handler"
+	"github.com/deiwin/luncher-api/router"
 	"github.com/deiwin/luncher-api/session"
-	"github.com/julienschmidt/httprouter"
 )
 
 func main() {
@@ -54,15 +54,14 @@ func main() {
 	imageStorageConf := imstor.NewConfig(imageSizes, imageFormats)
 	imageStorage := imstor.New(imageStorageConf)
 
-	r := httprouter.New()
-	r.Handler("GET", "/offers", handler.Offers(offersCollection, regionsCollection, imageStorage))
-	r.Handler("POST", "/offers", handler.PostOffers(offersCollection, usersCollection,
-		restaurantsCollection, sessionManager, facebookAuthenticator, imageStorage))
-	r.Handler("GET", "/tags", handler.Tags(tagsCollection))
-	r.Handler("GET", "/login/facebook", facebookHandler.Login())
-	r.Handler("GET", "/login/facebook/redirected", facebookHandler.Redirected())
+	r := router.NewWithPrefix("/api/v1/")
+	r.GET("/offers", handler.Offers(offersCollection, regionsCollection, imageStorage))
+	r.POST("/offers", handler.PostOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, facebookAuthenticator, imageStorage))
+	r.GET("/tags", handler.Tags(tagsCollection))
+	r.GET("/login/facebook", facebookHandler.Login())
+	r.GET("/login/facebook/redirected", facebookHandler.Redirected())
 
-	http.Handle("/api/v1/", http.StripPrefix("/api/v1/", r))
+	http.Handle("/api/v1/", r)
 	portString := fmt.Sprintf(":%d", mainConfig.Port)
 	log.Fatal(http.ListenAndServe(portString, nil))
 }

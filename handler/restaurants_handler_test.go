@@ -8,6 +8,7 @@ import (
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
 	. "github.com/deiwin/luncher-api/handler"
+	. "github.com/deiwin/luncher-api/router"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,13 +31,13 @@ var _ = Describe("RestaurantsHandler", func() {
 	Describe("Get", func() {
 		It("should succeed", func(done Done) {
 			defer close(done)
-			handler.ServeHTTP(responseRecorder, request)
-			Expect(responseRecorder.Code).To(Equal(http.StatusOK))
+			err := handler(responseRecorder, request)
+			Expect(err).To(BeNil())
 		})
 
 		It("should return json", func(done Done) {
 			defer close(done)
-			handler.ServeHTTP(responseRecorder, request)
+			handler(responseRecorder, request)
 			contentTypes := responseRecorder.HeaderMap["Content-Type"]
 			Expect(contentTypes).To(HaveLen(1))
 			Expect(contentTypes[0]).To(Equal("application/json"))
@@ -60,7 +61,7 @@ var _ = Describe("RestaurantsHandler", func() {
 
 			It("should write the returned data to responsewriter", func(done Done) {
 				defer close(done)
-				handler.ServeHTTP(responseRecorder, request)
+				handler(responseRecorder, request)
 				var result []*model.Restaurant
 				json.Unmarshal(responseRecorder.Body.Bytes(), &result)
 				Expect(result).To(HaveLen(1))
@@ -83,8 +84,8 @@ var _ = Describe("RestaurantsHandler", func() {
 
 			It("should return error 500", func(done Done) {
 				defer close(done)
-				handler.ServeHTTP(responseRecorder, request)
-				Expect(responseRecorder.Code).To(Equal(http.StatusInternalServerError))
+				err := handler(responseRecorder, request)
+				Expect(err.Code).To(Equal(http.StatusInternalServerError))
 			})
 		})
 	})

@@ -14,34 +14,35 @@ import (
 	"github.com/deiwin/imstor"
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
+	. "github.com/deiwin/luncher-api/router"
 	"github.com/deiwin/luncher-api/session"
 )
 
 // Offers handles GET requests to /offers. It returns all current day's offers.
 func Offers(offersCollection db.Offers, regionsCollection db.Regions, imageStorage imstor.Storage) Handler {
-	return func(w http.ResponseWriter, r *http.Request) *handlerError {
+	return func(w http.ResponseWriter, r *http.Request) *HandlerError {
 		regionName := r.FormValue("region")
 		if regionName == "" {
-			return &handlerError{errors.New("Region not specified for GET /offers"), "Please specify a region", http.StatusBadRequest}
+			return &HandlerError{errors.New("Region not specified for GET /offers"), "Please specify a region", http.StatusBadRequest}
 		}
 		region, err := regionsCollection.Get(regionName)
 		if err != nil {
-			return &handlerError{err, "", http.StatusInternalServerError}
+			return &HandlerError{err, "", http.StatusInternalServerError}
 		}
 		loc, err := time.LoadLocation(region.Location)
 		if err != nil {
-			return &handlerError{err, "", http.StatusInternalServerError}
+			return &HandlerError{err, "", http.StatusInternalServerError}
 		}
 		now := time.Now()
 		startTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 		endTime := startTime.AddDate(0, 0, 1)
 		offers, err := offersCollection.Get(regionName, startTime, endTime)
 		if err != nil {
-			return &handlerError{err, "", http.StatusInternalServerError}
+			return &HandlerError{err, "", http.StatusInternalServerError}
 		}
 		for _, offer := range offers {
 			if offer.Image, err = imageStorage.PathForSize(offer.Image, "large"); err != nil {
-				return &handlerError{err, "", http.StatusInternalServerError}
+				return &HandlerError{err, "", http.StatusInternalServerError}
 			}
 		}
 		return writeJSON(w, offers)
@@ -52,33 +53,33 @@ func Offers(offersCollection db.Offers, regionsCollection db.Regions, imageStora
 // sends it to Facebook to be posted on the page's wall at the requested time.
 func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants,
 	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage imstor.Storage) Handler {
-	return func(w http.ResponseWriter, r *http.Request) *handlerError {
+	return func(w http.ResponseWriter, r *http.Request) *HandlerError {
 		session, err := sessionManager.Get(r)
 		if err != nil {
-			return &handlerError{err, "", http.StatusForbidden}
+			return &HandlerError{err, "", http.StatusForbidden}
 		}
 		user, err := usersCollection.GetBySessionID(session)
 		if err != nil {
-			return &handlerError{err, "", http.StatusForbidden}
+			return &HandlerError{err, "", http.StatusForbidden}
 		}
 		api := fbAuth.APIConnection(&user.Session.FacebookUserToken)
 		restaurant, err := restaurantsCollection.GetByID(user.RestaurantID)
 		if err != nil {
-			return &handlerError{err, "", http.StatusInternalServerError}
+			return &HandlerError{err, "", http.StatusInternalServerError}
 		}
 		offer, err := parseOffer(r, restaurant, imageStorage)
 		if err != nil {
-			return &handlerError{err, "", http.StatusBadRequest}
+			return &HandlerError{err, "", http.StatusBadRequest}
 		}
 		message := formFBOfferMessage(*offer)
 		post, err := api.PagePublish(user.Session.FacebookPageToken, user.FacebookPageID, message)
 		if err != nil {
-			return &handlerError{err, "", http.StatusBadGateway}
+			return &HandlerError{err, "", http.StatusBadGateway}
 		}
 		offer.FBPostID = post.ID
 		offers, err := offersCollection.Insert(offer)
 		if err != nil {
-			return &handlerError{err, "", http.StatusInternalServerError}
+			return &HandlerError{err, "", http.StatusInternalServerError}
 		}
 
 		return writeJSON(w, offers[0])
