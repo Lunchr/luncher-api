@@ -57,15 +57,7 @@ func Offers(offersCollection db.Offers, regionsCollection db.Regions, imageStora
 // sends it to Facebook to be posted on the page's wall at the requested time.
 func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants,
 	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage imstor.Storage) Handler {
-	return func(w http.ResponseWriter, r *http.Request) *HandlerError {
-		session, err := sessionManager.Get(r)
-		if err != nil {
-			return &HandlerError{err, "", http.StatusForbidden}
-		}
-		user, err := usersCollection.GetBySessionID(session)
-		if err != nil {
-			return &HandlerError{err, "", http.StatusForbidden}
-		}
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *HandlerError {
 		api := fbAuth.APIConnection(&user.Session.FacebookUserToken)
 		restaurant, err := restaurantsCollection.GetByID(user.RestaurantID)
 		if err != nil {
@@ -93,27 +85,20 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 
 		return writeJSON(w, offers[0])
 	}
+	return checkLogin(sessionManager, usersCollection, handler)
 }
 
 // PutOffers handles PUT requests to /offers. It updates the offer in the DB and
 // updates the related Facebook post.
 func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants,
 	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage imstor.Storage) HandlerWithParams {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) *HandlerError {
+	handler := func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *HandlerError {
 		idString := ps.ByName("id")
 		if !bson.IsObjectIdHex(idString) {
 			err := errors.New("PUT /offers contained an invalid id")
 			return &HandlerError{err, "", http.StatusBadRequest}
 		}
 		id := bson.ObjectIdHex(idString)
-		session, err := sessionManager.Get(r)
-		if err != nil {
-			return &HandlerError{err, "", http.StatusForbidden}
-		}
-		user, err := usersCollection.GetBySessionID(session)
-		if err != nil {
-			return &HandlerError{err, "", http.StatusForbidden}
-		}
 		currentOffer, err := offersCollection.GetByID(id)
 		if err != nil {
 			return &HandlerError{err, "", http.StatusBadRequest}
@@ -158,6 +143,8 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 
 		return writeJSON(w, offer)
 	}
+
+	return checkLoginWithParams(sessionManager, usersCollection, handler)
 }
 
 func formFBOfferMessage(o model.Offer) string {

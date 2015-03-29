@@ -270,22 +270,6 @@ var _ = Describe("OffersHandler", func() {
 			handler = PutOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, authenticator, imageStorage)
 		})
 
-		Context("with an ID that's not an object ID", func() {
-			BeforeEach(func() {
-				params = httprouter.Params{httprouter.Param{
-					Key:   "id",
-					Value: "not a proper bson.ObjectId",
-				}}
-				sessionManager = &mockSessionManager{}
-			})
-
-			It("should fail", func(done Done) {
-				defer close(done)
-				err := handler(responseRecorder, request, params)
-				Expect(err.Code).To(Equal(http.StatusBadRequest))
-			})
-		})
-
 		Context("with no session set", func() {
 			BeforeEach(func() {
 				sessionManager = &mockSessionManager{}
@@ -312,6 +296,22 @@ var _ = Describe("OffersHandler", func() {
 
 		Context("with no matching offer in the DB", func() {
 			BeforeEach(func() {
+				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
+			})
+
+			It("should fail", func(done Done) {
+				defer close(done)
+				err := handler(responseRecorder, request, params)
+				Expect(err.Code).To(Equal(http.StatusBadRequest))
+			})
+		})
+
+		Context("with an ID that's not an object ID", func() {
+			BeforeEach(func() {
+				params = httprouter.Params{httprouter.Param{
+					Key:   "id",
+					Value: "not a proper bson.ObjectId",
+				}}
 				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
 			})
 
