@@ -42,7 +42,7 @@ func (c restaurantsCollection) Get() (restaurants []*model.Restaurant, err error
 
 func (c restaurantsCollection) GetByID(id bson.ObjectId) (*model.Restaurant, error) {
 	var restaurant *model.Restaurant
-	err := c.c.Find(bson.M{"_id": id}).One(&restaurant)
+	err := c.c.FindId(id).One(&restaurant)
 	return restaurant, err
 }
 

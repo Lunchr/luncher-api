@@ -34,6 +34,37 @@ var _ = Describe("Offers", func() {
 		})
 	})
 
+	Describe("UpdateID", func() {
+		It("should fail for a non-existent ID", func(done Done) {
+			defer close(done)
+			err := offersCollection.UpdateID(bson.NewObjectId(), &model.Offer{})
+			Expect(err).To(HaveOccurred())
+		})
+
+		Context("with an offer with known ID inserted", func() {
+			var id bson.ObjectId
+			BeforeEach(func(done Done) {
+				defer close(done)
+				id = bson.NewObjectId()
+				_, err := offersCollection.Insert(&model.Offer{
+					ID: id,
+				})
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should update the offer in DB", func(done Done) {
+				defer close(done)
+				err := offersCollection.UpdateID(id, &model.Offer{
+					Title: "an updated title",
+				})
+				Expect(err).NotTo(HaveOccurred())
+				offer, err := offersCollection.GetByID(id)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(offer.Title).To(Equal("an updated title"))
+			})
+		})
+	})
+
 	Describe("Get", func() {
 		var (
 			startTime    time.Time
