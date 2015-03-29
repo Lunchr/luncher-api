@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
@@ -142,6 +143,63 @@ var _ = Describe("RestaurantsHandlers", func() {
 			})
 		})
 	})
+
+	Describe("GET /restaurant/offers", func() {
+		var (
+			sessionManager            session.Manager
+			mockRestaurantsCollection db.Restaurants
+			mockUsersCollection       db.Users
+			handler                   Handler
+			mockOffersCollection      db.Offers
+		)
+
+		BeforeEach(func() {
+			mockRestaurantsCollection = &mockRestaurants{}
+		})
+
+		JustBeforeEach(func() {
+			handler = RestaurantOffers(mockRestaurantsCollection, sessionManager, mockUsersCollection, mockOffersCollection)
+		})
+
+		ExpectUserToBeLoggedIn(func() *HandlerError {
+			return handler(responseRecorder, request)
+		}, func(mgr session.Manager, users db.Users) {
+			sessionManager = mgr
+			mockUsersCollection = users
+		})
+
+		Context("with user logged in", func() {
+			BeforeEach(func() {
+				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
+				mockUsersCollection = mockUsers{}
+				mockOffersCollection = mockOffers{}
+			})
+
+			It("should succeed", func(done Done) {
+				defer close(done)
+				err := handler(responseRecorder, request)
+				Expect(err).To(BeNil())
+			})
+
+			It("should return json", func(done Done) {
+				defer close(done)
+				handler(responseRecorder, request)
+				contentTypes := responseRecorder.HeaderMap["Content-Type"]
+				Expect(contentTypes).To(HaveLen(1))
+				Expect(contentTypes[0]).To(Equal("application/json"))
+			})
+
+			It("should include the offers in the response", func(done Done) {
+				defer close(done)
+				handler(responseRecorder, request)
+				var result []*model.Offer
+				json.Unmarshal(responseRecorder.Body.Bytes(), &result)
+				Expect(result).To(HaveLen(2))
+				Expect(result[0].Title).To(Equal("a"))
+				Expect(result[1].Title).To(Equal("b"))
+			})
+		})
+	})
 })
 
 type mockRestaurants struct {
@@ -154,4 +212,17 @@ func (mock mockRestaurants) Get() (restaurants []*model.Restaurant, err error) {
 		restaurants, err = mock.getFunc()
 	}
 	return
+}
+
+func (c mockOffers) GetForRestaurant(restaurant string, startTime time.Time) ([]*model.Offer, error) {
+	Expect(restaurant).To(Equal("Asian Chef"))
+	Expect(startTime.Sub(time.Now())).To(BeNumerically("~", 0, time.Second))
+	return []*model.Offer{
+		&model.Offer{
+			Title: "a",
+		},
+		&model.Offer{
+			Title: "b",
+		},
+	}, nil
 }

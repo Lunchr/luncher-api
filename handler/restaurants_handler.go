@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
@@ -29,6 +30,23 @@ func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users
 			return &HandlerError{err, "", http.StatusInternalServerError}
 		}
 		return writeJSON(w, restaurant)
+	}
+	return checkLogin(sessionManager, users, handler)
+}
+
+// RestaurantOffers returns all upcoming offers for the restaurant linked to the
+// currently logged in user
+func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, offers db.Offers) Handler {
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *HandlerError {
+		restaurant, err := restaurants.GetByID(user.RestaurantID)
+		if err != nil {
+			return &HandlerError{err, "", http.StatusInternalServerError}
+		}
+		offers, err := offers.GetForRestaurant(restaurant.Name, time.Now())
+		if err != nil {
+			return &HandlerError{err, "", http.StatusInternalServerError}
+		}
+		return writeJSON(w, offers)
 	}
 	return checkLogin(sessionManager, users, handler)
 }
