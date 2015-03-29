@@ -9,26 +9,27 @@ import (
 	"github.com/deiwin/luncher-api/db/model"
 	. "github.com/deiwin/luncher-api/handler"
 	. "github.com/deiwin/luncher-api/router"
+	"github.com/deiwin/luncher-api/session"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("RestaurantsHandler", func() {
-	var (
-		mockRestaurantsCollection db.Restaurants
-		handler                   Handler
-	)
+var _ = Describe("RestaurantsHandlers", func() {
+	Describe("GET /restaurants", func() {
+		var (
+			mockRestaurantsCollection db.Restaurants
+			handler                   Handler
+		)
 
-	BeforeEach(func() {
-		mockRestaurantsCollection = &mockRestaurants{}
-	})
+		BeforeEach(func() {
+			mockRestaurantsCollection = &mockRestaurants{}
+		})
 
-	JustBeforeEach(func() {
-		handler = Restaurants(mockRestaurantsCollection)
-	})
+		JustBeforeEach(func() {
+			handler = Restaurants(mockRestaurantsCollection)
+		})
 
-	Describe("Get", func() {
 		It("should succeed", func(done Done) {
 			defer close(done)
 			err := handler(responseRecorder, request)
@@ -41,7 +42,6 @@ var _ = Describe("RestaurantsHandler", func() {
 			contentTypes := responseRecorder.HeaderMap["Content-Type"]
 			Expect(contentTypes).To(HaveLen(1))
 			Expect(contentTypes[0]).To(Equal("application/json"))
-			// TODO the header assertion could be made a custom matcher
 		})
 
 		Context("with simple mocked result from DB", func() {
@@ -86,6 +86,59 @@ var _ = Describe("RestaurantsHandler", func() {
 				defer close(done)
 				err := handler(responseRecorder, request)
 				Expect(err.Code).To(Equal(http.StatusInternalServerError))
+			})
+		})
+	})
+
+	Describe("GET /restaurant", func() {
+		var (
+			sessionManager            session.Manager
+			mockRestaurantsCollection db.Restaurants
+			mockUsersCollection       db.Users
+			handler                   Handler
+		)
+
+		BeforeEach(func() {
+			mockRestaurantsCollection = &mockRestaurants{}
+		})
+
+		JustBeforeEach(func() {
+			handler = Restaurant(mockRestaurantsCollection, sessionManager, mockUsersCollection)
+		})
+
+		ExpectUserToBeLoggedIn(func() *HandlerError {
+			return handler(responseRecorder, request)
+		}, func(mgr session.Manager, users db.Users) {
+			sessionManager = mgr
+			mockUsersCollection = users
+		})
+
+		Context("with user logged in", func() {
+			BeforeEach(func() {
+				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
+				mockUsersCollection = mockUsers{}
+			})
+
+			It("should succeed", func(done Done) {
+				defer close(done)
+				err := handler(responseRecorder, request)
+				Expect(err).To(BeNil())
+			})
+
+			It("should return json", func(done Done) {
+				defer close(done)
+				handler(responseRecorder, request)
+				contentTypes := responseRecorder.HeaderMap["Content-Type"]
+				Expect(contentTypes).To(HaveLen(1))
+				Expect(contentTypes[0]).To(Equal("application/json"))
+			})
+
+			It("should include the updated offer in the response", func(done Done) {
+				defer close(done)
+				handler(responseRecorder, request)
+				var restaurant *model.Restaurant
+				json.Unmarshal(responseRecorder.Body.Bytes(), &restaurant)
+				Expect(restaurant.Name).To(Equal("Asian Chef"))
 			})
 		})
 	})

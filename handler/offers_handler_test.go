@@ -158,28 +158,12 @@ var _ = Describe("OffersHandler", func() {
 		JustBeforeEach(func() {
 			handler = PostOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, authenticator, imageStorage)
 		})
-		Context("with no session set", func() {
-			BeforeEach(func() {
-				sessionManager = &mockSessionManager{}
-			})
 
-			It("should be forbidden", func(done Done) {
-				defer close(done)
-				err := handler(responseRecorder, request)
-				Expect(err.Code).To(Equal(http.StatusForbidden))
-			})
-		})
-
-		Context("with session set, but no matching user in DB", func() {
-			BeforeEach(func() {
-				sessionManager = &mockSessionManager{isSet: true}
-			})
-
-			It("should be forbidden", func(done Done) {
-				defer close(done)
-				err := handler(responseRecorder, request)
-				Expect(err.Code).To(Equal(http.StatusForbidden))
-			})
+		ExpectUserToBeLoggedIn(func() *HandlerError {
+			return handler(responseRecorder, request)
+		}, func(mgr session.Manager, users db.Users) {
+			sessionManager = mgr
+			usersCollection = users
 		})
 
 		Context("with session set and a matching user in DB", func() {
@@ -270,28 +254,11 @@ var _ = Describe("OffersHandler", func() {
 			handler = PutOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, authenticator, imageStorage)
 		})
 
-		Context("with no session set", func() {
-			BeforeEach(func() {
-				sessionManager = &mockSessionManager{}
-			})
-
-			It("should be forbidden", func(done Done) {
-				defer close(done)
-				err := handler(responseRecorder, request, params)
-				Expect(err.Code).To(Equal(http.StatusForbidden))
-			})
-		})
-
-		Context("with session set, but no matching user in DB", func() {
-			BeforeEach(func() {
-				sessionManager = &mockSessionManager{isSet: true}
-			})
-
-			It("should be forbidden", func(done Done) {
-				defer close(done)
-				err := handler(responseRecorder, request, params)
-				Expect(err.Code).To(Equal(http.StatusForbidden))
-			})
+		ExpectUserToBeLoggedIn(func() *HandlerError {
+			return handler(responseRecorder, request, nil)
+		}, func(mgr session.Manager, users db.Users) {
+			sessionManager = mgr
+			usersCollection = users
 		})
 
 		Context("with no matching offer in the DB", func() {
