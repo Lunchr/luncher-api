@@ -15,6 +15,7 @@ import (
 	. "github.com/deiwin/luncher-api/handler"
 	. "github.com/deiwin/luncher-api/router"
 	"github.com/deiwin/luncher-api/session"
+	"github.com/julienschmidt/httprouter"
 	"golang.org/x/oauth2"
 	"gopkg.in/mgo.v2/bson"
 
@@ -88,7 +89,7 @@ var _ = Describe("OffersHandler", func() {
 						},
 					}
 					offersCollection = &mockOffers{
-						func(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
+						getForTimeRangeFunc: func(startTime time.Time, endTime time.Time) (offers []*model.Offer, err error) {
 							duration := endTime.Sub(startTime)
 							// Due to daylight saving etc it's not always exactly 24h, but
 							// I think with +- 1h it should always pass.
@@ -102,7 +103,6 @@ var _ = Describe("OffersHandler", func() {
 							offers = mockResult
 							return
 						},
-						nil,
 					}
 					imageStorage = mockImageStorage{}
 				})
@@ -244,6 +244,191 @@ var _ = Describe("OffersHandler", func() {
 			})
 		})
 	})
+
+	Describe("PutOffers", func() {
+		var (
+			usersCollection       db.Users
+			restaurantsCollection db.Restaurants
+			handler               HandlerWithParams
+			authenticator         facebook.Authenticator
+			sessionManager        session.Manager
+			imageStorage          imstor.Storage
+			params                httprouter.Params
+		)
+
+		BeforeEach(func() {
+			usersCollection = &mockUsers{}
+			restaurantsCollection = &mockRestaurants{}
+			authenticator = &mockAuthenticator{}
+			params = httprouter.Params{httprouter.Param{
+				Key:   "id",
+				Value: objectID.Hex(),
+			}}
+		})
+
+		JustBeforeEach(func() {
+			handler = PutOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, authenticator, imageStorage)
+		})
+
+		Context("with an ID that's not an object ID", func() {
+			BeforeEach(func() {
+				params = httprouter.Params{httprouter.Param{
+					Key:   "id",
+					Value: "not a proper bson.ObjectId",
+				}}
+				sessionManager = &mockSessionManager{}
+			})
+
+			It("should fail", func(done Done) {
+				defer close(done)
+				err := handler(responseRecorder, request, params)
+				Expect(err.Code).To(Equal(http.StatusBadRequest))
+			})
+		})
+
+		Context("with no session set", func() {
+			BeforeEach(func() {
+				sessionManager = &mockSessionManager{}
+			})
+
+			It("should be forbidden", func(done Done) {
+				defer close(done)
+				err := handler(responseRecorder, request, params)
+				Expect(err.Code).To(Equal(http.StatusForbidden))
+			})
+		})
+
+		Context("with session set, but no matching user in DB", func() {
+			BeforeEach(func() {
+				sessionManager = &mockSessionManager{isSet: true}
+			})
+
+			It("should be forbidden", func(done Done) {
+				defer close(done)
+				err := handler(responseRecorder, request, params)
+				Expect(err.Code).To(Equal(http.StatusForbidden))
+			})
+		})
+
+		Context("with no matching offer in the DB", func() {
+			BeforeEach(func() {
+				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
+			})
+
+			It("should fail", func(done Done) {
+				defer close(done)
+				err := handler(responseRecorder, request, params)
+				Expect(err.Code).To(Equal(http.StatusBadRequest))
+			})
+		})
+
+		Context("with image not changed", func() {
+			BeforeEach(func() {
+				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
+				requestMethod = "PUT"
+				requestData = url.Values{
+					"title":       {"thetitle"},
+					"ingredients": {"ingredient1", "ingredient2", "ingredient3"},
+					"tags":        {"tag1", "tag2"},
+					"price":       {"123.58"},
+					"from_time":   {"2014-11-11T09:00:00.000Z"},
+					"to_time":     {"2014-11-11T11:00:00.000Z"},
+					"image":       {"a large image path"},
+				}
+				currentOffer := &model.Offer{
+					Title:    "an offer title",
+					FBPostID: "fb post id",
+					Image:    "image checksum",
+				}
+				offersCollection = &mockOffers{
+					mockOffer:        currentOffer,
+					imageIsUnchanged: true,
+				}
+				authenticator = &mockAuthenticator{
+					api: &mockAPI{
+						message: "thetitle - Ingredient1, ingredient2, ingredient3",
+					},
+				}
+				imageStorage = mockImageStorage{}
+			})
+
+			It("should succeed", func(done Done) {
+				defer close(done)
+				err := handler(responseRecorder, request, params)
+				Expect(err).To(BeNil())
+			})
+		})
+
+		Context("with session set, a matching user in DB and an offer in DB", func() {
+			BeforeEach(func() {
+				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
+				requestMethod = "PUT"
+				requestData = url.Values{
+					"title":       {"thetitle"},
+					"ingredients": {"ingredient1", "ingredient2", "ingredient3"},
+					"tags":        {"tag1", "tag2"},
+					"price":       {"123.58"},
+					"from_time":   {"2014-11-11T09:00:00.000Z"},
+					"to_time":     {"2014-11-11T11:00:00.000Z"},
+					"image":       {"image data url"},
+				}
+				currentOffer := &model.Offer{
+					Title:    "an offer title",
+					FBPostID: "fb post id",
+					Image:    "image checksum",
+				}
+				offersCollection = &mockOffers{
+					mockOffer: currentOffer,
+				}
+				authenticator = &mockAuthenticator{
+					api: &mockAPI{
+						message: "thetitle - Ingredient1, ingredient2, ingredient3",
+					},
+				}
+				imageStorage = mockImageStorage{}
+			})
+
+			Context("with post to FB failing", func() {
+				BeforeEach(func() {
+					authenticator = &mockAuthenticator{
+						api: &mockAPI{
+							message:    "postmessage",
+							shouldFail: true,
+						},
+					}
+				})
+
+				It("should fail", func(done Done) {
+					defer close(done)
+					err := handler(responseRecorder, request, params)
+					Expect(err.Code).To(Equal(http.StatusBadGateway))
+				})
+			})
+
+			It("should succeed", func(done Done) {
+				defer close(done)
+				err := handler(responseRecorder, request, params)
+				Expect(err).To(BeNil())
+			})
+
+			It("should return json", func(done Done) {
+				defer close(done)
+				handler(responseRecorder, request, params)
+				contentTypes := responseRecorder.HeaderMap["Content-Type"]
+				Expect(contentTypes).To(HaveLen(1))
+				Expect(contentTypes[0]).To(Equal("application/json"))
+			})
+
+			It("should include the updated offer in the response", func(done Done) {
+				defer close(done)
+				handler(responseRecorder, request, params)
+				var offer *model.Offer
+				json.Unmarshal(responseRecorder.Body.Bytes(), &offer)
+				Expect(offer.ID).To(Equal(objectID))
+				Expect(offer.FBPostID).To(Equal("postid"))
+			})
+		})
+	})
 })
 
 var objectID = bson.NewObjectId()
@@ -271,6 +456,8 @@ func (m mockUsers) GetBySessionID(session string) (*model.User, error) {
 
 type mockOffers struct {
 	getForTimeRangeFunc func(time.Time, time.Time) ([]*model.Offer, error)
+	mockOffer           *model.Offer
+	imageIsUnchanged    bool
 	db.Offers
 }
 
@@ -305,6 +492,38 @@ func (m mockOffers) Insert(offers ...*model.Offer) ([]*model.Offer, error) {
 	return offers, nil
 }
 
+func (m mockOffers) UpdateID(id bson.ObjectId, offer *model.Offer) error {
+	Expect(id).To(Equal(objectID))
+	Expect(offer.FBPostID).To(Equal("postid"))
+	Expect(offer.Title).To(Equal("thetitle"))
+	Expect(offer.Ingredients).To(HaveLen(3))
+	Expect(offer.Ingredients).To(ContainElement("ingredient1"))
+	Expect(offer.Ingredients).To(ContainElement("ingredient2"))
+	Expect(offer.Ingredients).To(ContainElement("ingredient3"))
+	Expect(offer.Tags).To(HaveLen(2))
+	Expect(offer.Tags).To(ContainElement("tag1"))
+	Expect(offer.Tags).To(ContainElement("tag2"))
+	Expect(offer.Price).To(BeNumerically("~", 123.58))
+	Expect(offer.Restaurant.Name).To(Equal("Asian Chef"))
+	Expect(offer.Restaurant.Region).To(Equal("Tartu"))
+	Expect(offer.FromTime).To(Equal(time.Date(2014, 11, 11, 9, 0, 0, 0, time.UTC)))
+	Expect(offer.ToTime).To(Equal(time.Date(2014, 11, 11, 11, 0, 0, 0, time.UTC)))
+	if m.imageIsUnchanged {
+		Expect(offer.Image).To(Equal("a large image path"))
+	} else {
+		Expect(offer.Image).To(Equal("image checksum"))
+	}
+	return nil
+}
+
+func (m mockOffers) GetByID(id bson.ObjectId) (*model.Offer, error) {
+	Expect(id).To(Equal(objectID))
+	if m.mockOffer == nil {
+		return nil, errors.New("offer not found")
+	}
+	return m.mockOffer, nil
+}
+
 func (m mockRestaurants) GetByID(id bson.ObjectId) (*model.Restaurant, error) {
 	Expect(id).To(Equal(bson.ObjectId("restid")))
 	restaurant := &model.Restaurant{
@@ -323,6 +542,15 @@ type mockAPI struct {
 	shouldFail bool
 	message    string
 	facebook.API
+}
+
+func (m mockAPI) PostDelete(pageAccessToken, postID string) error {
+	if m.shouldFail {
+		return errors.New("post to FB failed")
+	}
+	Expect(pageAccessToken).To(Equal("pagetoken"))
+	Expect(postID).To(Equal("fb post id"))
+	return nil
 }
 
 func (m mockAPI) PagePublish(pageAccessToken, pageID, message string) (*fbmodel.Post, error) {

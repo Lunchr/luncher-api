@@ -57,6 +57,7 @@ func main() {
 	r := router.NewWithPrefix("/api/v1/")
 	r.GET("/offers", handler.Offers(offersCollection, regionsCollection, imageStorage))
 	r.POST("/offers", handler.PostOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, facebookAuthenticator, imageStorage))
+	r.PUTWithParams("/offers/:id", handler.PutOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, facebookAuthenticator, imageStorage))
 	r.GET("/tags", handler.Tags(tagsCollection))
 	r.GET("/login/facebook", facebookHandler.Login())
 	r.GET("/login/facebook/redirected", facebookHandler.Redirected())
