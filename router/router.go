@@ -3,6 +3,7 @@ package router
 import (
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -18,15 +19,15 @@ type HandlerError struct {
 }
 
 func (r Router) GET(path string, handler Handler) {
-	r.Handler("GET", path, handleErrors(handler))
+	r.Handler("GET", r.prefix+path, handleErrors(handler))
 }
 
 func (r Router) POST(path string, handler Handler) {
-	r.Handler("POST", path, handleErrors(handler))
+	r.Handler("POST", r.prefix+path, handleErrors(handler))
 }
 
 func (r Router) PUTWithParams(path string, handler HandlerWithParams) {
-	r.PUT(path, handleErrorsWithParams(handler))
+	r.PUT(r.prefix+path, handleErrorsWithParams(handler))
 }
 
 // Router is a wrapper around julienschmidt/httprouter that implements error
@@ -41,16 +42,8 @@ type Router struct {
 func NewWithPrefix(prefix string) *Router {
 	return &Router{
 		Router: httprouter.New(),
-		prefix: prefix,
+		prefix: strings.TrimSuffix(prefix, "/"),
 	}
-}
-
-func (r Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	if r.prefix == "" {
-		r.ServeHTTP(w, req)
-		return
-	}
-	http.StripPrefix(r.prefix, r).ServeHTTP(w, req)
 }
 
 func handleErrors(h Handler) http.Handler {
