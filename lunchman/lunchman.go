@@ -72,7 +72,7 @@ func main() {
 		checkUnique := getRestaurantUniquenessCheck(restaurantsCollection)
 		checkExists := getRegionExistanceCheck(regionsCollection)
 
-		name := getInputOrExit(actor, "Please enter a name for the new region", checkNotEmpty, checkUnique)
+		name := getInputOrExit(actor, "Please enter a name for the new restaurant", checkNotEmpty, checkUnique)
 		address := getInputOrExit(actor, "Please enter the restaurant's address", checkNotEmpty)
 		region := getInputOrExit(actor, "Please enter the region you want to register the restaurant into", checkNotEmpty, checkExists)
 		fbUserID := getInputOrExit(actor, "Please enter the restaurant administrator's Facebook user ID", checkNotEmpty)
