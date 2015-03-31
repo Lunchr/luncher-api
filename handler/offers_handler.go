@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -44,9 +45,11 @@ func Offers(offersCollection db.Offers, regionsCollection db.Regions, imageStora
 		}
 		for _, offer := range offers {
 			if offer.Image != "" {
-				if offer.Image, err = imageStorage.PathForSize(offer.Image, "large"); err != nil {
+				imagePath, err := imageStorage.PathForSize(offer.Image, "large")
+				if err != nil {
 					return &HandlerError{err, "", http.StatusInternalServerError}
 				}
+				offer.Image = path.Join("images", imagePath)
 			}
 		}
 		return writeJSON(w, offers)

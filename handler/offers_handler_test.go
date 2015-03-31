@@ -114,7 +114,7 @@ var _ = Describe("OffersHandler", func() {
 					json.Unmarshal(responseRecorder.Body.Bytes(), &result)
 					Expect(result).To(HaveLen(1))
 					Expect(result[0].Title).To(Equal(mockResult[0].Title))
-					Expect(result[0].Image).To(Equal("a large image path"))
+					Expect(result[0].Image).To(Equal("images/a large image path"))
 				})
 			})
 
