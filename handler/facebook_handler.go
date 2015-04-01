@@ -50,26 +50,26 @@ func (fb fbook) Redirected() Handler {
 			} else if err == facebook.ErrMissingCode {
 				return &HandlerError{err, "Expecting a 'code' value", http.StatusBadRequest}
 			}
-			return &HandlerError{err, "", http.StatusInternalServerError}
+			return &HandlerError{err, "Failed to connect to Facebook", http.StatusInternalServerError}
 		}
 		userID, err := fb.getUserID(tok)
 		if err != nil {
-			return &HandlerError{err, "", http.StatusInternalServerError}
+			return &HandlerError{err, "Failed to get the user information from Facebook", http.StatusInternalServerError}
 		}
 		pageID, err := fb.getPageID(userID)
 		if err != nil {
-			return &HandlerError{err, "", http.StatusInternalServerError}
+			return &HandlerError{err, "Failed to find a Facebook page related to this user", http.StatusInternalServerError}
 		}
 		pageAccessToken, err := fb.auth.PageAccessToken(tok, pageID)
 		if err != nil {
 			if err == facebook.ErrNoSuchPage {
 				return &HandlerError{err, "Access denied by Facebook to the managed page", http.StatusForbidden}
 			}
-			return &HandlerError{err, "", http.StatusInternalServerError}
+			return &HandlerError{err, "Failed to get access to the Facebook page", http.StatusInternalServerError}
 		}
 		err = fb.storeAccessTokensInDB(userID, tok, pageAccessToken, session)
 		if err != nil {
-			return &HandlerError{err, "", http.StatusInternalServerError}
+			return &HandlerError{err, "Failed to persist Facebook login information", http.StatusInternalServerError}
 		}
 		http.Redirect(w, r, "/#/admin", http.StatusSeeOther)
 		return nil

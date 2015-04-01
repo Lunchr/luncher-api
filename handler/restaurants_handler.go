@@ -29,7 +29,7 @@ func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *HandlerError {
 		restaurant, err := c.GetByID(user.RestaurantID)
 		if err != nil {
-			return &HandlerError{err, "", http.StatusInternalServerError}
+			return &HandlerError{err, "Failed to find the restaurant connected to this user", http.StatusInternalServerError}
 		}
 		return writeJSON(w, restaurant)
 	}
@@ -42,17 +42,17 @@ func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *HandlerError {
 		restaurant, err := restaurants.GetByID(user.RestaurantID)
 		if err != nil {
-			return &HandlerError{err, "", http.StatusInternalServerError}
+			return &HandlerError{err, "Failed to find the restaurant connected to this user", http.StatusInternalServerError}
 		}
 		offers, err := offers.GetForRestaurant(restaurant.Name, time.Now())
 		if err != nil {
-			return &HandlerError{err, "", http.StatusInternalServerError}
+			return &HandlerError{err, "Failed to find upcoming offers for this restaurant", http.StatusInternalServerError}
 		}
 		for _, offer := range offers {
 			if offer.Image != "" {
 				imagePath, err := imageStorage.PathForSize(offer.Image, "large")
 				if err != nil {
-					return &HandlerError{err, "", http.StatusInternalServerError}
+					return &HandlerError{err, "Failed to find an image of an offer", http.StatusInternalServerError}
 				}
 				offer.Image = path.Join("images", imagePath)
 			}
