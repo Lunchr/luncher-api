@@ -125,8 +125,6 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 				return &HandlerError{err, "", http.StatusInternalServerError}
 			}
 			offer.Image = imageChecksum
-		} else {
-			offer.Image = r.PostFormValue("image")
 		}
 		if currentOffer.FBPostID != "" {
 			err = api.PostDelete(user.Session.FacebookPageToken, currentOffer.FBPostID)
