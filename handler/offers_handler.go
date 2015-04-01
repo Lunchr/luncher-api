@@ -189,16 +189,12 @@ func parseAndStoreImage(imageDataURL string, imageStorage imstor.Storage) (strin
 }
 
 func imageChanged(currentImage, putImage string, imageStorage imstor.Storage) (bool, *HandlerError) {
-	if currentImage != "" {
-		currentImagePath, err := imageStorage.PathForSize(currentImage, "large")
-		if err != nil {
-			return false, &HandlerError{err, "Failed to find the current image for this offer", http.StatusInternalServerError}
-		}
-		if putImage != currentImagePath {
-			return true, nil
-		}
-	} else if putImage != "" {
-		return true, nil
+	if currentImage == "" {
+		return putImage != "", nil
 	}
-	return false, nil
+	currentImagePath, err := imageStorage.PathForSize(currentImage, "large")
+	if err != nil {
+		return false, &HandlerError{err, "Failed to find the current image for this offer", http.StatusInternalServerError}
+	}
+	return putImage != path.Join("images", currentImagePath), nil
 }

@@ -300,7 +300,7 @@ var _ = Describe("OffersHandler", func() {
 					"price":       123.58,
 					"from_time":   "2014-11-11T09:00:00.000Z",
 					"to_time":     "2014-11-11T11:00:00.000Z",
-					"image":       "a large image path",
+					"image":       "images/a large image path",
 				}
 				currentOffer := &model.Offer{
 					Title:    "an offer title",
@@ -476,7 +476,7 @@ func (m mockOffers) UpdateID(id bson.ObjectId, offer *model.Offer) error {
 	Expect(offer.FromTime).To(Equal(time.Date(2014, 11, 11, 9, 0, 0, 0, time.UTC)))
 	Expect(offer.ToTime).To(Equal(time.Date(2014, 11, 11, 11, 0, 0, 0, time.UTC)))
 	if m.imageIsUnchanged {
-		Expect(offer.Image).To(Equal("a large image path"))
+		Expect(offer.Image).To(Equal("images/a large image path"))
 	} else {
 		Expect(offer.Image).To(Equal("image checksum"))
 	}
