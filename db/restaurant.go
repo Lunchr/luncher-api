@@ -41,9 +41,9 @@ func (c restaurantsCollection) Get() (restaurants []*model.Restaurant, err error
 }
 
 func (c restaurantsCollection) GetByID(id bson.ObjectId) (*model.Restaurant, error) {
-	var restaurant *model.Restaurant
+	var restaurant model.Restaurant
 	err := c.c.FindId(id).One(&restaurant)
-	return restaurant, err
+	return &restaurant, err
 }
 
 func (c restaurantsCollection) Exists(name string) (bool, error) {
