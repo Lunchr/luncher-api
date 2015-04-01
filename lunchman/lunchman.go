@@ -79,7 +79,7 @@ func main() {
 		fbPageID := getInputOrExit(actor, "Please enter the restaurant's Facebook page ID", checkNotEmpty)
 
 		restaurantID := insertRestaurantAndGetID(actor, restaurantsCollection, name, address, region)
-		insertUser(actor, usersCollection, restaurantID, fbPageID, fbUserID)
+		insertUser(actor, usersCollection, restaurantID, fbUserID, fbPageID)
 
 		fmt.Println("Restaurant (and user) successfully added!")
 	}
