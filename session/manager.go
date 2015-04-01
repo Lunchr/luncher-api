@@ -45,6 +45,7 @@ func (m manager) GetOrInit(w http.ResponseWriter, r *http.Request) string {
 	cookie := &http.Cookie{
 		Name:  sessionCookieName,
 		Value: session,
+		Path:  "/",
 		// no MaxAge because we want this to be a session cookie
 	}
 	http.SetCookie(w, cookie)
