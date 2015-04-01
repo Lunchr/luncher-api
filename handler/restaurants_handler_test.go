@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/deiwin/imstor"
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
 	. "github.com/deiwin/luncher-api/handler"
@@ -151,14 +152,16 @@ var _ = Describe("RestaurantsHandlers", func() {
 			mockUsersCollection       db.Users
 			handler                   Handler
 			mockOffersCollection      db.Offers
+			imageStorage              imstor.Storage
 		)
 
 		BeforeEach(func() {
 			mockRestaurantsCollection = &mockRestaurants{}
+			imageStorage = &mockImageStorage{}
 		})
 
 		JustBeforeEach(func() {
-			handler = RestaurantOffers(mockRestaurantsCollection, sessionManager, mockUsersCollection, mockOffersCollection)
+			handler = RestaurantOffers(mockRestaurantsCollection, sessionManager, mockUsersCollection, mockOffersCollection, imageStorage)
 		})
 
 		ExpectUserToBeLoggedIn(func() *HandlerError {
@@ -197,6 +200,8 @@ var _ = Describe("RestaurantsHandlers", func() {
 				Expect(result).To(HaveLen(2))
 				Expect(result[0].Title).To(Equal("a"))
 				Expect(result[1].Title).To(Equal("b"))
+				Expect(result[0].Image).To(Equal("images/a large image path"))
+				Expect(result[1].Image).To(Equal(""))
 			})
 		})
 	})
@@ -220,6 +225,7 @@ func (c mockOffers) GetForRestaurant(restaurant string, startTime time.Time) ([]
 	return []*model.Offer{
 		&model.Offer{
 			Title: "a",
+			Image: "image checksum",
 		},
 		&model.Offer{
 			Title: "b",
