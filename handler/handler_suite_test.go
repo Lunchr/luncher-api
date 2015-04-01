@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -23,7 +24,7 @@ var (
 	request          *http.Request
 	requestMethod    = "GET"
 	requestPath      string
-	requestData      url.Values
+	requestData      interface{}
 	requestQuery     url.Values
 )
 
@@ -40,8 +41,10 @@ var _ = JustBeforeEach(func() {
 		Path:     requestPath,
 		RawQuery: requestQuery.Encode(),
 	}).String()
-	request, err = http.NewRequest(requestMethod, requestURL, bytes.NewBufferString(requestData.Encode()))
-	request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	request.Header.Add("Content-Length", strconv.Itoa(len(requestData.Encode())))
+	data, err := json.Marshal(requestData)
+	Expect(err).NotTo(HaveOccurred())
+	request, err = http.NewRequest(requestMethod, requestURL, bytes.NewBuffer(data))
+	request.Header.Add("Content-Type", "application/json")
+	request.Header.Add("Content-Length", strconv.Itoa(len(data)))
 	Expect(err).NotTo(HaveOccurred())
 })

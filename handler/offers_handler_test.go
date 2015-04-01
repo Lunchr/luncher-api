@@ -170,14 +170,14 @@ var _ = Describe("OffersHandler", func() {
 			BeforeEach(func() {
 				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
 				requestMethod = "POST"
-				requestData = url.Values{
-					"title":       {"thetitle"},
-					"ingredients": {"ingredient1", "ingredient2", "ingredient3"},
-					"tags":        {"tag1", "tag2"},
-					"price":       {"123.58"},
-					"from_time":   {"2014-11-11T09:00:00.000Z"},
-					"to_time":     {"2014-11-11T11:00:00.000Z"},
-					"image":       {"image data url"},
+				requestData = map[string]interface{}{
+					"title":       "thetitle",
+					"ingredients": []string{"ingredient1", "ingredient2", "ingredient3"},
+					"tags":        []string{"tag1", "tag2"},
+					"price":       123.58,
+					"from_time":   "2014-11-11T09:00:00.000Z",
+					"to_time":     "2014-11-11T11:00:00.000Z",
+					"image":       "image data url",
 				}
 				authenticator = &mockAuthenticator{
 					api: &mockAPI{
@@ -293,14 +293,14 @@ var _ = Describe("OffersHandler", func() {
 			BeforeEach(func() {
 				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
 				requestMethod = "PUT"
-				requestData = url.Values{
-					"title":       {"thetitle"},
-					"ingredients": {"ingredient1", "ingredient2", "ingredient3"},
-					"tags":        {"tag1", "tag2"},
-					"price":       {"123.58"},
-					"from_time":   {"2014-11-11T09:00:00.000Z"},
-					"to_time":     {"2014-11-11T11:00:00.000Z"},
-					"image":       {"a large image path"},
+				requestData = map[string]interface{}{
+					"title":       "thetitle",
+					"ingredients": []string{"ingredient1", "ingredient2", "ingredient3"},
+					"tags":        []string{"tag1", "tag2"},
+					"price":       123.58,
+					"from_time":   "2014-11-11T09:00:00.000Z",
+					"to_time":     "2014-11-11T11:00:00.000Z",
+					"image":       "a large image path",
 				}
 				currentOffer := &model.Offer{
 					Title:    "an offer title",
@@ -330,14 +330,14 @@ var _ = Describe("OffersHandler", func() {
 			BeforeEach(func() {
 				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
 				requestMethod = "PUT"
-				requestData = url.Values{
-					"title":       {"thetitle"},
-					"ingredients": {"ingredient1", "ingredient2", "ingredient3"},
-					"tags":        {"tag1", "tag2"},
-					"price":       {"123.58"},
-					"from_time":   {"2014-11-11T09:00:00.000Z"},
-					"to_time":     {"2014-11-11T11:00:00.000Z"},
-					"image":       {"image data url"},
+				requestData = map[string]interface{}{
+					"title":       "thetitle",
+					"ingredients": []string{"ingredient1", "ingredient2", "ingredient3"},
+					"tags":        []string{"tag1", "tag2"},
+					"price":       123.58,
+					"from_time":   "2014-11-11T09:00:00.000Z",
+					"to_time":     "2014-11-11T11:00:00.000Z",
+					"image":       "image data url",
 				}
 				currentOffer := &model.Offer{
 					Title:    "an offer title",
