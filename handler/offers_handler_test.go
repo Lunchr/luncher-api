@@ -475,11 +475,7 @@ func (m mockOffers) UpdateID(id bson.ObjectId, offer *model.Offer) error {
 	Expect(offer.Restaurant.Region).To(Equal("Tartu"))
 	Expect(offer.FromTime).To(Equal(time.Date(2014, 11, 11, 9, 0, 0, 0, time.UTC)))
 	Expect(offer.ToTime).To(Equal(time.Date(2014, 11, 11, 11, 0, 0, 0, time.UTC)))
-	if m.imageIsUnchanged {
-		Expect(offer.Image).To(Equal("images/a large image path"))
-	} else {
-		Expect(offer.Image).To(Equal("image checksum"))
-	}
+	Expect(offer.Image).To(Equal("image checksum"))
 	return nil
 }
 

@@ -125,6 +125,8 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 				return &HandlerError{err, "Failed to store the image", http.StatusInternalServerError}
 			}
 			offer.Image = imageChecksum
+		} else {
+			offer.Image = currentOffer.Image
 		}
 		if currentOffer.FBPostID != "" {
 			err = api.PostDelete(user.Session.FacebookPageToken, currentOffer.FBPostID)
