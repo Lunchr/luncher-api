@@ -1,11 +1,11 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"path"
-	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -66,15 +66,17 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 		if err != nil {
 			return &HandlerError{err, "", http.StatusInternalServerError}
 		}
-		offer, err := parseOffer(r, restaurant, imageStorage)
+		offer, err := parseOffer(r, restaurant)
 		if err != nil {
 			return &HandlerError{err, "", http.StatusBadRequest}
 		}
-		imageChecksum, err := parseAndStoreImage(r, imageStorage)
-		if err != nil {
-			return &HandlerError{err, "", http.StatusInternalServerError}
+		if offer.Image != "" {
+			imageChecksum, err := parseAndStoreImage(offer.Image, imageStorage)
+			if err != nil {
+				return &HandlerError{err, "", http.StatusInternalServerError}
+			}
+			offer.Image = imageChecksum
 		}
-		offer.Image = imageChecksum
 		message := formFBOfferMessage(*offer)
 		post, err := api.PagePublish(user.Session.FacebookPageToken, user.FacebookPageID, message)
 		if err != nil {
@@ -111,14 +113,14 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 		if err != nil {
 			return &HandlerError{err, "", http.StatusInternalServerError}
 		}
-		offer, err := parseOffer(r, restaurant, imageStorage)
+		offer, err := parseOffer(r, restaurant)
 		if err != nil {
 			return &HandlerError{err, "", http.StatusBadRequest}
 		}
-		if changed, err := imageChanged(currentOffer.Image, r, imageStorage); err != nil {
+		if changed, err := imageChanged(currentOffer.Image, offer.Image, imageStorage); err != nil {
 			return &HandlerError{err, "", http.StatusInternalServerError}
 		} else if changed {
-			imageChecksum, err := parseAndStoreImage(r, imageStorage)
+			imageChecksum, err := parseAndStoreImage(offer.Image, imageStorage)
 			if err != nil {
 				return &HandlerError{err, "", http.StatusInternalServerError}
 			}
@@ -164,38 +166,20 @@ func capitalizeString(s string) string {
 	return string(unicode.ToUpper(r)) + s[n:]
 }
 
-func parseOffer(r *http.Request, restaurant *model.Restaurant, imageStorage imstor.Storage) (*model.Offer, error) {
-	price, err := strconv.ParseFloat(r.PostFormValue("price"), 64)
+func parseOffer(r *http.Request, restaurant *model.Restaurant) (*model.Offer, error) {
+	var offer model.Offer
+	err := json.NewDecoder(r.Body).Decode(&offer)
 	if err != nil {
 		return nil, err
 	}
-
-	fromTime, err := time.Parse(time.RFC3339, r.PostFormValue("from_time"))
-	if err != nil {
-		return nil, err
+	offer.Restaurant = model.OfferRestaurant{
+		Name:   restaurant.Name,
+		Region: restaurant.Region,
 	}
-	toTime, err := time.Parse(time.RFC3339, r.PostFormValue("to_time"))
-	if err != nil {
-		return nil, err
-	}
-
-	offer := &model.Offer{
-		Title:       r.PostFormValue("title"),
-		Ingredients: r.Form["ingredients"],
-		Tags:        r.Form["tags"],
-		Price:       price,
-		Restaurant: model.OfferRestaurant{
-			Name:   restaurant.Name,
-			Region: restaurant.Region,
-		},
-		FromTime: fromTime,
-		ToTime:   toTime,
-	}
-	return offer, nil
+	return &offer, nil
 }
 
-func parseAndStoreImage(r *http.Request, imageStorage imstor.Storage) (string, error) {
-	imageDataURL := r.PostFormValue("image")
+func parseAndStoreImage(imageDataURL string, imageStorage imstor.Storage) (string, error) {
 	imageChecksum, err := imageStorage.ChecksumDataURL(imageDataURL)
 	if err != nil {
 		return "", err
@@ -206,16 +190,16 @@ func parseAndStoreImage(r *http.Request, imageStorage imstor.Storage) (string, e
 	return imageChecksum, nil
 }
 
-func imageChanged(currentImage string, r *http.Request, imageStorage imstor.Storage) (bool, error) {
+func imageChanged(currentImage, putImage string, imageStorage imstor.Storage) (bool, error) {
 	if currentImage != "" {
 		currentImagePath, err := imageStorage.PathForSize(currentImage, "large")
 		if err != nil {
 			return false, err
 		}
-		if r.PostFormValue("image") != currentImagePath {
+		if putImage != currentImagePath {
 			return true, nil
 		}
-	} else if r.PostFormValue("image") != "" {
+	} else if putImage != "" {
 		return true, nil
 	}
 	return false, nil
