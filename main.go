@@ -60,7 +60,7 @@ func main() {
 	r.PUTWithParams("/offers/:id", handler.PutOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, facebookAuthenticator, imageStorage))
 	r.GET("/tags", handler.Tags(tagsCollection))
 	r.GET("/restaurant", handler.Restaurant(restaurantsCollection, sessionManager, usersCollection))
-	r.GET("/restaurant/offers", handler.RestaurantOffers(restaurantsCollection, sessionManager, usersCollection, offersCollection))
+	r.GET("/restaurant/offers", handler.RestaurantOffers(restaurantsCollection, sessionManager, usersCollection, offersCollection, imageStorage))
 	r.GET("/login/facebook", facebookHandler.Login())
 	r.GET("/login/facebook/redirected", facebookHandler.Redirected())
 

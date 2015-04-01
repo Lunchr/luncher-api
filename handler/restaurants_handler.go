@@ -2,8 +2,10 @@ package handler
 
 import (
 	"net/http"
+	"path"
 	"time"
 
+	"github.com/deiwin/imstor"
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
 	. "github.com/deiwin/luncher-api/router"
@@ -36,7 +38,7 @@ func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users
 
 // RestaurantOffers returns all upcoming offers for the restaurant linked to the
 // currently logged in user
-func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, offers db.Offers) Handler {
+func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, offers db.Offers, imageStorage imstor.Storage) Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *HandlerError {
 		restaurant, err := restaurants.GetByID(user.RestaurantID)
 		if err != nil {
@@ -45,6 +47,15 @@ func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager
 		offers, err := offers.GetForRestaurant(restaurant.Name, time.Now())
 		if err != nil {
 			return &HandlerError{err, "", http.StatusInternalServerError}
+		}
+		for _, offer := range offers {
+			if offer.Image != "" {
+				imagePath, err := imageStorage.PathForSize(offer.Image, "large")
+				if err != nil {
+					return &HandlerError{err, "", http.StatusInternalServerError}
+				}
+				offer.Image = path.Join("images", imagePath)
+			}
 		}
 		return writeJSON(w, offers)
 	}
