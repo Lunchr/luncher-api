@@ -2,14 +2,13 @@ package handler
 
 import (
 	"net/http"
-	"path"
 	"time"
 
-	"github.com/deiwin/imstor"
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
 	. "github.com/deiwin/luncher-api/router"
 	"github.com/deiwin/luncher-api/session"
+	"github.com/deiwin/luncher-api/storage"
 )
 
 // Restaurants returns a list of all restaurants
@@ -38,7 +37,7 @@ func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users
 
 // RestaurantOffers returns all upcoming offers for the restaurant linked to the
 // currently logged in user
-func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, offers db.Offers, imageStorage imstor.Storage) Handler {
+func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, offers db.Offers, imageStorage storage.Images) Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *HandlerError {
 		restaurant, err := restaurants.GetByID(user.RestaurantID)
 		if err != nil {
@@ -50,11 +49,10 @@ func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager
 		}
 		for _, offer := range offers {
 			if offer.Image != "" {
-				imagePath, err := imageStorage.PathForSize(offer.Image, "large")
+				offer.Image, err = imageStorage.PathForLarge(offer.Image)
 				if err != nil {
 					return &HandlerError{err, "Failed to find an image of an offer", http.StatusInternalServerError}
 				}
-				offer.Image = path.Join("images", imagePath)
 			}
 		}
 		return writeJSON(w, offers)

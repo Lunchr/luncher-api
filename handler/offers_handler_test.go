@@ -9,12 +9,12 @@ import (
 
 	"github.com/deiwin/facebook"
 	fbmodel "github.com/deiwin/facebook/model"
-	"github.com/deiwin/imstor"
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
 	. "github.com/deiwin/luncher-api/handler"
 	. "github.com/deiwin/luncher-api/router"
 	"github.com/deiwin/luncher-api/session"
+	"github.com/deiwin/luncher-api/storage"
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/oauth2"
 	"gopkg.in/mgo.v2/bson"
@@ -37,7 +37,7 @@ var _ = Describe("OffersHandler", func() {
 		var (
 			handler           Handler
 			regionsCollection db.Regions
-			imageStorage      imstor.Storage
+			imageStorage      storage.Images
 		)
 
 		BeforeEach(func() {
@@ -146,7 +146,7 @@ var _ = Describe("OffersHandler", func() {
 			handler               Handler
 			authenticator         facebook.Authenticator
 			sessionManager        session.Manager
-			imageStorage          imstor.Storage
+			imageStorage          storage.Images
 		)
 
 		BeforeEach(func() {
@@ -236,7 +236,7 @@ var _ = Describe("OffersHandler", func() {
 			handler               HandlerWithParams
 			authenticator         facebook.Authenticator
 			sessionManager        session.Manager
-			imageStorage          imstor.Storage
+			imageStorage          storage.Images
 			params                httprouter.Params
 		)
 
@@ -545,7 +545,7 @@ func (m mockRegions) Get(name string) (*model.Region, error) {
 }
 
 type mockImageStorage struct {
-	imstor.Storage
+	storage.Images
 }
 
 func (m mockImageStorage) ChecksumDataURL(dataURL string) (string, error) {
@@ -558,8 +558,7 @@ func (m mockImageStorage) StoreDataURL(dataURL string) error {
 	return nil
 }
 
-func (m mockImageStorage) PathForSize(checksum, size string) (string, error) {
+func (m mockImageStorage) PathForLarge(checksum string) (string, error) {
 	Expect(checksum).To(Equal("image checksum"))
-	Expect(size).To(Equal("large"))
-	return "a large image path", nil
+	return "images/a large image path", nil
 }

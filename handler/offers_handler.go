@@ -5,24 +5,23 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"path"
 	"strings"
 	"time"
 	"unicode"
 	"unicode/utf8"
 
 	"github.com/deiwin/facebook"
-	"github.com/deiwin/imstor"
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
 	. "github.com/deiwin/luncher-api/router"
 	"github.com/deiwin/luncher-api/session"
+	"github.com/deiwin/luncher-api/storage"
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/mgo.v2/bson"
 )
 
 // Offers handles GET requests to /offers. It returns all current day's offers.
-func Offers(offersCollection db.Offers, regionsCollection db.Regions, imageStorage imstor.Storage) Handler {
+func Offers(offersCollection db.Offers, regionsCollection db.Regions, imageStorage storage.Images) Handler {
 	return func(w http.ResponseWriter, r *http.Request) *HandlerError {
 		regionName := r.FormValue("region")
 		if regionName == "" {
@@ -45,11 +44,10 @@ func Offers(offersCollection db.Offers, regionsCollection db.Regions, imageStora
 		}
 		for _, offer := range offers {
 			if offer.Image != "" {
-				imagePath, err := imageStorage.PathForSize(offer.Image, "large")
+				offer.Image, err = imageStorage.PathForLarge(offer.Image)
 				if err != nil {
 					return &HandlerError{err, "Failed to find an image for an offer", http.StatusInternalServerError}
 				}
-				offer.Image = path.Join("images", imagePath)
 			}
 		}
 		return writeJSON(w, offers)
@@ -59,7 +57,7 @@ func Offers(offersCollection db.Offers, regionsCollection db.Regions, imageStora
 // PostOffers handles POST requests to /offers. It stores the offer in the DB and
 // sends it to Facebook to be posted on the page's wall at the requested time.
 func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants,
-	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage imstor.Storage) Handler {
+	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage storage.Images) Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *HandlerError {
 		api := fbAuth.APIConnection(&user.Session.FacebookUserToken)
 		restaurant, err := restaurantsCollection.GetByID(user.RestaurantID)
@@ -96,7 +94,7 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 // PutOffers handles PUT requests to /offers. It updates the offer in the DB and
 // updates the related Facebook post.
 func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants,
-	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage imstor.Storage) HandlerWithParams {
+	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage storage.Images) HandlerWithParams {
 	handler := func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *HandlerError {
 		idString := ps.ByName("id")
 		if !bson.IsObjectIdHex(idString) {
@@ -179,7 +177,7 @@ func parseOffer(r *http.Request, restaurant *model.Restaurant) (*model.Offer, er
 	return &offer, nil
 }
 
-func parseAndStoreImage(imageDataURL string, imageStorage imstor.Storage) (string, error) {
+func parseAndStoreImage(imageDataURL string, imageStorage storage.Images) (string, error) {
 	imageChecksum, err := imageStorage.ChecksumDataURL(imageDataURL)
 	if err != nil {
 		return "", err
@@ -190,13 +188,13 @@ func parseAndStoreImage(imageDataURL string, imageStorage imstor.Storage) (strin
 	return imageChecksum, nil
 }
 
-func imageChanged(currentImage, putImage string, imageStorage imstor.Storage) (bool, *HandlerError) {
+func imageChanged(currentImage, putImage string, imageStorage storage.Images) (bool, *HandlerError) {
 	if currentImage == "" {
 		return putImage != "", nil
 	}
-	currentImagePath, err := imageStorage.PathForSize(currentImage, "large")
+	currentImagePath, err := imageStorage.PathForLarge(currentImage)
 	if err != nil {
 		return false, &HandlerError{err, "Failed to find the current image for this offer", http.StatusInternalServerError}
 	}
-	return putImage != path.Join("images", currentImagePath), nil
+	return putImage != currentImagePath, nil
 }
