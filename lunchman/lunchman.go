@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/deiwin/luncher-api/db"
+	"github.com/deiwin/luncher-api/geo"
 	"github.com/deiwin/luncher-api/lunchman/interact"
 	"gopkg.in/alecthomas/kingpin.v1"
 	"gopkg.in/mgo.v2/bson"
@@ -71,7 +72,9 @@ func initRegion(actor interact.Actor, dbClient *db.Client) Region {
 func initRestaurant(actor interact.Actor, dbClient *db.Client) Restaurant {
 	restaurantsCollection := db.NewRestaurants(dbClient)
 	regionsCollection := db.NewRegions(dbClient)
-	return Restaurant{actor, restaurantsCollection, regionsCollection}
+	geoConf := geo.NewConfig()
+	geocoder := geo.NewCoder(geoConf)
+	return Restaurant{actor, restaurantsCollection, regionsCollection, geocoder}
 }
 
 func initUser(actor interact.Actor, dbClient *db.Client) User {
