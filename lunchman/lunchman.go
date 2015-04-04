@@ -19,6 +19,11 @@ var (
 	addRegion     = add.Command("region", "Add a region")
 	addRestaurant = add.Command("restaurant", "Add a restarant")
 	addUser       = add.Command("user", "Add a user")
+	list          = lunchman.Command("list", "List the current values in DB")
+	listUsers     = list.Command("users", "List all users")
+	show          = lunchman.Command("show", "Show a specific DB item")
+	showUser      = show.Command("user", "Show a user")
+	showUserID    = showUser.Arg("facebookid", "The users Facebook ID").Required().String()
 
 	checkNotEmpty = func(i string) error {
 		if i == "" {
@@ -61,6 +66,12 @@ func main() {
 	case addUser.FullCommand():
 		user := initUser(actor, dbClient)
 		user.Add()
+	case listUsers.FullCommand():
+		user := initUser(actor, dbClient)
+		user.List()
+	case showUser.FullCommand():
+		user := initUser(actor, dbClient)
+		user.Show(*showUserID)
 	}
 }
 

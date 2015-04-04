@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -27,6 +28,32 @@ func (u User) Add() {
 	u.insertUser(restaurantID, fbUserID, fbPageID)
 
 	fmt.Println("User successfully added!")
+}
+
+func (u User) List() {
+	iter := u.Collection.GetAll()
+	var user model.User
+	for iter.Next(&user) {
+		fmt.Printf("Facebook user ID: %s\n", user.FacebookUserID)
+	}
+	if err := iter.Close(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+func (u User) Show(fbUserID string) {
+	user, err := u.Collection.Get(fbUserID)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	b, err := json.MarshalIndent(user, "", "  ")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	fmt.Println(string(b))
 }
 
 func (u User) insertUser(restaurantID bson.ObjectId, fbUserID, fbPageID string) {
