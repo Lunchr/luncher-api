@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
 	"github.com/deiwin/luncher-api/lunchman/interact"
 	"gopkg.in/alecthomas/kingpin.v1"
-	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -33,14 +31,6 @@ var (
 		}
 		return nil
 	}
-	checkValidLocation = func(i string) error {
-		if i == "Local" {
-			return errors.New("Can't use region 'Local'!")
-		} else if _, err := time.LoadLocation(i); err != nil {
-			return err
-		}
-		return nil
-	}
 )
 
 func main() {
@@ -57,14 +47,8 @@ func main() {
 	switch kingpin.MustParse(lunchman.Parse(os.Args[1:])) {
 	case addRegion.FullCommand():
 		regionsCollection := db.NewRegions(dbClient)
-		checkUnique := getRegionUniquenessCheck(regionsCollection)
-
-		name := getInputOrExit(actor, "Please enter a name for the new region", checkNotEmpty, checkSingleArg, checkUnique)
-		location := getInputOrExit(actor, "Please enter the region's location (IANA tz)", checkNotEmpty, checkSingleArg, checkValidLocation)
-
-		insertRegion(actor, regionsCollection, name, location)
-
-		fmt.Println("Region successfully added!")
+		region := region{actor, regionsCollection}
+		region.Add()
 	case addRestaurant.FullCommand():
 		restaurantsCollection := db.NewRestaurants(dbClient)
 		usersCollection := db.NewUsers(dbClient)
@@ -82,18 +66,6 @@ func main() {
 		insertUser(actor, usersCollection, restaurantID, fbUserID, fbPageID)
 
 		fmt.Println("Restaurant (and user) successfully added!")
-	}
-}
-
-func insertRegion(actor interact.Actor, regionsCollection db.Regions, name, location string) {
-	region := &model.Region{
-		Name:     name,
-		Location: location,
-	}
-	confirmDBInsertion(actor, region)
-	if err := regionsCollection.Insert(region); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
 	}
 }
 
@@ -152,18 +124,6 @@ func getRegionExistanceCheck(c db.Regions) interact.InputCheck {
 	return func(i string) error {
 		if _, err := c.Get(i); err != nil {
 			return err
-		}
-		return nil
-	}
-}
-
-func getRegionUniquenessCheck(c db.Regions) interact.InputCheck {
-	return func(i string) error {
-		if _, err := c.Get(i); err != mgo.ErrNotFound {
-			if err != nil {
-				return err
-			}
-			return errors.New("A region with the same name already exists!")
 		}
 		return nil
 	}
