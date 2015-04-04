@@ -10,6 +10,7 @@ import (
 type Users interface {
 	Insert(...*model.User) error
 	Get(string) (*model.User, error)
+	Update(string, *model.User) error
 	GetAll() UserIter
 	GetBySessionID(string) (*model.User, error)
 	SetAccessToken(string, oauth2.Token) error
@@ -46,6 +47,10 @@ func (c usersCollection) Get(facebookUserID string) (*model.User, error) {
 	return &user, err
 }
 
+func (c usersCollection) Update(facebookUserID string, user *model.User) error {
+	return c.Collection.Update(bson.M{"facebook_user_id": facebookUserID}, bson.M{"$set": user})
+}
+
 func (c usersCollection) GetAll() UserIter {
 	i := c.Find(nil).Iter()
 	return &userIter{i}
@@ -58,19 +63,19 @@ func (c usersCollection) GetBySessionID(sessionID string) (*model.User, error) {
 }
 
 func (c usersCollection) SetAccessToken(facebookUserID string, tok oauth2.Token) error {
-	return c.Update(bson.M{"facebook_user_id": facebookUserID}, bson.M{
+	return c.Collection.Update(bson.M{"facebook_user_id": facebookUserID}, bson.M{
 		"$set": bson.M{"session.facebook_user_token": tok},
 	})
 }
 
 func (c usersCollection) SetPageAccessToken(facebookUserID string, tok string) error {
-	return c.Update(bson.M{"facebook_user_id": facebookUserID}, bson.M{
+	return c.Collection.Update(bson.M{"facebook_user_id": facebookUserID}, bson.M{
 		"$set": bson.M{"session.facebook_page_token": tok},
 	})
 }
 
 func (c usersCollection) SetSessionID(facebookUserID string, sessionID string) error {
-	return c.Update(bson.M{"facebook_user_id": facebookUserID}, bson.M{
+	return c.Collection.Update(bson.M{"facebook_user_id": facebookUserID}, bson.M{
 		"$set": bson.M{"session.id": sessionID},
 	})
 }

@@ -33,8 +33,9 @@ func (u User) Add() {
 func (u User) List() {
 	iter := u.Collection.GetAll()
 	var user model.User
+	fmt.Println("Listing the users' Facebook user IDs:")
 	for iter.Next(&user) {
-		fmt.Printf("Facebook user ID: %s\n", user.FacebookUserID)
+		fmt.Println(user.FacebookUserID)
 	}
 	if err := iter.Close(); err != nil {
 		fmt.Println(err)

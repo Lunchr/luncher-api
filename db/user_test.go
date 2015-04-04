@@ -109,6 +109,26 @@ var _ = Describe("User", func() {
 		})
 	})
 
+	Describe("Update", func() {
+		Context("with user updated with a page id change", func() {
+			BeforeEach(func(done Done) {
+				defer close(done)
+				updatedUser := mocks.users[0]
+				updatedUser.FacebookPageID = "bsd"
+				err := usersCollection.Update(facebookUserID, updatedUser)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should be reflected in the Get", func(done Done) {
+				defer close(done)
+				user, err := usersCollection.Get(facebookUserID)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(user).NotTo(BeNil())
+				Expect(user.FacebookPageID).To(Equal("bsd"))
+			})
+		})
+	})
+
 	Describe("SessionID", func() {
 		Context("with SessionID set", func() {
 			var id string
