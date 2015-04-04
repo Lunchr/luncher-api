@@ -11,6 +11,7 @@ import (
 	fbmodel "github.com/deiwin/facebook/model"
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
+	"github.com/deiwin/luncher-api/geo"
 	. "github.com/deiwin/luncher-api/handler"
 	. "github.com/deiwin/luncher-api/router"
 	"github.com/deiwin/luncher-api/session"
@@ -451,6 +452,8 @@ func (m mockOffers) Insert(offers ...*model.Offer) ([]*model.Offer, error) {
 	Expect(offer.Price).To(BeNumerically("~", 123.58))
 	Expect(offer.Restaurant.Name).To(Equal("Asian Chef"))
 	Expect(offer.Restaurant.Region).To(Equal("Tartu"))
+	Expect(offer.Restaurant.Location.Lat).To(BeNumerically("~", 58.4))
+	Expect(offer.Restaurant.Location.Lng).To(BeNumerically("~", 26.7))
 	Expect(offer.FromTime).To(Equal(time.Date(2014, 11, 11, 9, 0, 0, 0, time.UTC)))
 	Expect(offer.ToTime).To(Equal(time.Date(2014, 11, 11, 11, 0, 0, 0, time.UTC)))
 	Expect(offer.Image).To(Equal("image checksum"))
@@ -473,6 +476,8 @@ func (m mockOffers) UpdateID(id bson.ObjectId, offer *model.Offer) error {
 	Expect(offer.Price).To(BeNumerically("~", 123.58))
 	Expect(offer.Restaurant.Name).To(Equal("Asian Chef"))
 	Expect(offer.Restaurant.Region).To(Equal("Tartu"))
+	Expect(offer.Restaurant.Location.Lat).To(BeNumerically("~", 58.4))
+	Expect(offer.Restaurant.Location.Lng).To(BeNumerically("~", 26.7))
 	Expect(offer.FromTime).To(Equal(time.Date(2014, 11, 11, 9, 0, 0, 0, time.UTC)))
 	Expect(offer.ToTime).To(Equal(time.Date(2014, 11, 11, 11, 0, 0, 0, time.UTC)))
 	Expect(offer.Image).To(Equal("image checksum"))
@@ -492,6 +497,10 @@ func (m mockRestaurants) GetByID(id bson.ObjectId) (*model.Restaurant, error) {
 	restaurant := &model.Restaurant{
 		Name:   "Asian Chef",
 		Region: "Tartu",
+		Location: geo.Location{
+			Lat: 58.4,
+			Lng: 26.7,
+		},
 	}
 	return restaurant, nil
 }
