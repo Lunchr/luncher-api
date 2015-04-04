@@ -3,6 +3,7 @@ package model
 import (
 	"time"
 
+	"github.com/deiwin/luncher-api/geo"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -25,7 +26,8 @@ type (
 	}
 
 	OfferRestaurant struct {
-		Name   string `json:"name" bson:"name"`
-		Region string `json:"region" bson:"region"`
+		Name     string       `json:"name"     bson:"name"`
+		Region   string       `json:"region"   bson:"region"`
+		Location geo.Location `json:"location" bson:"location"`
 	}
 )

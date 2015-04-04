@@ -13,5 +13,7 @@ type (
 		ID       bson.ObjectId `json:"_id,omitempty" bson:"_id,omitempty"`
 		Name     string        `json:"name"          bson:"name"`
 		Location string        `json:"location"      bson:"location"`
+		// ccTLD (Country code top-level domain). Used to make more precise geocoding requests
+		CCTLD string `json:"cctld,omitempty" bson:"cctld,omitempty"`
 	}
 )
