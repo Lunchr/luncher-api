@@ -52,20 +52,32 @@ func main() {
 
 	switch kingpin.MustParse(lunchman.Parse(os.Args[1:])) {
 	case addRegion.FullCommand():
-		regionsCollection := db.NewRegions(dbClient)
-		region := region{actor, regionsCollection}
+		region := initRegion(actor, dbClient)
 		region.Add()
 	case addRestaurant.FullCommand():
-		restaurantsCollection := db.NewRestaurants(dbClient)
-		regionsCollection := db.NewRegions(dbClient)
-		restaurant := restaurant{actor, restaurantsCollection, regionsCollection}
+		restaurant := initRestaurant(actor, dbClient)
 		restaurant.Add()
 	case addUser.FullCommand():
-		usersCollection := db.NewUsers(dbClient)
-		restaurantsCollection := db.NewRestaurants(dbClient)
-		user := user{actor, usersCollection, restaurantsCollection}
+		user := initUser(actor, dbClient)
 		user.Add()
 	}
+}
+
+func initRegion(actor interact.Actor, dbClient *db.Client) Region {
+	regionsCollection := db.NewRegions(dbClient)
+	return Region{actor, regionsCollection}
+}
+
+func initRestaurant(actor interact.Actor, dbClient *db.Client) Restaurant {
+	restaurantsCollection := db.NewRestaurants(dbClient)
+	regionsCollection := db.NewRegions(dbClient)
+	return Restaurant{actor, restaurantsCollection, regionsCollection}
+}
+
+func initUser(actor interact.Actor, dbClient *db.Client) User {
+	usersCollection := db.NewUsers(dbClient)
+	restaurantsCollection := db.NewRestaurants(dbClient)
+	return User{actor, usersCollection, restaurantsCollection}
 }
 
 func confirmDBInsertion(actor interact.Actor, o interface{}) {

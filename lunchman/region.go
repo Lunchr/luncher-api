@@ -12,39 +12,39 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-type region struct {
-	actor      interact.Actor
-	collection db.Regions
+type Region struct {
+	Actor      interact.Actor
+	Collection db.Regions
 }
 
-func (r region) Add() {
+func (r Region) Add() {
 	checkUnique := r.getRegionUniquenessCheck()
 
-	name := getInputOrExit(r.actor, "Please enter a name for the new region", checkNotEmpty, checkSingleArg, checkUnique)
-	location := getInputOrExit(r.actor, "Please enter the region's location (IANA tz)", checkNotEmpty, checkSingleArg, checkValidLocation)
-	cctld := getInputOrExit(r.actor, "Please enter the region's ccTLD (country code top-level domain)", checkNotEmpty, checkSingleArg, checkIs2Letters)
+	name := getInputOrExit(r.Actor, "Please enter a name for the new region", checkNotEmpty, checkSingleArg, checkUnique)
+	location := getInputOrExit(r.Actor, "Please enter the region's location (IANA tz)", checkNotEmpty, checkSingleArg, checkValidLocation)
+	cctld := getInputOrExit(r.Actor, "Please enter the region's ccTLD (country code top-level domain)", checkNotEmpty, checkSingleArg, checkIs2Letters)
 
 	r.insertRegion(name, location, cctld)
 
 	fmt.Println("Region successfully added!")
 }
 
-func (r region) insertRegion(name, location, cctld string) {
+func (r Region) insertRegion(name, location, cctld string) {
 	region := &model.Region{
 		Name:     name,
 		Location: location,
 		CCTLD:    cctld,
 	}
-	confirmDBInsertion(r.actor, region)
-	if err := r.collection.Insert(region); err != nil {
+	confirmDBInsertion(r.Actor, region)
+	if err := r.Collection.Insert(region); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
 }
 
-func (r region) getRegionUniquenessCheck() interact.InputCheck {
+func (r Region) getRegionUniquenessCheck() interact.InputCheck {
 	return func(i string) error {
-		if _, err := r.collection.Get(i); err != mgo.ErrNotFound {
+		if _, err := r.Collection.Get(i); err != mgo.ErrNotFound {
 			if err != nil {
 				return err
 			}
@@ -54,9 +54,9 @@ func (r region) getRegionUniquenessCheck() interact.InputCheck {
 	}
 }
 
-func (r restaurant) getRegionExistanceCheck() interact.InputCheck {
+func (r Restaurant) getRegionExistanceCheck() interact.InputCheck {
 	return func(i string) error {
-		if _, err := r.regionsCollection.Get(i); err != nil {
+		if _, err := r.RegionsCollection.Get(i); err != nil {
 			return err
 		}
 		return nil
