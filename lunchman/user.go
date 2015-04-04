@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -49,24 +48,52 @@ func (u User) Show(fbUserID string) {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	b, err := json.MarshalIndent(user, "", "  ")
+	fmt.Println(pretty(user))
+}
+
+func (u User) Edit(fbUserID string) {
+	user, err := u.Collection.Get(fbUserID)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	fmt.Println(string(b))
+
+	checkExists := u.getRestaurantExistanceCheck()
+
+	restaurantIDString := getInputWithDefaultOrExit(u.Actor, "Please enter the restaurant's ID this user will administrate", user.RestaurantID.Hex(), checkNotEmpty, checkIsObjectID, checkExists)
+	restaurantID := bson.ObjectIdHex(restaurantIDString)
+	newFBUserID := getInputWithDefaultOrExit(u.Actor, "Please enter the restaurant administrator's Facebook user ID", user.FacebookUserID, checkNotEmpty)
+	fbPageID := getInputWithDefaultOrExit(u.Actor, "Please enter the restaurant's Facebook page ID", user.FacebookPageID, checkNotEmpty)
+
+	u.updateUser(fbUserID, restaurantID, newFBUserID, fbPageID)
+
+	fmt.Println("User successfully updated!")
+}
+
+func (u User) updateUser(fbUserID string, restaurantID bson.ObjectId, newFBUserID, fbPageID string) {
+	user := createUser(restaurantID, newFBUserID, fbPageID)
+	confirmDBInsertion(u.Actor, user)
+	err := u.Collection.Update(fbUserID, user)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }
 
 func (u User) insertUser(restaurantID bson.ObjectId, fbUserID, fbPageID string) {
-	user := &model.User{
-		RestaurantID:   restaurantID,
-		FacebookUserID: fbUserID,
-		FacebookPageID: fbPageID,
-	}
+	user := createUser(restaurantID, fbUserID, fbPageID)
 	confirmDBInsertion(u.Actor, user)
 	err := u.Collection.Insert(user)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
+	}
+}
+
+func createUser(restaurantID bson.ObjectId, fbUserID, fbPageID string) *model.User {
+	return &model.User{
+		RestaurantID:   restaurantID,
+		FacebookUserID: fbUserID,
+		FacebookPageID: fbPageID,
 	}
 }

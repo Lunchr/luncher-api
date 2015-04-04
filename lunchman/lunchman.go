@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -101,7 +102,7 @@ func initUser(actor interact.Actor, dbClient *db.Client) User {
 }
 
 func confirmDBInsertion(actor interact.Actor, o interface{}) {
-	confirmationMessage := fmt.Sprintf("Going to enter the following into the DB:\n%+v\nAre you sure you want to continue?", o)
+	confirmationMessage := fmt.Sprintf("Going to enter the following into the DB:\n%s\nAre you sure you want to continue?", pretty(o))
 	confirmed, err := actor.Confirm(confirmationMessage, interact.ConfirmDefaultToYes)
 	if err != nil {
 		fmt.Println(err)
@@ -119,4 +120,22 @@ func getInputOrExit(a interact.Actor, message string, checks ...interact.InputCh
 		os.Exit(1)
 	}
 	return input
+}
+
+func getInputWithDefaultOrExit(a interact.Actor, message, fallback string, checks ...interact.InputCheck) string {
+	input, err := a.GetInputWithDefaultAndRetry(message, fallback, checks...)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	return input
+}
+
+func pretty(o interface{}) string {
+	b, err := json.MarshalIndent(o, "", "  ")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	return string(b)
 }
