@@ -1,6 +1,7 @@
 package db_test
 
 import (
+	"github.com/deiwin/luncher-api/db/model"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"golang.org/x/oauth2"
@@ -23,9 +24,8 @@ var _ = Describe("User", func() {
 
 		It("should get nothing for wrong facebook id", func(done Done) {
 			defer close(done)
-			user, err := usersCollection.Get(facebookPageID)
+			_, err := usersCollection.Get(facebookPageID)
 			Expect(err).To(HaveOccurred())
-			Expect(user).To(BeNil())
 		})
 
 		It("should link to the restaurant", func(done Done) {
@@ -38,6 +38,30 @@ var _ = Describe("User", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(restaurant).NotTo(BeNil())
 			Expect(restaurant.Name).To(Equal("Asian Chef"))
+		})
+	})
+
+	Describe("GetAll", func() {
+		It("should list all the users", func(done Done) {
+			defer close(done)
+			iter := usersCollection.GetAll()
+			count := 0
+			fbIDs := map[string]int{
+				facebookUserID: 0,
+				"another user": 0,
+			}
+			var user model.User
+			for iter.Next(&user) {
+				Expect(user).NotTo(BeNil())
+				i, contains := fbIDs[user.FacebookUserID]
+				Expect(contains).To(BeTrue())
+				Expect(i).To(Equal(0))
+				fbIDs[user.FacebookUserID]++
+				count++
+			}
+			Expect(count).To(Equal(2))
+			err := iter.Close()
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 
