@@ -54,6 +54,15 @@ func (r region) getRegionUniquenessCheck() interact.InputCheck {
 	}
 }
 
+func (r restaurant) getRegionExistanceCheck() interact.InputCheck {
+	return func(i string) error {
+		if _, err := r.regionsCollection.Get(i); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
 var (
 	checkValidLocation = func(i string) error {
 		if i == "Local" {

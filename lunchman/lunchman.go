@@ -7,10 +7,8 @@ import (
 	"strings"
 
 	"github.com/deiwin/luncher-api/db"
-	"github.com/deiwin/luncher-api/db/model"
 	"github.com/deiwin/luncher-api/lunchman/interact"
 	"gopkg.in/alecthomas/kingpin.v1"
-	"gopkg.in/mgo.v2/bson"
 )
 
 var (
@@ -53,49 +51,8 @@ func main() {
 		restaurantsCollection := db.NewRestaurants(dbClient)
 		usersCollection := db.NewUsers(dbClient)
 		regionsCollection := db.NewRegions(dbClient)
-		checkUnique := getRestaurantUniquenessCheck(restaurantsCollection)
-		checkExists := getRegionExistanceCheck(regionsCollection)
-
-		name := getInputOrExit(actor, "Please enter a name for the new restaurant", checkNotEmpty, checkUnique)
-		address := getInputOrExit(actor, "Please enter the restaurant's address", checkNotEmpty)
-		region := getInputOrExit(actor, "Please enter the region you want to register the restaurant into", checkNotEmpty, checkExists)
-		fbUserID := getInputOrExit(actor, "Please enter the restaurant administrator's Facebook user ID", checkNotEmpty)
-		fbPageID := getInputOrExit(actor, "Please enter the restaurant's Facebook page ID", checkNotEmpty)
-
-		restaurantID := insertRestaurantAndGetID(actor, restaurantsCollection, name, address, region)
-		insertUser(actor, usersCollection, restaurantID, fbUserID, fbPageID)
-
-		fmt.Println("Restaurant (and user) successfully added!")
-	}
-}
-
-func insertRestaurantAndGetID(actor interact.Actor, restaurantsCollection db.Restaurants, name, address, region string) bson.ObjectId {
-	restaurant := &model.Restaurant{
-		Name:    name,
-		Address: address,
-		Region:  region,
-	}
-	confirmDBInsertion(actor, restaurant)
-	insertedRestaurants, err := restaurantsCollection.Insert(restaurant)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	restaurantID := insertedRestaurants[0].ID
-	return restaurantID
-}
-
-func insertUser(actor interact.Actor, usersCollection db.Users, restaurantID bson.ObjectId, fbUserID, fbPageID string) {
-	user := &model.User{
-		RestaurantID:   restaurantID,
-		FacebookUserID: fbUserID,
-		FacebookPageID: fbPageID,
-	}
-	err := usersCollection.Insert(user)
-	if err != nil {
-		fmt.Println(err)
-		fmt.Println("Failed to enter the new user to the DB while the restaurant was already inserted. Make sure to check the DB for consistency!")
-		os.Exit(1)
+		restaurant := restaurant{actor, restaurantsCollection, usersCollection, regionsCollection}
+		restaurant.Add()
 	}
 }
 
@@ -118,24 +75,4 @@ func getInputOrExit(a interact.Actor, message string, checks ...interact.InputCh
 		os.Exit(1)
 	}
 	return input
-}
-
-func getRegionExistanceCheck(c db.Regions) interact.InputCheck {
-	return func(i string) error {
-		if _, err := c.Get(i); err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-func getRestaurantUniquenessCheck(c db.Restaurants) interact.InputCheck {
-	return func(i string) error {
-		if exists, err := c.Exists(i); err != nil {
-			return err
-		} else if exists {
-			return errors.New("A restaurant with the same name already exists!")
-		}
-		return nil
-	}
 }
