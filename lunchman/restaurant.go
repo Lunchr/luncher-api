@@ -14,7 +14,6 @@ import (
 type restaurant struct {
 	actor             interact.Actor
 	collection        db.Restaurants
-	usersCollection   db.Users
 	regionsCollection db.Regions
 }
 
@@ -25,13 +24,10 @@ func (r restaurant) Add() {
 	name := getInputOrExit(r.actor, "Please enter a name for the new restaurant", checkNotEmpty, checkUnique)
 	address := getInputOrExit(r.actor, "Please enter the restaurant's address", checkNotEmpty)
 	region := getInputOrExit(r.actor, "Please enter the region you want to register the restaurant into", checkNotEmpty, checkExists)
-	fbUserID := getInputOrExit(r.actor, "Please enter the restaurant administrator's Facebook user ID", checkNotEmpty)
-	fbPageID := getInputOrExit(r.actor, "Please enter the restaurant's Facebook page ID", checkNotEmpty)
 
 	restaurantID := r.insertRestaurantAndGetID(name, address, region)
-	r.insertUser(restaurantID, fbUserID, fbPageID)
 
-	fmt.Println("Restaurant (and user) successfully added!")
+	fmt.Printf("Restaurant (%v) successfully added!\n", restaurantID)
 }
 
 func (r restaurant) insertRestaurantAndGetID(name, address, region string) bson.ObjectId {
@@ -50,26 +46,22 @@ func (r restaurant) insertRestaurantAndGetID(name, address, region string) bson.
 	return restaurantID
 }
 
-func (r restaurant) insertUser(restaurantID bson.ObjectId, fbUserID, fbPageID string) {
-	user := &model.User{
-		RestaurantID:   restaurantID,
-		FacebookUserID: fbUserID,
-		FacebookPageID: fbPageID,
-	}
-	err := r.usersCollection.Insert(user)
-	if err != nil {
-		fmt.Println(err)
-		fmt.Println("Failed to enter the new user to the DB while the restaurant was already inserted. Make sure to check the DB for consistency!")
-		os.Exit(1)
-	}
-}
-
 func (r restaurant) getRestaurantUniquenessCheck() interact.InputCheck {
 	return func(i string) error {
 		if exists, err := r.collection.Exists(i); err != nil {
 			return err
 		} else if exists {
 			return errors.New("A restaurant with the same name already exists!")
+		}
+		return nil
+	}
+}
+
+func (u user) getRestaurantExistanceCheck() interact.InputCheck {
+	return func(i string) error {
+		id := bson.ObjectIdHex(i)
+		if _, err := u.restaurantsCollection.GetByID(id); err != nil {
+			return err
 		}
 		return nil
 	}

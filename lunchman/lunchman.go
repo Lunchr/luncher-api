@@ -9,6 +9,7 @@ import (
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/lunchman/interact"
 	"gopkg.in/alecthomas/kingpin.v1"
+	"gopkg.in/mgo.v2/bson"
 )
 
 var (
@@ -16,6 +17,7 @@ var (
 	add           = lunchman.Command("add", "Add a new value to the DB")
 	addRegion     = add.Command("region", "Add a region")
 	addRestaurant = add.Command("restaurant", "Add a restarant")
+	addUser       = add.Command("user", "Add a user")
 
 	checkNotEmpty = func(i string) error {
 		if i == "" {
@@ -26,6 +28,12 @@ var (
 	checkSingleArg = func(i string) error {
 		if strings.Contains(i, " ") {
 			return errors.New("Expecting a single argument")
+		}
+		return nil
+	}
+	checkIsObjectID = func(i string) error {
+		if !bson.IsObjectIdHex(i) {
+			return fmt.Errorf("%s should be, but is not an bson.ObjectId", i)
 		}
 		return nil
 	}
@@ -49,10 +57,14 @@ func main() {
 		region.Add()
 	case addRestaurant.FullCommand():
 		restaurantsCollection := db.NewRestaurants(dbClient)
-		usersCollection := db.NewUsers(dbClient)
 		regionsCollection := db.NewRegions(dbClient)
-		restaurant := restaurant{actor, restaurantsCollection, usersCollection, regionsCollection}
+		restaurant := restaurant{actor, restaurantsCollection, regionsCollection}
 		restaurant.Add()
+	case addUser.FullCommand():
+		usersCollection := db.NewUsers(dbClient)
+		restaurantsCollection := db.NewRestaurants(dbClient)
+		user := user{actor, usersCollection, restaurantsCollection}
+		user.Add()
 	}
 }
 
