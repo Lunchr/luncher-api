@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
+	"github.com/deiwin/interact"
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/geo"
-	"github.com/deiwin/luncher-api/lunchman/interact"
 	"gopkg.in/alecthomas/kingpin.v1"
 	"gopkg.in/mgo.v2/bson"
 )

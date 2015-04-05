@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/deiwin/interact"
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
-	"github.com/deiwin/luncher-api/lunchman/interact"
 	"gopkg.in/mgo.v2"
 )
 
