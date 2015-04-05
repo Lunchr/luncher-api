@@ -9,6 +9,13 @@ import (
 	"strings"
 )
 
+var (
+	// ErrorPartialMatch will be used when the geocoder API responds with a partial
+	// match. In this case, the received location will still be included in the
+	// return values, so the client can decide whether to continue or not.
+	ErrorPartialMatch = errors.New("Geocoder returned a partial match.")
+)
+
 const apiEndpoint = "https://maps.googleapis.com/maps/api/geocode/json"
 
 // Coder is an object that knows how to geocode an address
@@ -75,32 +82,32 @@ func urlFor(params url.Values) string {
 }
 
 func fetch(url string) (Location, error) {
-	var nilLocation Location
 	httpResponse, err := http.Get(url)
 	if err != nil {
-		return nilLocation, err
+		return Location{}, err
 	}
 	defer httpResponse.Body.Close()
 
 	var response = new(response)
 	err = json.NewDecoder(httpResponse.Body).Decode(response)
 	if err != nil {
-		return nilLocation, err
+		return Location{}, err
 	}
 
 	if response.Status != "OK" {
 		if response.ErrorMessage != "" {
-			return nilLocation, fmt.Errorf("Geocoder service error!  (%s - %s)", response.Status, response.ErrorMessage)
+			return Location{}, fmt.Errorf("Geocoder service error!  (%s - %s)", response.Status, response.ErrorMessage)
 		}
-		return nilLocation, fmt.Errorf("Geocoder service error!  (%s)", response.Status)
+		return Location{}, fmt.Errorf("Geocoder service error!  (%s)", response.Status)
 	}
 	if len(response.Results) > 1 {
-		return nilLocation, errors.New("More than one response received from the Geocoder service")
+		return Location{}, errors.New("More than one response received from the Geocoder service")
 	}
 	result := response.Results[0]
+	location := result.Geometry.Location
 	if result.PartialMatch {
-		return nilLocation, errors.New("Geocoder returned a partial match. Check for typos")
+		return location, ErrorPartialMatch
 	}
 
-	return result.Geometry.Location, nil
+	return location, nil
 }

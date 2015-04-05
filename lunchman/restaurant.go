@@ -115,8 +115,18 @@ func (r Restaurant) findLocationOrExit(address, regionName string) geo.Location 
 	}
 	location, err := r.Geocoder.CodeForRegion(address, region.CCTLD)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		if err != geo.ErrorPartialMatch {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		message := fmt.Sprintf("Geocoder returned a partial match of (%.6f, %.6f). Do you want to continue using the partial match?", location.Lat, location.Lng)
+		if confirmed, err := r.Actor.Confirm(message, interact.ConfirmDefaultToNo); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		} else if !confirmed {
+			fmt.Println("Alright. Canceling.")
+			os.Exit(1)
+		}
 	}
 	return location
 }
