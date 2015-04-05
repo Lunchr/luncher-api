@@ -29,16 +29,70 @@ func (r Region) Add() {
 	fmt.Println("Region successfully added!")
 }
 
-func (r Region) insertRegion(name, location, cctld string) {
-	region := &model.Region{
-		Name:     name,
-		Location: location,
-		CCTLD:    cctld,
+func (r Region) Edit(name string) {
+	region, err := r.Collection.GetName(name)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
+
+	checkUnique := r.getRegionUniquenessCheck()
+
+	newName := getInputWithDefaultOrExit(r.Actor, "Please enter a name for the new region", region.Name, checkNotEmpty, checkSingleArg, checkUnique)
+	location := getInputWithDefaultOrExit(r.Actor, "Please enter the region's location (IANA tz)", region.Location, checkNotEmpty, checkSingleArg, checkValidLocation)
+	cctld := getInputWithDefaultOrExit(r.Actor, "Please enter the region's ccTLD (country code top-level domain)", region.CCTLD, checkNotEmpty, checkSingleArg, checkIs2Letters)
+
+	r.updateRegion(name, newName, location, cctld)
+
+	fmt.Println("Region successfully updated!")
+}
+
+func (r Region) List() {
+	iter := r.Collection.GetAll()
+	var region model.Region
+	fmt.Println("Listing the regions' IDs and names:")
+	for iter.Next(&region) {
+		fmt.Printf("%s - %s\n", region.ID.Hex(), region.Name)
+	}
+	if err := iter.Close(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+func (r Region) Show(name string) {
+	region, err := r.Collection.GetName(name)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	fmt.Println(pretty(region))
+}
+
+func (r Region) updateRegion(name, newName, location, cctld string) {
+	region := createRegion(newName, location, cctld)
+	confirmDBInsertion(r.Actor, region)
+	err := r.Collection.UpdateName(name, region)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+func (r Region) insertRegion(name, location, cctld string) {
+	region := createRegion(name, location, cctld)
 	confirmDBInsertion(r.Actor, region)
 	if err := r.Collection.Insert(region); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
+	}
+}
+
+func createRegion(name, location, cctld string) *model.Region {
+	return &model.Region{
+		Name:     name,
+		Location: location,
+		CCTLD:    cctld,
 	}
 }
 

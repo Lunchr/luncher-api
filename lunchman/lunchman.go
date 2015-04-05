@@ -22,16 +22,21 @@ var (
 	addUser       = add.Command("user", "Add a user")
 
 	list            = lunchman.Command("list", "List the current values in DB")
+	listRegions     = list.Command("regions", "List all regions")
 	listRestaurants = list.Command("restaurants", "List all restaurants")
 	listUsers       = list.Command("users", "List all users")
 
 	show             = lunchman.Command("show", "Show a specific DB item")
+	showRegion       = show.Command("region", "Show a region")
+	showRegionName   = showRegion.Arg("name", "The region's name").Required().String()
 	showRestaurant   = show.Command("restaurant", "Show a restaurant")
 	showRestaurantID = showRestaurant.Arg("id", "The restaurant's ID").Required().String()
 	showUser         = show.Command("user", "Show a user")
 	showUserID       = showUser.Arg("facebookid", "The user's Facebook ID").Required().String()
 
 	edit             = lunchman.Command("edit", "Edit a specific DB item")
+	editRegion       = edit.Command("region", "Edit a region")
+	editRegionName   = editRegion.Arg("name", "The region's name").Required().String()
 	editRestaurant   = edit.Command("restaurant", "Edit a restaurant")
 	editRestaurantID = editRestaurant.Arg("id", "The restaurant's ID").Required().String()
 	editUser         = edit.Command("user", "Edit a user")
@@ -79,6 +84,9 @@ func main() {
 		user := initUser(actor, dbClient)
 		user.Add()
 
+	case listRegions.FullCommand():
+		region := initRegion(actor, dbClient)
+		region.List()
 	case listRestaurants.FullCommand():
 		restaurant := initRestaurant(actor, dbClient)
 		restaurant.List()
@@ -86,6 +94,9 @@ func main() {
 		user := initUser(actor, dbClient)
 		user.List()
 
+	case showRegion.FullCommand():
+		region := initRegion(actor, dbClient)
+		region.Show(*showRegionName)
 	case showRestaurant.FullCommand():
 		restaurant := initRestaurant(actor, dbClient)
 		restaurant.Show(*showRestaurantID)
@@ -93,6 +104,9 @@ func main() {
 		user := initUser(actor, dbClient)
 		user.Show(*showUserID)
 
+	case editRegion.FullCommand():
+		region := initRegion(actor, dbClient)
+		region.Edit(*editRegionName)
 	case editRestaurant.FullCommand():
 		restaurant := initRestaurant(actor, dbClient)
 		restaurant.Edit(*editRestaurantID)
