@@ -8,8 +8,9 @@ import (
 
 type Regions interface {
 	Insert(...*model.Region) error
-	Get(string) (*model.Region, error)
+	GetName(string) (*model.Region, error)
 	GetAll() RegionIter
+	UpdateName(string, *model.Region) error
 }
 
 // RegionIter is a wrapper around *mgo.Iter that allows type safe iteration
@@ -35,7 +36,7 @@ func (c regionsCollection) Insert(regionsToInsert ...*model.Region) error {
 	return c.Collection.Insert(docs...)
 }
 
-func (c regionsCollection) Get(name string) (*model.Region, error) {
+func (c regionsCollection) GetName(name string) (*model.Region, error) {
 	var region model.Region
 	err := c.Find(bson.M{
 		"name": name,
@@ -46,6 +47,10 @@ func (c regionsCollection) Get(name string) (*model.Region, error) {
 func (c regionsCollection) GetAll() RegionIter {
 	i := c.Find(nil).Iter()
 	return &regionIter{i}
+}
+
+func (c regionsCollection) UpdateName(name string, region *model.Region) error {
+	return c.Update(bson.M{"name": name}, bson.M{"$set": region})
 }
 
 type regionIter struct {

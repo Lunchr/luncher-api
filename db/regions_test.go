@@ -11,7 +11,7 @@ var _ = Describe("Regions", func() {
 	Describe("Get", func() {
 		It("should get region by name", func(done Done) {
 			defer close(done)
-			region, err := regionsCollection.Get("Tartu")
+			region, err := regionsCollection.GetName("Tartu")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(region.Name).To(Equal("Tartu"))
 			Expect(region.Location).To(Equal("Europe/Tallinn"))
@@ -19,7 +19,7 @@ var _ = Describe("Regions", func() {
 
 		It("should get region by name", func(done Done) {
 			defer close(done)
-			region, err := regionsCollection.Get("London")
+			region, err := regionsCollection.GetName("London")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(region.Name).To(Equal("London"))
 			Expect(region.Location).To(Equal("Europe/London"))
@@ -27,7 +27,7 @@ var _ = Describe("Regions", func() {
 
 		It("should return nothing if doesn't exist", func(done Done) {
 			defer close(done)
-			_, err := regionsCollection.Get("blablabla")
+			_, err := regionsCollection.GetName("blablabla")
 			Expect(err).To(Equal(mgo.ErrNotFound))
 		})
 	})
@@ -54,6 +54,37 @@ var _ = Describe("Regions", func() {
 			Expect(count).To(Equal(3))
 			err := iter.Close()
 			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	Describe("UpdateID", func() {
+		It("should fail for a non-existent name", func(done Done) {
+			defer close(done)
+			err := regionsCollection.UpdateName("a random name", &model.Region{})
+			Expect(err).To(HaveOccurred())
+		})
+
+		Context("with aregion with known ID inserted", func() {
+			var name string
+			BeforeEach(func(done Done) {
+				defer close(done)
+				name = "a test name"
+				err := regionsCollection.Insert(&model.Region{
+					Name: name,
+				})
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should update the region in DB", func(done Done) {
+				defer close(done)
+				err := regionsCollection.UpdateName(name, &model.Region{
+					Name: "an updated name",
+				})
+				Expect(err).NotTo(HaveOccurred())
+				region, err := regionsCollection.GetName("an updated name")
+				Expect(err).NotTo(HaveOccurred())
+				Expect(region.Name).To(Equal("an updated name"))
+			})
 		})
 	})
 })
