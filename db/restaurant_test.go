@@ -47,6 +47,31 @@ var _ = Describe("Restaurant", func() {
 		})
 	})
 
+	Describe("GetAll", func() {
+		It("should list all the restaurants", func(done Done) {
+			defer close(done)
+			iter := restaurantsCollection.GetAll()
+			count := 0
+			restaurantNames := map[string]int{
+				"Asian Chef":        0,
+				"Bulgarian Dude":    0,
+				"Caesarian Kitchen": 0,
+			}
+			var restaurant model.Restaurant
+			for iter.Next(&restaurant) {
+				Expect(restaurant).NotTo(BeNil())
+				i, contains := restaurantNames[restaurant.Name]
+				Expect(contains).To(BeTrue())
+				Expect(i).To(Equal(0))
+				restaurantNames[restaurant.Name]++
+				count++
+			}
+			Expect(count).To(Equal(3))
+			err := iter.Close()
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
 	Describe("GetByID", func() {
 		It("should get by id", func(done Done) {
 			defer close(done)
