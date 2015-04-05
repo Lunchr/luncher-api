@@ -10,8 +10,8 @@ import (
 type Users interface {
 	Insert(...*model.User) error
 	Get(string) (*model.User, error)
-	Update(string, *model.User) error
 	GetAll() UserIter
+	Update(string, *model.User) error
 	GetBySessionID(string) (*model.User, error)
 	SetAccessToken(string, oauth2.Token) error
 	SetPageAccessToken(string, string) error
@@ -47,13 +47,13 @@ func (c usersCollection) Get(facebookUserID string) (*model.User, error) {
 	return &user, err
 }
 
-func (c usersCollection) Update(facebookUserID string, user *model.User) error {
-	return c.Collection.Update(bson.M{"facebook_user_id": facebookUserID}, bson.M{"$set": user})
-}
-
 func (c usersCollection) GetAll() UserIter {
 	i := c.Find(nil).Iter()
 	return &userIter{i}
+}
+
+func (c usersCollection) Update(facebookUserID string, user *model.User) error {
+	return c.Collection.Update(bson.M{"facebook_user_id": facebookUserID}, bson.M{"$set": user})
 }
 
 func (c usersCollection) GetBySessionID(sessionID string) (*model.User, error) {
