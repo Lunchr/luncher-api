@@ -55,13 +55,39 @@ func (r Restaurant) Show(id string) {
 	fmt.Println(pretty(restaurant))
 }
 
-func (r Restaurant) insertRestaurantAndGetID(name, address, region string, location geo.Location) bson.ObjectId {
-	restaurant := &model.Restaurant{
-		Name:     name,
-		Address:  address,
-		Region:   region,
-		Location: location,
+func (r Restaurant) Edit(idString string) {
+	id := bson.ObjectIdHex(idString)
+	restaurant, err := r.Collection.GetByID(id)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
+
+	checkUnique := r.getRestaurantUniquenessCheck()
+	checkExists := r.getRegionExistanceCheck()
+
+	name := getInputWithDefaultOrExit(r.Actor, "Please enter a name for restaurant", restaurant.Name, checkNotEmpty, checkUnique)
+	address := getInputWithDefaultOrExit(r.Actor, "Please enter the restaurant's address", restaurant.Address, checkNotEmpty)
+	regionName := getInputWithDefaultOrExit(r.Actor, "Please enter the region you want to register the restaurant into", restaurant.Region, checkNotEmpty, checkExists)
+	location := r.findLocationOrExit(address, regionName)
+
+	r.updateRestaurant(id, name, address, regionName, location)
+
+	fmt.Println("Restaurant successfully updated!")
+}
+
+func (r Restaurant) updateRestaurant(id bson.ObjectId, name, address, region string, location geo.Location) {
+	restaurant := createRestaurant(name, address, region, location)
+	confirmDBInsertion(r.Actor, restaurant)
+	err := r.Collection.UpdateID(id, restaurant)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+func (r Restaurant) insertRestaurantAndGetID(name, address, region string, location geo.Location) bson.ObjectId {
+	restaurant := createRestaurant(name, address, region, location)
 	confirmDBInsertion(r.Actor, restaurant)
 	insertedRestaurants, err := r.Collection.Insert(restaurant)
 	if err != nil {
@@ -70,6 +96,15 @@ func (r Restaurant) insertRestaurantAndGetID(name, address, region string, locat
 	}
 	restaurantID := insertedRestaurants[0].ID
 	return restaurantID
+}
+
+func createRestaurant(name, address, region string, location geo.Location) *model.Restaurant {
+	return &model.Restaurant{
+		Name:     name,
+		Address:  address,
+		Region:   region,
+		Location: location,
+	}
 }
 
 func (r Restaurant) findLocationOrExit(address, regionName string) geo.Location {

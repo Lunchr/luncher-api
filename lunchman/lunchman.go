@@ -31,9 +31,11 @@ var (
 	showRestaurant   = show.Command("restaurant", "Show a restaurant")
 	showRestaurantID = showRestaurant.Arg("id", "The restaurant's ID").Required().String()
 
-	edit       = lunchman.Command("edit", "Edit a specific DB item")
-	editUser   = edit.Command("user", "Edit a user")
-	editUserID = editUser.Arg("facebookid", "The user's Facebook ID").Required().String()
+	edit             = lunchman.Command("edit", "Edit a specific DB item")
+	editUser         = edit.Command("user", "Edit a user")
+	editUserID       = editUser.Arg("facebookid", "The user's Facebook ID").Required().String()
+	editRestaurant   = edit.Command("restaurant", "Edit a restaurant")
+	editRestaurantID = editRestaurant.Arg("id", "The restaurant's ID").Required().String()
 
 	checkNotEmpty = func(i string) error {
 		if i == "" {
@@ -94,6 +96,9 @@ func main() {
 	case editUser.FullCommand():
 		user := initUser(actor, dbClient)
 		user.Edit(*editUserID)
+	case editRestaurant.FullCommand():
+		restaurant := initRestaurant(actor, dbClient)
+		restaurant.Edit(*editRestaurantID)
 	}
 }
 
