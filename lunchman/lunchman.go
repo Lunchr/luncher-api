@@ -20,14 +20,20 @@ var (
 	addRegion     = add.Command("region", "Add a region")
 	addRestaurant = add.Command("restaurant", "Add a restarant")
 	addUser       = add.Command("user", "Add a user")
-	list          = lunchman.Command("list", "List the current values in DB")
-	listUsers     = list.Command("users", "List all users")
-	show          = lunchman.Command("show", "Show a specific DB item")
-	showUser      = show.Command("user", "Show a user")
-	showUserID    = showUser.Arg("facebookid", "The user's Facebook ID").Required().String()
-	edit          = lunchman.Command("edit", "Edit a specific DB item")
-	editUser      = edit.Command("user", "Edit a user")
-	editUserID    = editUser.Arg("facebookid", "The user's Facebook ID").Required().String()
+
+	list            = lunchman.Command("list", "List the current values in DB")
+	listUsers       = list.Command("users", "List all users")
+	listRestaurants = list.Command("restaurants", "List all restaurants")
+
+	show             = lunchman.Command("show", "Show a specific DB item")
+	showUser         = show.Command("user", "Show a user")
+	showUserID       = showUser.Arg("facebookid", "The user's Facebook ID").Required().String()
+	showRestaurant   = show.Command("restaurant", "Show a restaurant")
+	showRestaurantID = showRestaurant.Arg("id", "The restaurant's ID").Required().String()
+
+	edit       = lunchman.Command("edit", "Edit a specific DB item")
+	editUser   = edit.Command("user", "Edit a user")
+	editUserID = editUser.Arg("facebookid", "The user's Facebook ID").Required().String()
 
 	checkNotEmpty = func(i string) error {
 		if i == "" {
@@ -70,12 +76,21 @@ func main() {
 	case addUser.FullCommand():
 		user := initUser(actor, dbClient)
 		user.Add()
+
 	case listUsers.FullCommand():
 		user := initUser(actor, dbClient)
 		user.List()
+	case listRestaurants.FullCommand():
+		restaurant := initRestaurant(actor, dbClient)
+		restaurant.List()
+
 	case showUser.FullCommand():
 		user := initUser(actor, dbClient)
 		user.Show(*showUserID)
+	case showRestaurant.FullCommand():
+		restaurant := initRestaurant(actor, dbClient)
+		restaurant.Show(*showRestaurantID)
+
 	case editUser.FullCommand():
 		user := initUser(actor, dbClient)
 		user.Edit(*editUserID)

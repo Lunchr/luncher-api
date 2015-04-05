@@ -33,6 +33,28 @@ func (r Restaurant) Add() {
 	fmt.Printf("Restaurant (%v) successfully added!\n", restaurantID)
 }
 
+func (r Restaurant) List() {
+	iter := r.Collection.GetAll()
+	var restaurant model.Restaurant
+	fmt.Println("Listing the restaurants' IDs and names:")
+	for iter.Next(&restaurant) {
+		fmt.Printf("%s - %s\n", restaurant.ID.Hex(), restaurant.Name)
+	}
+	if err := iter.Close(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+func (r Restaurant) Show(id string) {
+	restaurant, err := r.Collection.GetByID(bson.ObjectIdHex(id))
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	fmt.Println(pretty(restaurant))
+}
+
 func (r Restaurant) insertRestaurantAndGetID(name, address, region string, location geo.Location) bson.ObjectId {
 	restaurant := &model.Restaurant{
 		Name:     name,
