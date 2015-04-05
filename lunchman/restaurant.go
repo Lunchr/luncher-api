@@ -33,6 +33,27 @@ func (r Restaurant) Add() {
 	fmt.Printf("Restaurant (%v) successfully added!\n", restaurantID)
 }
 
+func (r Restaurant) Edit(idString string) {
+	id := bson.ObjectIdHex(idString)
+	restaurant, err := r.Collection.GetID(id)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	checkUnique := r.getRestaurantUniquenessCheck()
+	checkExists := r.getRegionExistanceCheck()
+
+	name := getInputWithDefaultOrExit(r.Actor, "Please enter a name for restaurant", restaurant.Name, checkNotEmpty, checkUnique)
+	address := getInputWithDefaultOrExit(r.Actor, "Please enter the restaurant's address", restaurant.Address, checkNotEmpty)
+	regionName := getInputWithDefaultOrExit(r.Actor, "Please enter the region you want to register the restaurant into", restaurant.Region, checkNotEmpty, checkExists)
+	location := r.findLocationOrExit(address, regionName)
+
+	r.updateRestaurant(id, name, address, regionName, location)
+
+	fmt.Println("Restaurant successfully updated!")
+}
+
 func (r Restaurant) List() {
 	iter := r.Collection.GetAll()
 	var restaurant model.Restaurant
@@ -53,27 +74,6 @@ func (r Restaurant) Show(id string) {
 		os.Exit(1)
 	}
 	fmt.Println(pretty(restaurant))
-}
-
-func (r Restaurant) Edit(idString string) {
-	id := bson.ObjectIdHex(idString)
-	restaurant, err := r.Collection.GetID(id)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	checkUnique := r.getRestaurantUniquenessCheck()
-	checkExists := r.getRegionExistanceCheck()
-
-	name := getInputWithDefaultOrExit(r.Actor, "Please enter a name for restaurant", restaurant.Name, checkNotEmpty, checkUnique)
-	address := getInputWithDefaultOrExit(r.Actor, "Please enter the restaurant's address", restaurant.Address, checkNotEmpty)
-	regionName := getInputWithDefaultOrExit(r.Actor, "Please enter the region you want to register the restaurant into", restaurant.Region, checkNotEmpty, checkExists)
-	location := r.findLocationOrExit(address, regionName)
-
-	r.updateRestaurant(id, name, address, regionName, location)
-
-	fmt.Println("Restaurant successfully updated!")
 }
 
 func (r Restaurant) updateRestaurant(id bson.ObjectId, name, address, region string, location geo.Location) {

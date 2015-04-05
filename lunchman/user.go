@@ -29,6 +29,25 @@ func (u User) Add() {
 	fmt.Println("User successfully added!")
 }
 
+func (u User) Edit(fbUserID string) {
+	user, err := u.Collection.GetFbID(fbUserID)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	checkExists := u.getRestaurantExistanceCheck()
+
+	restaurantIDString := getInputWithDefaultOrExit(u.Actor, "Please enter the restaurant's ID this user will administrate", user.RestaurantID.Hex(), checkNotEmpty, checkIsObjectID, checkExists)
+	restaurantID := bson.ObjectIdHex(restaurantIDString)
+	newFBUserID := getInputWithDefaultOrExit(u.Actor, "Please enter the restaurant administrator's Facebook user ID", user.FacebookUserID, checkNotEmpty)
+	fbPageID := getInputWithDefaultOrExit(u.Actor, "Please enter the restaurant's Facebook page ID", user.FacebookPageID, checkNotEmpty)
+
+	u.updateUser(fbUserID, restaurantID, newFBUserID, fbPageID)
+
+	fmt.Println("User successfully updated!")
+}
+
 func (u User) List() {
 	iter := u.Collection.GetAll()
 	var user model.User
@@ -49,25 +68,6 @@ func (u User) Show(fbUserID string) {
 		os.Exit(1)
 	}
 	fmt.Println(pretty(user))
-}
-
-func (u User) Edit(fbUserID string) {
-	user, err := u.Collection.GetFbID(fbUserID)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	checkExists := u.getRestaurantExistanceCheck()
-
-	restaurantIDString := getInputWithDefaultOrExit(u.Actor, "Please enter the restaurant's ID this user will administrate", user.RestaurantID.Hex(), checkNotEmpty, checkIsObjectID, checkExists)
-	restaurantID := bson.ObjectIdHex(restaurantIDString)
-	newFBUserID := getInputWithDefaultOrExit(u.Actor, "Please enter the restaurant administrator's Facebook user ID", user.FacebookUserID, checkNotEmpty)
-	fbPageID := getInputWithDefaultOrExit(u.Actor, "Please enter the restaurant's Facebook page ID", user.FacebookPageID, checkNotEmpty)
-
-	u.updateUser(fbUserID, restaurantID, newFBUserID, fbPageID)
-
-	fmt.Println("User successfully updated!")
 }
 
 func (u User) updateUser(fbUserID string, restaurantID bson.ObjectId, newFBUserID, fbPageID string) {
