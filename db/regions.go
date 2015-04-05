@@ -9,10 +9,17 @@ import (
 type Regions interface {
 	Insert(...*model.Region) error
 	Get(string) (*model.Region, error)
+	GetAll() RegionIter
+}
+
+// RegionIter is a wrapper around *mgo.Iter that allows type safe iteration
+type RegionIter interface {
+	Close() error
+	Next(*model.Region) bool
 }
 
 type regionsCollection struct {
-	c *mgo.Collection
+	*mgo.Collection
 }
 
 func NewRegions(client *Client) Regions {
@@ -20,17 +27,31 @@ func NewRegions(client *Client) Regions {
 	return &regionsCollection{collection}
 }
 
-func (collection regionsCollection) Insert(regionsToInsert ...*model.Region) (err error) {
+func (c regionsCollection) Insert(regionsToInsert ...*model.Region) error {
 	docs := make([]interface{}, len(regionsToInsert))
 	for i, region := range regionsToInsert {
 		docs[i] = region
 	}
-	return collection.c.Insert(docs...)
+	return c.Collection.Insert(docs...)
 }
 
-func (collection regionsCollection) Get(name string) (region *model.Region, err error) {
-	err = collection.c.Find(bson.M{
+func (c regionsCollection) Get(name string) (*model.Region, error) {
+	var region model.Region
+	err := c.Find(bson.M{
 		"name": name,
 	}).One(&region)
-	return
+	return &region, err
+}
+
+func (c regionsCollection) GetAll() RegionIter {
+	i := c.Find(nil).Iter()
+	return &regionIter{i}
+}
+
+type regionIter struct {
+	*mgo.Iter
+}
+
+func (u *regionIter) Next(region *model.Region) bool {
+	return u.Iter.Next(region)
 }

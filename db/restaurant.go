@@ -75,6 +75,6 @@ type restaurantIter struct {
 	*mgo.Iter
 }
 
-func (u restaurantIter) Next(restaurant *model.Restaurant) bool {
+func (u *restaurantIter) Next(restaurant *model.Restaurant) bool {
 	return u.Iter.Next(restaurant)
 }

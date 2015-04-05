@@ -84,6 +84,6 @@ type userIter struct {
 	*mgo.Iter
 }
 
-func (u userIter) Next(user *model.User) bool {
+func (u *userIter) Next(user *model.User) bool {
 	return u.Iter.Next(user)
 }
