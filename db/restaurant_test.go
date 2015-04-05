@@ -97,4 +97,35 @@ var _ = Describe("Restaurant", func() {
 			Expect(exists).To(BeFalse())
 		})
 	})
+
+	Describe("UpdateID", func() {
+		It("should fail for a non-existent ID", func(done Done) {
+			defer close(done)
+			err := restaurantsCollection.UpdateID(bson.NewObjectId(), &model.Restaurant{})
+			Expect(err).To(HaveOccurred())
+		})
+
+		Context("with arestaurant with known ID inserted", func() {
+			var id bson.ObjectId
+			BeforeEach(func(done Done) {
+				defer close(done)
+				id = bson.NewObjectId()
+				_, err := restaurantsCollection.Insert(&model.Restaurant{
+					ID: id,
+				})
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should update the restaurant in DB", func(done Done) {
+				defer close(done)
+				err := restaurantsCollection.UpdateID(id, &model.Restaurant{
+					Name: "an updated name",
+				})
+				Expect(err).NotTo(HaveOccurred())
+				restaurant, err := restaurantsCollection.GetByID(id)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(restaurant.Name).To(Equal("an updated name"))
+			})
+		})
+	})
 })

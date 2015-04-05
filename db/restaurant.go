@@ -12,6 +12,7 @@ type Restaurants interface {
 	GetAll() RestaurantIter
 	GetByID(bson.ObjectId) (*model.Restaurant, error)
 	Exists(name string) (bool, error)
+	UpdateID(bson.ObjectId, *model.Restaurant) error
 }
 
 // RestaurantIter is a wrapper around *mgo.Iter that allows type safe iteration
@@ -64,6 +65,10 @@ func (c restaurantsCollection) Exists(name string) (bool, error) {
 		return false, err
 	}
 	return count != 0, nil
+}
+
+func (c restaurantsCollection) UpdateID(id bson.ObjectId, restaurant *model.Restaurant) error {
+	return c.UpdateId(id, bson.M{"$set": restaurant})
 }
 
 type restaurantIter struct {
