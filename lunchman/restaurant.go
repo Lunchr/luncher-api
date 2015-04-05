@@ -47,7 +47,7 @@ func (r Restaurant) List() {
 }
 
 func (r Restaurant) Show(id string) {
-	restaurant, err := r.Collection.GetByID(bson.ObjectIdHex(id))
+	restaurant, err := r.Collection.GetID(bson.ObjectIdHex(id))
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -57,7 +57,7 @@ func (r Restaurant) Show(id string) {
 
 func (r Restaurant) Edit(idString string) {
 	id := bson.ObjectIdHex(idString)
-	restaurant, err := r.Collection.GetByID(id)
+	restaurant, err := r.Collection.GetID(id)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -108,7 +108,7 @@ func createRestaurant(name, address, region string, location geo.Location) *mode
 }
 
 func (r Restaurant) findLocationOrExit(address, regionName string) geo.Location {
-	region, err := r.RegionsCollection.Get(regionName)
+	region, err := r.RegionsCollection.GetName(regionName)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -135,7 +135,7 @@ func (r Restaurant) getRestaurantUniquenessCheck() interact.InputCheck {
 func (u User) getRestaurantExistanceCheck() interact.InputCheck {
 	return func(i string) error {
 		id := bson.ObjectIdHex(i)
-		if _, err := u.RestaurantsCollection.GetByID(id); err != nil {
+		if _, err := u.RestaurantsCollection.GetID(id); err != nil {
 			return err
 		}
 		return nil

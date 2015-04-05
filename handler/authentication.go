@@ -38,7 +38,7 @@ func getUserForSession(sessionManager session.Manager, usersCollection db.Users,
 	if err != nil {
 		return nil, err
 	}
-	user, err := usersCollection.GetBySessionID(session)
+	user, err := usersCollection.GetSessionID(session)
 	if err != nil {
 		return nil, err
 	}

@@ -8,7 +8,7 @@ import (
 )
 
 var _ = Describe("Regions", func() {
-	Describe("Get", func() {
+	Describe("GetName", func() {
 		It("should get region by name", func(done Done) {
 			defer close(done)
 			region, err := regionsCollection.GetName("Tartu")

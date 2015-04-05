@@ -72,10 +72,10 @@ var _ = Describe("Restaurant", func() {
 		})
 	})
 
-	Describe("GetByID", func() {
+	Describe("GetID", func() {
 		It("should get by id", func(done Done) {
 			defer close(done)
-			res, err := restaurantsCollection.GetByID(mocks.restaurantID)
+			res, err := restaurantsCollection.GetID(mocks.restaurantID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res).NotTo(BeNil())
 			Expect(res.ID).To(Equal(mocks.restaurantID))
@@ -122,7 +122,7 @@ var _ = Describe("Restaurant", func() {
 					Name: "an updated name",
 				})
 				Expect(err).NotTo(HaveOccurred())
-				restaurant, err := restaurantsCollection.GetByID(id)
+				restaurant, err := restaurantsCollection.GetID(id)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(restaurant.Name).To(Equal("an updated name"))
 			})

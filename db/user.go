@@ -9,10 +9,10 @@ import (
 
 type Users interface {
 	Insert(...*model.User) error
-	Get(string) (*model.User, error)
+	GetFbID(string) (*model.User, error)
+	GetSessionID(string) (*model.User, error)
 	GetAll() UserIter
 	Update(string, *model.User) error
-	GetBySessionID(string) (*model.User, error)
 	SetAccessToken(string, oauth2.Token) error
 	SetPageAccessToken(string, string) error
 	SetSessionID(string, string) error
@@ -41,9 +41,15 @@ func (c usersCollection) Insert(usersToInsert ...*model.User) error {
 	return c.Collection.Insert(docs...)
 }
 
-func (c usersCollection) Get(facebookUserID string) (*model.User, error) {
+func (c usersCollection) GetFbID(facebookUserID string) (*model.User, error) {
 	var user model.User
 	err := c.Find(bson.M{"facebook_user_id": facebookUserID}).One(&user)
+	return &user, err
+}
+
+func (c usersCollection) GetSessionID(sessionID string) (*model.User, error) {
+	var user model.User
+	err := c.Find(bson.M{"session.id": sessionID}).One(&user)
 	return &user, err
 }
 
@@ -54,12 +60,6 @@ func (c usersCollection) GetAll() UserIter {
 
 func (c usersCollection) Update(facebookUserID string, user *model.User) error {
 	return c.Collection.Update(bson.M{"facebook_user_id": facebookUserID}, bson.M{"$set": user})
-}
-
-func (c usersCollection) GetBySessionID(sessionID string) (*model.User, error) {
-	var user model.User
-	err := c.Find(bson.M{"session.id": sessionID}).One(&user)
-	return &user, err
 }
 
 func (c usersCollection) SetAccessToken(facebookUserID string, tok oauth2.Token) error {

@@ -27,7 +27,7 @@ func Offers(offersCollection db.Offers, regionsCollection db.Regions, imageStora
 		if regionName == "" {
 			return &HandlerError{errors.New("Region not specified for GET /offers"), "Please specify a region", http.StatusBadRequest}
 		}
-		region, err := regionsCollection.Get(regionName)
+		region, err := regionsCollection.GetName(regionName)
 		if err != nil {
 			return &HandlerError{err, "Unable to find the specified region", http.StatusInternalServerError}
 		}
@@ -38,7 +38,7 @@ func Offers(offersCollection db.Offers, regionsCollection db.Regions, imageStora
 		now := time.Now()
 		startTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 		endTime := startTime.AddDate(0, 0, 1)
-		offers, err := offersCollection.Get(regionName, startTime, endTime)
+		offers, err := offersCollection.GetForRegion(regionName, startTime, endTime)
 		if err != nil {
 			return &HandlerError{err, "An error occured while trying to fetch todays offers", http.StatusInternalServerError}
 		}
@@ -60,7 +60,7 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage storage.Images) Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *HandlerError {
 		api := fbAuth.APIConnection(&user.Session.FacebookUserToken)
-		restaurant, err := restaurantsCollection.GetByID(user.RestaurantID)
+		restaurant, err := restaurantsCollection.GetID(user.RestaurantID)
 		if err != nil {
 			return &HandlerError{err, "Couldn't find a restaurant related to this user", http.StatusInternalServerError}
 		}
@@ -102,12 +102,12 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 			return &HandlerError{err, "", http.StatusBadRequest}
 		}
 		id := bson.ObjectIdHex(idString)
-		currentOffer, err := offersCollection.GetByID(id)
+		currentOffer, err := offersCollection.GetID(id)
 		if err != nil {
 			return &HandlerError{err, "Couldn't find an offer with this ID", http.StatusBadRequest}
 		}
 		api := fbAuth.APIConnection(&user.Session.FacebookUserToken)
-		restaurant, err := restaurantsCollection.GetByID(user.RestaurantID)
+		restaurant, err := restaurantsCollection.GetID(user.RestaurantID)
 		if err != nil {
 			return &HandlerError{err, "Couldn't find the restaurant this offer belongs to", http.StatusInternalServerError}
 		}

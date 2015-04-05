@@ -98,7 +98,7 @@ func (fb fbook) getUserID(tok *oauth2.Token) (string, error) {
 }
 
 func (fb fbook) getPageID(userID string) (string, error) {
-	userInDB, err := fb.usersCollection.Get(userID)
+	userInDB, err := fb.usersCollection.GetFbID(userID)
 	if err != nil {
 		return "", err
 	}

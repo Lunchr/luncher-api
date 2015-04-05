@@ -43,7 +43,7 @@ func (u User) List() {
 }
 
 func (u User) Show(fbUserID string) {
-	user, err := u.Collection.Get(fbUserID)
+	user, err := u.Collection.GetFbID(fbUserID)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -52,7 +52,7 @@ func (u User) Show(fbUserID string) {
 }
 
 func (u User) Edit(fbUserID string) {
-	user, err := u.Collection.Get(fbUserID)
+	user, err := u.Collection.GetFbID(fbUserID)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

@@ -58,14 +58,14 @@ var _ = Describe("Offers", func() {
 					Title: "an updated title",
 				})
 				Expect(err).NotTo(HaveOccurred())
-				offer, err := offersCollection.GetByID(id)
+				offer, err := offersCollection.GetID(id)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(offer.Title).To(Equal("an updated title"))
 			})
 		})
 	})
 
-	Describe("Get", func() {
+	Describe("GetForRegion", func() {
 		var (
 			startTime    time.Time
 			endTime      time.Time
@@ -87,7 +87,7 @@ var _ = Describe("Offers", func() {
 
 			It("should get 0 offers", func(done Done) {
 				defer close(done)
-				offers, err := offersCollection.Get(region, earliestTime, latestTime)
+				offers, err := offersCollection.GetForRegion(region, earliestTime, latestTime)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(offers).To(BeEmpty())
 			})
@@ -100,7 +100,7 @@ var _ = Describe("Offers", func() {
 
 			It("should get all offers for that region", func(done Done) {
 				defer close(done)
-				offers, err := offersCollection.Get(region, earliestTime, latestTime)
+				offers, err := offersCollection.GetForRegion(region, earliestTime, latestTime)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(offers).To(HaveLen(2))
 				Expect(offers).To(ContainOfferMock(0))
@@ -115,7 +115,7 @@ var _ = Describe("Offers", func() {
 
 				It("should get offers for the day", func(done Done) {
 					defer close(done)
-					offers, err := offersCollection.Get(region, startTime, endTime)
+					offers, err := offersCollection.GetForRegion(region, startTime, endTime)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(offers).To(HaveLen(1))
 					Expect(offers).To(ContainOfferMock(0))
@@ -131,7 +131,7 @@ var _ = Describe("Offers", func() {
 
 				It("should get 0 offers for non-existent date", func(done Done) {
 					defer close(done)
-					offers, err := offersCollection.Get(region, startTime, endTime)
+					offers, err := offersCollection.GetForRegion(region, startTime, endTime)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(offers).To(BeEmpty())
 				})
@@ -146,7 +146,7 @@ var _ = Describe("Offers", func() {
 
 						It("should not get any offers", func(done Done) {
 							defer close(done)
-							offers, err := offersCollection.Get(region, startTime, endTime)
+							offers, err := offersCollection.GetForRegion(region, startTime, endTime)
 							Expect(err).NotTo(HaveOccurred())
 							Expect(offers).To(BeEmpty())
 						})
@@ -159,7 +159,7 @@ var _ = Describe("Offers", func() {
 
 						It("should get an offer", func(done Done) {
 							defer close(done)
-							offers, err := offersCollection.Get(region, startTime, endTime)
+							offers, err := offersCollection.GetForRegion(region, startTime, endTime)
 							Expect(err).NotTo(HaveOccurred())
 							Expect(offers).To(HaveLen(1))
 							Expect(offers).To(ContainOfferMock(2))
@@ -175,7 +175,7 @@ var _ = Describe("Offers", func() {
 
 						It("should get an offer", func(done Done) {
 							defer close(done)
-							offers, err := offersCollection.Get(region, startTime, endTime)
+							offers, err := offersCollection.GetForRegion(region, startTime, endTime)
 							Expect(err).NotTo(HaveOccurred())
 							Expect(offers).To(HaveLen(1))
 							Expect(offers).To(ContainOfferMock(2))
@@ -189,7 +189,7 @@ var _ = Describe("Offers", func() {
 
 						It("should not get any offers", func(done Done) {
 							defer close(done)
-							offers, err := offersCollection.Get(region, startTime, endTime)
+							offers, err := offersCollection.GetForRegion(region, startTime, endTime)
 							Expect(err).NotTo(HaveOccurred())
 							Expect(offers).To(BeEmpty())
 						})
@@ -204,7 +204,7 @@ var _ = Describe("Offers", func() {
 
 				It("should get all offers for that region", func(done Done) {
 					defer close(done)
-					offers, err := offersCollection.Get(region, earliestTime, latestTime)
+					offers, err := offersCollection.GetForRegion(region, earliestTime, latestTime)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(offers).To(HaveLen(1))
 					Expect(offers).NotTo(ContainOfferMock(0))

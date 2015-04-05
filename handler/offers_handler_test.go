@@ -405,7 +405,7 @@ type mockUsers struct {
 	db.Users
 }
 
-func (m mockUsers) GetBySessionID(session string) (*model.User, error) {
+func (m mockUsers) GetSessionID(session string) (*model.User, error) {
 	if session != "correctSession" {
 		return nil, errors.New("wrong session")
 	}
@@ -429,7 +429,7 @@ type mockOffers struct {
 	db.Offers
 }
 
-func (m mockOffers) Get(region string, startTime, endTime time.Time) (offers []*model.Offer, err error) {
+func (m mockOffers) GetForRegion(region string, startTime, endTime time.Time) (offers []*model.Offer, err error) {
 	Expect(region).To(Equal("Tartu"))
 	if m.getForTimeRangeFunc != nil {
 		offers, err = m.getForTimeRangeFunc(startTime, endTime)
@@ -484,7 +484,7 @@ func (m mockOffers) UpdateID(id bson.ObjectId, offer *model.Offer) error {
 	return nil
 }
 
-func (m mockOffers) GetByID(id bson.ObjectId) (*model.Offer, error) {
+func (m mockOffers) GetID(id bson.ObjectId) (*model.Offer, error) {
 	Expect(id).To(Equal(objectID))
 	if m.mockOffer == nil {
 		return nil, errors.New("offer not found")
@@ -492,7 +492,7 @@ func (m mockOffers) GetByID(id bson.ObjectId) (*model.Offer, error) {
 	return m.mockOffer, nil
 }
 
-func (m mockRestaurants) GetByID(id bson.ObjectId) (*model.Restaurant, error) {
+func (m mockRestaurants) GetID(id bson.ObjectId) (*model.Restaurant, error) {
 	Expect(id).To(Equal(bson.ObjectId("restid")))
 	restaurant := &model.Restaurant{
 		Name:   "Asian Chef",
@@ -544,7 +544,7 @@ type mockRegions struct {
 	db.Regions
 }
 
-func (m mockRegions) Get(name string) (*model.Region, error) {
+func (m mockRegions) GetName(name string) (*model.Region, error) {
 	Expect(name).To(Equal("Tartu"))
 	region := &model.Region{
 		Name:     "Tartu",

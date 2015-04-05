@@ -10,7 +10,7 @@ type Restaurants interface {
 	Insert(...*model.Restaurant) ([]*model.Restaurant, error)
 	Get() ([]*model.Restaurant, error)
 	GetAll() RestaurantIter
-	GetByID(bson.ObjectId) (*model.Restaurant, error)
+	GetID(bson.ObjectId) (*model.Restaurant, error)
 	Exists(name string) (bool, error)
 	UpdateID(bson.ObjectId, *model.Restaurant) error
 }
@@ -53,7 +53,7 @@ func (c restaurantsCollection) GetAll() RestaurantIter {
 	return &restaurantIter{i}
 }
 
-func (c restaurantsCollection) GetByID(id bson.ObjectId) (*model.Restaurant, error) {
+func (c restaurantsCollection) GetID(id bson.ObjectId) (*model.Restaurant, error) {
 	var restaurant model.Restaurant
 	err := c.FindId(id).One(&restaurant)
 	return &restaurant, err

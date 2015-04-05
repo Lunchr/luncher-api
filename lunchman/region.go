@@ -44,7 +44,7 @@ func (r Region) insertRegion(name, location, cctld string) {
 
 func (r Region) getRegionUniquenessCheck() interact.InputCheck {
 	return func(i string) error {
-		if _, err := r.Collection.Get(i); err != mgo.ErrNotFound {
+		if _, err := r.Collection.GetName(i); err != mgo.ErrNotFound {
 			if err != nil {
 				return err
 			}
@@ -56,7 +56,7 @@ func (r Region) getRegionUniquenessCheck() interact.InputCheck {
 
 func (r Restaurant) getRegionExistanceCheck() interact.InputCheck {
 	return func(i string) error {
-		if _, err := r.RegionsCollection.Get(i); err != nil {
+		if _, err := r.RegionsCollection.GetName(i); err != nil {
 			return err
 		}
 		return nil

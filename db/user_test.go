@@ -13,10 +13,10 @@ const (
 )
 
 var _ = Describe("User", func() {
-	Describe("Get", func() {
+	Describe("GetFbID", func() {
 		It("should get by facebook user id", func(done Done) {
 			defer close(done)
-			user, err := usersCollection.Get(facebookUserID)
+			user, err := usersCollection.GetFbID(facebookUserID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(user).NotTo(BeNil())
 			Expect(user.FacebookPageID).To(Equal(facebookPageID))
@@ -24,17 +24,16 @@ var _ = Describe("User", func() {
 
 		It("should get nothing for wrong facebook id", func(done Done) {
 			defer close(done)
-			_, err := usersCollection.Get(facebookPageID)
+			_, err := usersCollection.GetFbID(facebookPageID)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("should link to the restaurant", func(done Done) {
 			defer close(done)
-			user, err := usersCollection.Get(facebookUserID)
+			user, err := usersCollection.GetFbID(facebookUserID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(user).NotTo(BeNil())
-			// there's no get by ID method at the moment so just get all and see
-			restaurant, err := restaurantsCollection.GetByID(user.RestaurantID)
+			restaurant, err := restaurantsCollection.GetID(user.RestaurantID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(restaurant).NotTo(BeNil())
 			Expect(restaurant.Name).To(Equal("Asian Chef"))
@@ -80,7 +79,7 @@ var _ = Describe("User", func() {
 
 			It("should be included in the Get", func(done Done) {
 				defer close(done)
-				user, err := usersCollection.Get(facebookUserID)
+				user, err := usersCollection.GetFbID(facebookUserID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(user).NotTo(BeNil())
 				Expect(user.Session.FacebookUserToken.AccessToken).To(Equal("asd"))
@@ -101,7 +100,7 @@ var _ = Describe("User", func() {
 
 			It("should be included in the Get", func(done Done) {
 				defer close(done)
-				user, err := usersCollection.Get(facebookUserID)
+				user, err := usersCollection.GetFbID(facebookUserID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(user).NotTo(BeNil())
 				Expect(user.Session.FacebookPageToken).To(Equal("bsd"))
@@ -121,7 +120,7 @@ var _ = Describe("User", func() {
 
 			It("should be reflected in the Get", func(done Done) {
 				defer close(done)
-				user, err := usersCollection.Get(facebookUserID)
+				user, err := usersCollection.GetFbID(facebookUserID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(user).NotTo(BeNil())
 				Expect(user.FacebookPageID).To(Equal("bsd"))
@@ -143,7 +142,7 @@ var _ = Describe("User", func() {
 			Describe("SetSessionID", func() {
 				It("should be included in the Get", func(done Done) {
 					defer close(done)
-					user, err := usersCollection.Get(facebookUserID)
+					user, err := usersCollection.GetFbID(facebookUserID)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(user).NotTo(BeNil())
 					Expect(user.Session.ID).To(Equal("someid"))
@@ -153,7 +152,7 @@ var _ = Describe("User", func() {
 			Describe("GetBySessionID", func() {
 				It("should be included in the Get", func(done Done) {
 					defer close(done)
-					user, err := usersCollection.GetBySessionID(id)
+					user, err := usersCollection.GetSessionID(id)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(user).NotTo(BeNil())
 					Expect(user.FacebookUserID).To(Equal(facebookUserID))

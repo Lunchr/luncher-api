@@ -26,7 +26,7 @@ func Restaurants(restaurantsCollection db.Restaurants) Handler {
 // restaurant linked to the currently logged in user
 func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users) Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *HandlerError {
-		restaurant, err := c.GetByID(user.RestaurantID)
+		restaurant, err := c.GetID(user.RestaurantID)
 		if err != nil {
 			return &HandlerError{err, "Failed to find the restaurant connected to this user", http.StatusInternalServerError}
 		}
@@ -39,7 +39,7 @@ func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users
 // currently logged in user
 func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, offers db.Offers, imageStorage storage.Images) Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *HandlerError {
-		restaurant, err := restaurants.GetByID(user.RestaurantID)
+		restaurant, err := restaurants.GetID(user.RestaurantID)
 		if err != nil {
 			return &HandlerError{err, "Failed to find the restaurant connected to this user", http.StatusInternalServerError}
 		}
