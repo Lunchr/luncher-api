@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/deiwin/luncher-api/db/model"
+	"github.com/deiwin/luncher-api/geo"
 	. "github.com/onsi/gomega"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -25,6 +26,10 @@ func createMocks() *Mocks {
 			Restaurant: model.OfferRestaurant{
 				Name:   "Asian Chef",
 				Region: "Tartu",
+				Location: geo.Location{
+					Lat: 58.37,
+					Lng: 26.72,
+				},
 			},
 			Title:       "Sweet & Sour Chicken",
 			Ingredients: []string{"Kana", "aedviljad", "tsillikaste"},
@@ -38,6 +43,10 @@ func createMocks() *Mocks {
 				Restaurant: model.OfferRestaurant{
 					Name:   "Bulgarian Dude",
 					Region: "Tallinn",
+					Location: geo.Location{
+						Lat: 59.42,
+						Lng: 24.74,
+					},
 				},
 				Title:       "Sweet & Sour Pork",
 				Ingredients: []string{"Seafilee", "aedviljad", "mahushapu kaste"},
@@ -51,6 +60,10 @@ func createMocks() *Mocks {
 				Restaurant: model.OfferRestaurant{
 					Name:   "Caesarian Kitchen",
 					Region: "Tartu",
+					Location: geo.Location{
+						Lat: 58.36,
+						Lng: 26.73,
+					},
 				},
 				Title:       "Sweet & Sour Duck",
 				Ingredients: []string{"Pardifilee", "aedviljad", "magushapu kaste"},
@@ -87,32 +100,47 @@ func createMocks() *Mocks {
 			&model.Region{
 				Name:     "Tartu",
 				Location: "Europe/Tallinn",
+				CCTLD:    "ee",
 			},
 			&model.Region{
 				Name:     "Tallinn",
 				Location: "Europe/Tallinn",
+				CCTLD:    "ee",
 			},
 			&model.Region{
 				Name:     "London",
 				Location: "Europe/London",
+				CCTLD:    "uk",
 			},
 		},
 		restaurants: []*model.Restaurant{
 			&model.Restaurant{
 				Name:    "Bulgarian Dude",
-				Address: "Võru 23, Tartu",
+				Address: "Võru 23, Tallinn",
 				Region:  "Tallinn",
+				Location: geo.Location{
+					Lat: 59.42,
+					Lng: 24.74,
+				},
 			},
 			&model.Restaurant{
 				ID:      restaurantID,
 				Name:    "Asian Chef",
 				Address: "Võru 24, Tartu",
 				Region:  "Tartu",
+				Location: geo.Location{
+					Lat: 58.37,
+					Lng: 26.72,
+				},
 			},
 			&model.Restaurant{
 				Name:    "Caesarian Kitchen",
 				Address: "Võru 25, Tartu",
 				Region:  "Tartu",
+				Location: geo.Location{
+					Lat: 58.36,
+					Lng: 26.73,
+				},
 			},
 		},
 		users: []*model.User{
