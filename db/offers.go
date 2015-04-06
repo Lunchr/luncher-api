@@ -17,7 +17,7 @@ type Offers interface {
 }
 
 type offersCollection struct {
-	c *mgo.Collection
+	*mgo.Collection
 }
 
 func NewOffers(client *Client) Offers {
@@ -35,16 +35,16 @@ func (c offersCollection) Insert(offersToInsert ...*model.Offer) ([]*model.Offer
 	for i, offer := range offersToInsert {
 		docs[i] = offer
 	}
-	return offersToInsert, c.c.Insert(docs...)
+	return offersToInsert, c.Collection.Insert(docs...)
 }
 
 func (c offersCollection) UpdateID(id bson.ObjectId, offer *model.Offer) error {
-	return c.c.UpdateId(id, bson.M{"$set": offer})
+	return c.Collection.UpdateId(id, bson.M{"$set": offer})
 }
 
 func (c offersCollection) GetForRegion(region string, startTime, endTime time.Time) ([]*model.Offer, error) {
 	var offers []*model.Offer
-	err := c.c.Find(bson.M{
+	err := c.Find(bson.M{
 		"from_time": bson.M{
 			"$lte": endTime,
 		},
@@ -58,7 +58,7 @@ func (c offersCollection) GetForRegion(region string, startTime, endTime time.Ti
 
 func (c offersCollection) GetForRestaurant(restaurantName string, startTime time.Time) ([]*model.Offer, error) {
 	var offers []*model.Offer
-	err := c.c.Find(bson.M{
+	err := c.Find(bson.M{
 		"to_time": bson.M{
 			"$gte": startTime,
 		},
@@ -69,6 +69,6 @@ func (c offersCollection) GetForRestaurant(restaurantName string, startTime time
 
 func (c offersCollection) GetID(id bson.ObjectId) (*model.Offer, error) {
 	var offer *model.Offer
-	err := c.c.FindId(id).One(&offer)
+	err := c.FindId(id).One(&offer)
 	return offer, err
 }

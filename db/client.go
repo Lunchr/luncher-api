@@ -12,20 +12,20 @@ func NewClient(config *Config) *Client {
 	return &Client{config: config}
 }
 
-func (client *Client) Connect() (err error) {
-	session, err := mgo.Dial(client.config.DbURL)
+func (c *Client) Connect() (err error) {
+	session, err := mgo.Dial(c.config.DbURL)
 	if err != nil {
 		return err
 	}
-	client.session = session
-	client.database = session.DB(client.config.DbName)
+	c.session = session
+	c.database = session.DB(c.config.DbName)
 	return
 }
 
-func (client *Client) DropDb() (err error) {
-	return client.database.DropDatabase()
+func (c *Client) DropDb() (err error) {
+	return c.database.DropDatabase()
 }
 
-func (client *Client) Disconnect() {
-	client.session.Close()
+func (c *Client) Disconnect() {
+	c.session.Close()
 }
