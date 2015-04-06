@@ -22,7 +22,10 @@ type offersCollection struct {
 
 func NewOffers(client *Client) Offers {
 	collection := client.database.C(model.OfferCollectionName)
-	return &offersCollection{collection}
+	offers := &offersCollection{collection}
+	offers.ensureOffersTTLIndex()
+	offers.ensureOffersHaystackIndex()
+	return offers
 }
 
 func (c offersCollection) Insert(offersToInsert ...*model.Offer) ([]*model.Offer, error) {
