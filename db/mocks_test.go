@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/deiwin/luncher-api/db/model"
-	"github.com/deiwin/luncher-api/geo"
 	. "github.com/onsi/gomega"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -26,9 +25,9 @@ func createMocks() *Mocks {
 			Restaurant: model.OfferRestaurant{
 				Name:   "Asian Chef",
 				Region: "Tartu",
-				Location: geo.Location{
-					Lat: 58.37,
-					Lng: 26.72,
+				Location: model.Location{
+					Type:        "Point",
+					Coordinates: []float64{26.72, 58.37},
 				},
 			},
 			Title:       "Sweet & Sour Chicken",
@@ -43,9 +42,9 @@ func createMocks() *Mocks {
 				Restaurant: model.OfferRestaurant{
 					Name:   "Bulgarian Dude",
 					Region: "Tallinn",
-					Location: geo.Location{
-						Lat: 59.42,
-						Lng: 24.74,
+					Location: model.Location{
+						Type:        "Point",
+						Coordinates: []float64{24.74, 59.42},
 					},
 				},
 				Title:       "Sweet & Sour Pork",
@@ -60,9 +59,9 @@ func createMocks() *Mocks {
 				Restaurant: model.OfferRestaurant{
 					Name:   "Caesarian Kitchen",
 					Region: "Tartu",
-					Location: geo.Location{
-						Lat: 58.36,
-						Lng: 26.73,
+					Location: model.Location{
+						Type:        "Point",
+						Coordinates: []float64{26.73, 58.36},
 					},
 				},
 				Title:       "Sweet & Sour Duck",
@@ -118,9 +117,9 @@ func createMocks() *Mocks {
 				Name:    "Bulgarian Dude",
 				Address: "Võru 23, Tallinn",
 				Region:  "Tallinn",
-				Location: geo.Location{
-					Lat: 59.42,
-					Lng: 24.74,
+				Location: model.Location{
+					Type:        "Point",
+					Coordinates: []float64{24.74, 59.42},
 				},
 			},
 			&model.Restaurant{
@@ -128,18 +127,18 @@ func createMocks() *Mocks {
 				Name:    "Asian Chef",
 				Address: "Võru 24, Tartu",
 				Region:  "Tartu",
-				Location: geo.Location{
-					Lat: 58.37,
-					Lng: 26.72,
+				Location: model.Location{
+					Type:        "Point",
+					Coordinates: []float64{26.72, 58.37},
 				},
 			},
 			&model.Restaurant{
 				Name:    "Caesarian Kitchen",
 				Address: "Võru 25, Tartu",
 				Region:  "Tartu",
-				Location: geo.Location{
-					Lat: 58.36,
-					Lng: 26.73,
+				Location: model.Location{
+					Type:        "Point",
+					Coordinates: []float64{26.73, 58.36},
 				},
 			},
 		},

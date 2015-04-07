@@ -13,6 +13,21 @@ type (
 		Name     string        `json:"name"          bson:"name"`
 		Region   string        `json:"region"        bson:"region"`
 		Address  string        `json:"address"       bson:"address"`
-		Location geo.Location  `json:"location"      bson:"location"`
+		Location Location      `json:"location"      bson:"location"`
+	}
+
+	// Location is a (limited) representation of a GeoJSON object
+	Location struct {
+		Type        string    `json:"type" bson:"type"`
+		Coordinates []float64 `json:"coordinates" bson:"coordinates"`
 	}
 )
+
+// NewPoint creates a Location object that get's marshalled into a GeoJSON object
+// which mongo recognizes
+func NewPoint(loc geo.Location) Location {
+	return Location{
+		Type:        "Point",
+		Coordinates: []float64{loc.Lng, loc.Lat},
+	}
+}

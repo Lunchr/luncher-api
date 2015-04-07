@@ -3,7 +3,6 @@ package model
 import (
 	"time"
 
-	"github.com/deiwin/luncher-api/geo"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -25,9 +24,11 @@ type (
 		FBPostID    string          `json:"fb_post_id,omitempty" bson:"fb_post_id,omitempty"`
 	}
 
+	// OfferRestaurant holds the information about the restaurant that gets included
+	// in every offer
 	OfferRestaurant struct {
-		Name     string       `json:"name"     bson:"name"`
-		Region   string       `json:"region"   bson:"region"`
-		Location geo.Location `json:"location" bson:"location"`
+		Name     string   `json:"name"     bson:"name"`
+		Region   string   `json:"region"   bson:"region"`
+		Location Location `json:"location" bson:"location"`
 	}
 )

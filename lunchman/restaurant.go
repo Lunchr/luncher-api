@@ -103,7 +103,7 @@ func createRestaurant(name, address, region string, location geo.Location) *mode
 		Name:     name,
 		Address:  address,
 		Region:   region,
-		Location: location,
+		Location: model.NewPoint(location),
 	}
 }
 

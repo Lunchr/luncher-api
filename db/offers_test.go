@@ -10,12 +10,24 @@ import (
 )
 
 var _ = Describe("Offers", func() {
+	var anOffer = func() *model.Offer {
+		return &model.Offer{
+			// The location is needed because otherwise the index will complain
+			Restaurant: model.OfferRestaurant{
+				Location: model.Location{
+					Type: "Point",
+					// Somewhere distant so these entries wouldn't affect $near tests
+					Coordinates: []float64{89, 89},
+				},
+			},
+		}
+	}
 
 	Describe("Insert", func() {
 		RebuildDBAfterEach()
 		It("should return the offers with new IDs", func(done Done) {
 			defer close(done)
-			offers, err := offersCollection.Insert(&model.Offer{}, &model.Offer{})
+			offers, err := offersCollection.Insert(anOffer(), anOffer())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(offers).To(HaveLen(2))
 			Expect(offers[0].ID).NotTo(BeEmpty())
@@ -25,9 +37,9 @@ var _ = Describe("Offers", func() {
 		It("should keep current ID if exists", func(done Done) {
 			defer close(done)
 			id := bson.NewObjectId()
-			offers, err := offersCollection.Insert(&model.Offer{
-				ID: id,
-			}, &model.Offer{})
+			offer := anOffer()
+			offer.ID = id
+			offers, err := offersCollection.Insert(offer, anOffer())
 			Expect(err).NotTo(HaveOccurred())
 			Expect(offers).To(HaveLen(2))
 			Expect(offers[0].ID).To(Equal(id))
@@ -39,7 +51,7 @@ var _ = Describe("Offers", func() {
 		RebuildDBAfterEach()
 		It("should fail for a non-existent ID", func(done Done) {
 			defer close(done)
-			err := offersCollection.UpdateID(bson.NewObjectId(), &model.Offer{})
+			err := offersCollection.UpdateID(bson.NewObjectId(), anOffer())
 			Expect(err).To(HaveOccurred())
 		})
 
@@ -48,21 +60,21 @@ var _ = Describe("Offers", func() {
 			BeforeEach(func(done Done) {
 				defer close(done)
 				id = bson.NewObjectId()
-				_, err := offersCollection.Insert(&model.Offer{
-					ID: id,
-				})
+				offer := anOffer()
+				offer.ID = id
+				_, err := offersCollection.Insert(offer)
 				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("should update the offer in DB", func(done Done) {
 				defer close(done)
-				err := offersCollection.UpdateID(id, &model.Offer{
-					Title: "an updated title",
-				})
+				offer := anOffer()
+				offer.Title = "an updated title"
+				err := offersCollection.UpdateID(id, offer)
 				Expect(err).NotTo(HaveOccurred())
-				offer, err := offersCollection.GetID(id)
+				result, err := offersCollection.GetID(id)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(offer.Title).To(Equal("an updated title"))
+				Expect(result.Title).To(Equal("an updated title"))
 			})
 		})
 	})
