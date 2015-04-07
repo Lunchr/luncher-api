@@ -12,17 +12,18 @@ func NewClient(config *Config) *Client {
 	return &Client{config: config}
 }
 
-func (c *Client) Connect() (err error) {
+func (c *Client) Connect() error {
 	session, err := mgo.Dial(c.config.DbURL)
 	if err != nil {
 		return err
 	}
 	c.session = session
 	c.database = session.DB(c.config.DbName)
-	return
+	return err
 }
 
-func (c *Client) DropDb() (err error) {
+func (c *Client) WipeDb() error {
+	c.session.ResetIndexCache()
 	return c.database.DropDatabase()
 }
 
