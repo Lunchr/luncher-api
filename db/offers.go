@@ -26,7 +26,7 @@ func NewOffers(client *Client) (Offers, error) {
 	if err := offers.ensureOffersTTLIndex(); err != nil {
 		return nil, err
 	}
-	if err := offers.ensureOffersHaystackIndex(); err != nil {
+	if err := offers.ensureOffersGeoIndex(); err != nil {
 		return nil, err
 	}
 	return offers, nil

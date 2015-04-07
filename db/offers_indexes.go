@@ -17,7 +17,7 @@ func (c offersCollection) ensureOffersTTLIndex() error {
 	})
 }
 
-func (c offersCollection) ensureOffersHaystackIndex() error {
+func (c offersCollection) ensureOffersGeoIndex() error {
 	return c.EnsureIndex(mgo.Index{
 		Key: []string{"$2dsphere:restaurant.location", "title"},
 	})
