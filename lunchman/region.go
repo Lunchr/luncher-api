@@ -20,9 +20,9 @@ type Region struct {
 func (r Region) Add() {
 	checkUnique := r.getRegionUniquenessCheck()
 
-	name := getInputOrExit(r.Actor, "Please enter a name for the new region", checkNotEmpty, checkSingleArg, checkUnique)
-	location := getInputOrExit(r.Actor, "Please enter the region's location (IANA tz)", checkNotEmpty, checkSingleArg, checkValidLocation)
-	cctld := getInputOrExit(r.Actor, "Please enter the region's ccTLD (country code top-level domain)", checkNotEmpty, checkSingleArg, checkIs2Letters)
+	name := promptOrExit(r.Actor, "Please enter a name for the new region", checkNotEmpty, checkSingleArg, checkUnique)
+	location := promptOrExit(r.Actor, "Please enter the region's location (IANA tz)", checkNotEmpty, checkSingleArg, checkValidLocation)
+	cctld := promptOrExit(r.Actor, "Please enter the region's ccTLD (country code top-level domain)", checkNotEmpty, checkSingleArg, checkIs2Letters)
 
 	r.insertRegion(name, location, cctld)
 
@@ -38,9 +38,9 @@ func (r Region) Edit(name string) {
 
 	checkUnique := r.getRegionUniquenessCheck()
 
-	newName := getInputWithDefaultOrExit(r.Actor, "Please enter a name for the new region", region.Name, checkNotEmpty, checkSingleArg, checkUnique)
-	location := getInputWithDefaultOrExit(r.Actor, "Please enter the region's location (IANA tz)", region.Location, checkNotEmpty, checkSingleArg, checkValidLocation)
-	cctld := getInputWithDefaultOrExit(r.Actor, "Please enter the region's ccTLD (country code top-level domain)", region.CCTLD, checkNotEmpty, checkSingleArg, checkIs2Letters)
+	newName := promptOptionalOrExit(r.Actor, "Please enter a name for the new region", region.Name, checkNotEmpty, checkSingleArg, checkUnique)
+	location := promptOptionalOrExit(r.Actor, "Please enter the region's location (IANA tz)", region.Location, checkNotEmpty, checkSingleArg, checkValidLocation)
+	cctld := promptOptionalOrExit(r.Actor, "Please enter the region's ccTLD (country code top-level domain)", region.CCTLD, checkNotEmpty, checkSingleArg, checkIs2Letters)
 
 	r.updateRegion(name, newName, location, cctld)
 

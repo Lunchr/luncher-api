@@ -23,9 +23,9 @@ func (r Restaurant) Add() {
 	checkUnique := r.getRestaurantUniquenessCheck()
 	checkExists := r.getRegionExistanceCheck()
 
-	name := getInputOrExit(r.Actor, "Please enter a name for the new restaurant", checkNotEmpty, checkUnique)
-	address := getInputOrExit(r.Actor, "Please enter the restaurant's address", checkNotEmpty)
-	regionName := getInputOrExit(r.Actor, "Please enter the region you want to register the restaurant into", checkNotEmpty, checkExists)
+	name := promptOrExit(r.Actor, "Please enter a name for the new restaurant", checkNotEmpty, checkUnique)
+	address := promptOrExit(r.Actor, "Please enter the restaurant's address", checkNotEmpty)
+	regionName := promptOrExit(r.Actor, "Please enter the region you want to register the restaurant into", checkNotEmpty, checkExists)
 	location := r.findLocationOrExit(address, regionName)
 
 	restaurantID := r.insertRestaurantAndGetID(name, address, regionName, location)
@@ -44,9 +44,9 @@ func (r Restaurant) Edit(idString string) {
 	checkUnique := r.getRestaurantUniquenessCheck()
 	checkExists := r.getRegionExistanceCheck()
 
-	name := getInputWithDefaultOrExit(r.Actor, "Please enter a name for restaurant", restaurant.Name, checkNotEmpty, checkUnique)
-	address := getInputWithDefaultOrExit(r.Actor, "Please enter the restaurant's address", restaurant.Address, checkNotEmpty)
-	regionName := getInputWithDefaultOrExit(r.Actor, "Please enter the region you want to register the restaurant into", restaurant.Region, checkNotEmpty, checkExists)
+	name := promptOptionalOrExit(r.Actor, "Please enter a name for restaurant", restaurant.Name, checkNotEmpty, checkUnique)
+	address := promptOptionalOrExit(r.Actor, "Please enter the restaurant's address", restaurant.Address, checkNotEmpty)
+	regionName := promptOptionalOrExit(r.Actor, "Please enter the region you want to register the restaurant into", restaurant.Region, checkNotEmpty, checkExists)
 	location := r.findLocationOrExit(address, regionName)
 
 	r.updateRestaurant(id, name, address, regionName, location)

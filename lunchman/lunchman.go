@@ -147,8 +147,8 @@ func confirmDBInsertion(actor interact.Actor, o interface{}) {
 	}
 }
 
-func getInputOrExit(a interact.Actor, message string, checks ...interact.InputCheck) string {
-	input, err := a.GetInputAndRetry(message, checks...)
+func promptOrExit(a interact.Actor, message string, checks ...interact.InputCheck) string {
+	input, err := a.PromptAndRetry(message, checks...)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -156,8 +156,8 @@ func getInputOrExit(a interact.Actor, message string, checks ...interact.InputCh
 	return input
 }
 
-func getInputWithDefaultOrExit(a interact.Actor, message, fallback string, checks ...interact.InputCheck) string {
-	input, err := a.GetInputWithDefaultAndRetry(message, fallback, checks...)
+func promptOptionalOrExit(a interact.Actor, message, fallback string, checks ...interact.InputCheck) string {
+	input, err := a.PromptOptionalAndRetry(message, fallback, checks...)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

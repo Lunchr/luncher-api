@@ -19,10 +19,10 @@ type User struct {
 func (u User) Add() {
 	checkExists := u.getRestaurantExistanceCheck()
 
-	restaurantIDString := getInputOrExit(u.Actor, "Please enter the restaurant's ID this user will administrate", checkNotEmpty, checkIsObjectID, checkExists)
+	restaurantIDString := promptOrExit(u.Actor, "Please enter the restaurant's ID this user will administrate", checkNotEmpty, checkIsObjectID, checkExists)
 	restaurantID := bson.ObjectIdHex(restaurantIDString)
-	fbUserID := getInputOrExit(u.Actor, "Please enter the restaurant administrator's Facebook user ID", checkNotEmpty)
-	fbPageID := getInputOrExit(u.Actor, "Please enter the restaurant's Facebook page ID", checkNotEmpty)
+	fbUserID := promptOrExit(u.Actor, "Please enter the restaurant administrator's Facebook user ID", checkNotEmpty)
+	fbPageID := promptOrExit(u.Actor, "Please enter the restaurant's Facebook page ID", checkNotEmpty)
 
 	u.insertUser(restaurantID, fbUserID, fbPageID)
 
@@ -38,10 +38,10 @@ func (u User) Edit(fbUserID string) {
 
 	checkExists := u.getRestaurantExistanceCheck()
 
-	restaurantIDString := getInputWithDefaultOrExit(u.Actor, "Please enter the restaurant's ID this user will administrate", user.RestaurantID.Hex(), checkNotEmpty, checkIsObjectID, checkExists)
+	restaurantIDString := promptOptionalOrExit(u.Actor, "Please enter the restaurant's ID this user will administrate", user.RestaurantID.Hex(), checkNotEmpty, checkIsObjectID, checkExists)
 	restaurantID := bson.ObjectIdHex(restaurantIDString)
-	newFBUserID := getInputWithDefaultOrExit(u.Actor, "Please enter the restaurant administrator's Facebook user ID", user.FacebookUserID, checkNotEmpty)
-	fbPageID := getInputWithDefaultOrExit(u.Actor, "Please enter the restaurant's Facebook page ID", user.FacebookPageID, checkNotEmpty)
+	newFBUserID := promptOptionalOrExit(u.Actor, "Please enter the restaurant administrator's Facebook user ID", user.FacebookUserID, checkNotEmpty)
+	fbPageID := promptOptionalOrExit(u.Actor, "Please enter the restaurant's Facebook page ID", user.FacebookPageID, checkNotEmpty)
 
 	u.updateUser(fbUserID, restaurantID, newFBUserID, fbPageID)
 
