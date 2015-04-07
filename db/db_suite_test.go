@@ -116,6 +116,6 @@ func insertUsers() (err error) {
 }
 
 func wipeDb() {
-	err := dbClient.DropDb()
+	err := dbClient.WipeDb()
 	Expect(err).NotTo(HaveOccurred())
 }
