@@ -58,6 +58,7 @@ var _ = Describe("Regions", func() {
 	})
 
 	Describe("UpdateID", func() {
+		RebuildDBAfterEach()
 		It("should fail for a non-existent name", func(done Done) {
 			defer close(done)
 			err := regionsCollection.UpdateName("a random name", &model.Region{})

@@ -32,6 +32,15 @@ var _ = BeforeSuite(func(done Done) {
 	initCollections()
 })
 
+// RebuildDBAfterEach can be used on tests or test blocks that mess up the data
+// in the DB. Most commonly inserts and updates
+var RebuildDBAfterEach = func() {
+	AfterEach(func(done Done) {
+		defer close(done)
+		wipeDb()
+		initCollections()
+	})
+}
 var _ = AfterSuite(func(done Done) {
 	defer close(done)
 	wipeDb()

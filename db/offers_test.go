@@ -12,6 +12,7 @@ import (
 var _ = Describe("Offers", func() {
 
 	Describe("Insert", func() {
+		RebuildDBAfterEach()
 		It("should return the offers with new IDs", func(done Done) {
 			defer close(done)
 			offers, err := offersCollection.Insert(&model.Offer{}, &model.Offer{})
@@ -35,6 +36,7 @@ var _ = Describe("Offers", func() {
 	})
 
 	Describe("UpdateID", func() {
+		RebuildDBAfterEach()
 		It("should fail for a non-existent ID", func(done Done) {
 			defer close(done)
 			err := offersCollection.UpdateID(bson.NewObjectId(), &model.Offer{})

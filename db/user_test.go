@@ -64,98 +64,101 @@ var _ = Describe("User", func() {
 		})
 	})
 
-	Describe("SetAccessToken", func() {
-		Context("with access token set", func() {
-			var token oauth2.Token
+	Describe("updates", func() {
+		RebuildDBAfterEach()
+		Describe("SetAccessToken", func() {
+			Context("with access token set", func() {
+				var token oauth2.Token
 
-			BeforeEach(func(done Done) {
-				defer close(done)
-				token = oauth2.Token{
-					AccessToken: "asd",
-				}
-				err := usersCollection.SetAccessToken(facebookUserID, token)
-				Expect(err).NotTo(HaveOccurred())
-			})
+				BeforeEach(func(done Done) {
+					defer close(done)
+					token = oauth2.Token{
+						AccessToken: "asd",
+					}
+					err := usersCollection.SetAccessToken(facebookUserID, token)
+					Expect(err).NotTo(HaveOccurred())
+				})
 
-			It("should be included in the Get", func(done Done) {
-				defer close(done)
-				user, err := usersCollection.GetFbID(facebookUserID)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(user).NotTo(BeNil())
-				Expect(user.Session.FacebookUserToken.AccessToken).To(Equal("asd"))
-			})
-		})
-	})
-
-	Describe("SetPageAccessToken", func() {
-		Context("with access token set", func() {
-			var token string
-
-			BeforeEach(func(done Done) {
-				defer close(done)
-				token = "bsd"
-				err := usersCollection.SetPageAccessToken(facebookUserID, token)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("should be included in the Get", func(done Done) {
-				defer close(done)
-				user, err := usersCollection.GetFbID(facebookUserID)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(user).NotTo(BeNil())
-				Expect(user.Session.FacebookPageToken).To(Equal("bsd"))
-			})
-		})
-	})
-
-	Describe("Update", func() {
-		Context("with user updated with a page id change", func() {
-			BeforeEach(func(done Done) {
-				defer close(done)
-				updatedUser := mocks.users[0]
-				updatedUser.FacebookPageID = "bsd"
-				err := usersCollection.Update(facebookUserID, updatedUser)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("should be reflected in the Get", func(done Done) {
-				defer close(done)
-				user, err := usersCollection.GetFbID(facebookUserID)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(user).NotTo(BeNil())
-				Expect(user.FacebookPageID).To(Equal("bsd"))
-			})
-		})
-	})
-
-	Describe("SessionID", func() {
-		Context("with SessionID set", func() {
-			var id string
-
-			BeforeEach(func(done Done) {
-				defer close(done)
-				id = "someid"
-				err := usersCollection.SetSessionID(facebookUserID, id)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			Describe("SetSessionID", func() {
 				It("should be included in the Get", func(done Done) {
 					defer close(done)
 					user, err := usersCollection.GetFbID(facebookUserID)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(user).NotTo(BeNil())
-					Expect(user.Session.ID).To(Equal("someid"))
+					Expect(user.Session.FacebookUserToken.AccessToken).To(Equal("asd"))
 				})
 			})
+		})
 
-			Describe("GetBySessionID", func() {
+		Describe("SetPageAccessToken", func() {
+			Context("with access token set", func() {
+				var token string
+
+				BeforeEach(func(done Done) {
+					defer close(done)
+					token = "bsd"
+					err := usersCollection.SetPageAccessToken(facebookUserID, token)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
 				It("should be included in the Get", func(done Done) {
 					defer close(done)
-					user, err := usersCollection.GetSessionID(id)
+					user, err := usersCollection.GetFbID(facebookUserID)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(user).NotTo(BeNil())
-					Expect(user.FacebookUserID).To(Equal(facebookUserID))
+					Expect(user.Session.FacebookPageToken).To(Equal("bsd"))
+				})
+			})
+		})
+
+		Describe("Update", func() {
+			Context("with user updated with a page id change", func() {
+				BeforeEach(func(done Done) {
+					defer close(done)
+					updatedUser := mocks.users[0]
+					updatedUser.FacebookPageID = "bsd"
+					err := usersCollection.Update(facebookUserID, updatedUser)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("should be reflected in the Get", func(done Done) {
+					defer close(done)
+					user, err := usersCollection.GetFbID(facebookUserID)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(user).NotTo(BeNil())
+					Expect(user.FacebookPageID).To(Equal("bsd"))
+				})
+			})
+		})
+
+		Describe("SessionID", func() {
+			Context("with SessionID set", func() {
+				var id string
+
+				BeforeEach(func(done Done) {
+					defer close(done)
+					id = "someid"
+					err := usersCollection.SetSessionID(facebookUserID, id)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				Describe("SetSessionID", func() {
+					It("should be included in the Get", func(done Done) {
+						defer close(done)
+						user, err := usersCollection.GetFbID(facebookUserID)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(user).NotTo(BeNil())
+						Expect(user.Session.ID).To(Equal("someid"))
+					})
+				})
+
+				Describe("GetBySessionID", func() {
+					It("should be included in the Get", func(done Done) {
+						defer close(done)
+						user, err := usersCollection.GetSessionID(id)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(user).NotTo(BeNil())
+						Expect(user.FacebookUserID).To(Equal(facebookUserID))
+					})
 				})
 			})
 		})

@@ -9,13 +9,7 @@ import (
 
 var _ = Describe("Restaurant", func() {
 	Describe("Insert", func() {
-		// Return the DB to the original state after these tests
-		AfterEach(func(done Done) {
-			defer close(done)
-			wipeDb()
-			initCollections()
-		})
-
+		RebuildDBAfterEach()
 		It("should return the restaurants with new IDs", func(done Done) {
 			defer close(done)
 			restaurants, err := restaurantsCollection.Insert(&model.Restaurant{}, &model.Restaurant{})
@@ -99,6 +93,7 @@ var _ = Describe("Restaurant", func() {
 	})
 
 	Describe("UpdateID", func() {
+		RebuildDBAfterEach()
 		It("should fail for a non-existent ID", func(done Done) {
 			defer close(done)
 			err := restaurantsCollection.UpdateID(bson.NewObjectId(), &model.Restaurant{})
