@@ -4,12 +4,18 @@ import (
 	"time"
 
 	"github.com/deiwin/luncher-api/db/model"
+	"github.com/deiwin/luncher-api/geo"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"gopkg.in/mgo.v2/bson"
 )
 
 var _ = Describe("Offers", func() {
+	var (
+		earliestTime = time.Date(2014, 11, 10, 0, 0, 0, 0, time.UTC)
+		latestTime   = time.Date(2014, 11, 13, 0, 0, 0, 0, time.UTC)
+	)
+
 	var anOffer = func() *model.Offer {
 		return &model.Offer{
 			// The location is needed because otherwise the index will complain
@@ -79,20 +85,134 @@ var _ = Describe("Offers", func() {
 		})
 	})
 
+	var ItHandlesStartAndEndTime = func(getOffers func(startTime, endTime time.Time) ([]*model.Offer, error)) {
+		var (
+			startTime             time.Time
+			endTime               time.Time
+			allOffers             []*model.Offer
+			allOffersContainsMock = func(n int) bool {
+				mock := mocks.offers[n]
+				for _, offer := range allOffers {
+					if offer.Title == mock.Title {
+						return true
+					}
+				}
+				return false
+			}
+			ExpectToMaybeContainMock = func(offers []*model.Offer, n int) {
+				if allOffersContainsMock(n) {
+					Expect(offers).To(ContainOfferMock(n))
+				} else {
+					Expect(offers).NotTo(ContainOfferMock(n))
+				}
+			}
+		)
+		Describe("time range", func() {
+			BeforeEach(func(done Done) {
+				defer close(done)
+				var err error
+				allOffers, err = getOffers(earliestTime, latestTime)
+				Expect(err).NotTo(HaveOccurred())
+			})
+			JustBeforeEach(func() {
+				if startTime != (time.Time{}) {
+					endTime = startTime.AddDate(0, 0, 1)
+				}
+			})
+
+			Context("with simple day range", func() {
+				BeforeEach(func() {
+					startTime = time.Date(2014, 11, 10, 0, 0, 0, 0, time.UTC)
+				})
+
+				It("should get offers for the day", func(done Done) {
+					defer close(done)
+					defer GinkgoRecover()
+					offers, err := getOffers(startTime, endTime)
+					Expect(err).NotTo(HaveOccurred())
+					ExpectToMaybeContainMock(offers, 0)
+					Expect(offers).NotTo(ContainOfferMock(1))
+					Expect(offers).NotTo(ContainOfferMock(2))
+				})
+			})
+
+			Context("with simple day range without offers", func() {
+				BeforeEach(func() {
+					startTime = time.Date(2014, 11, 13, 0, 0, 0, 0, time.UTC)
+				})
+
+				It("should get 0 offers for non-existent date", func(done Done) {
+					defer close(done)
+					offers, err := getOffers(startTime, endTime)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(offers).To(BeEmpty())
+				})
+			})
+
+			Describe("limits", func() {
+				Describe("lower limit", func() {
+					Context("with date just before fromTime-24h", func() {
+						BeforeEach(func() {
+							startTime = time.Date(2014, 11, 11, 8, 59, 0, 0, time.UTC)
+						})
+
+						It("should not get any offers", func(done Done) {
+							defer close(done)
+							offers, err := getOffers(startTime, endTime)
+							Expect(err).NotTo(HaveOccurred())
+							Expect(offers).To(BeEmpty())
+						})
+					})
+
+					Context("with date just after fromTime-24h", func() {
+						BeforeEach(func() {
+							startTime = time.Date(2014, 11, 11, 9, 01, 0, 0, time.UTC)
+						})
+
+						It("should get an offer", func(done Done) {
+							defer close(done)
+							offers, err := getOffers(startTime, endTime)
+							Expect(err).NotTo(HaveOccurred())
+							ExpectToMaybeContainMock(offers, 2)
+						})
+					})
+				})
+
+				Describe("higher limit", func() {
+					Context("with date just before toTime", func() {
+						BeforeEach(func() {
+							startTime = time.Date(2014, 11, 12, 10, 59, 0, 0, time.UTC)
+						})
+
+						It("should get an offer", func(done Done) {
+							defer close(done)
+							offers, err := getOffers(startTime, endTime)
+							Expect(err).NotTo(HaveOccurred())
+							ExpectToMaybeContainMock(offers, 2)
+						})
+					})
+
+					Context("with date just after fromTime-24h", func() {
+						BeforeEach(func() {
+							startTime = time.Date(2014, 11, 12, 11, 01, 0, 0, time.UTC)
+						})
+
+						It("should not get any offers", func(done Done) {
+							defer close(done)
+							offers, err := getOffers(startTime, endTime)
+							Expect(err).NotTo(HaveOccurred())
+							Expect(offers).To(BeEmpty())
+						})
+					})
+				})
+			})
+		})
+	}
+
 	Describe("GetForRegion", func() {
 		var (
-			startTime    time.Time
-			endTime      time.Time
-			region       string
-			earliestTime = time.Date(2014, 11, 10, 0, 0, 0, 0, time.UTC)
-			latestTime   = time.Date(2014, 11, 13, 0, 0, 0, 0, time.UTC)
+			region string
 		)
-
-		JustBeforeEach(func() {
-			if startTime != (time.Time{}) {
-				endTime = startTime.AddDate(0, 0, 1)
-			}
-		})
 
 		Context("with region matching no offers", func() {
 			BeforeEach(func() {
@@ -122,93 +242,8 @@ var _ = Describe("Offers", func() {
 				Expect(offers).To(ContainOfferMock(2))
 			})
 
-			Context("with simple day range", func() {
-				BeforeEach(func() {
-					startTime = time.Date(2014, 11, 10, 0, 0, 0, 0, time.UTC)
-				})
-
-				It("should get offers for the day", func(done Done) {
-					defer close(done)
-					offers, err := offersCollection.GetForRegion(region, startTime, endTime)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(offers).To(HaveLen(1))
-					Expect(offers).To(ContainOfferMock(0))
-					Expect(offers).NotTo(ContainOfferMock(1))
-					Expect(offers).NotTo(ContainOfferMock(2))
-				})
-			})
-
-			Context("with simple day range withour offers", func() {
-				BeforeEach(func() {
-					startTime = time.Date(2014, 11, 13, 0, 0, 0, 0, time.UTC)
-				})
-
-				It("should get 0 offers for non-existent date", func(done Done) {
-					defer close(done)
-					offers, err := offersCollection.GetForRegion(region, startTime, endTime)
-					Expect(err).NotTo(HaveOccurred())
-					Expect(offers).To(BeEmpty())
-				})
-			})
-
-			Describe("limits", func() {
-				Describe("lower limit", func() {
-					Context("with date just before fromTime-24h", func() {
-						BeforeEach(func() {
-							startTime = time.Date(2014, 11, 11, 8, 59, 0, 0, time.UTC)
-						})
-
-						It("should not get any offers", func(done Done) {
-							defer close(done)
-							offers, err := offersCollection.GetForRegion(region, startTime, endTime)
-							Expect(err).NotTo(HaveOccurred())
-							Expect(offers).To(BeEmpty())
-						})
-					})
-
-					Context("with date just after fromTime-24h", func() {
-						BeforeEach(func() {
-							startTime = time.Date(2014, 11, 11, 9, 01, 0, 0, time.UTC)
-						})
-
-						It("should get an offer", func(done Done) {
-							defer close(done)
-							offers, err := offersCollection.GetForRegion(region, startTime, endTime)
-							Expect(err).NotTo(HaveOccurred())
-							Expect(offers).To(HaveLen(1))
-							Expect(offers).To(ContainOfferMock(2))
-						})
-					})
-				})
-
-				Describe("higher limit", func() {
-					Context("with date just before toTime", func() {
-						BeforeEach(func() {
-							startTime = time.Date(2014, 11, 12, 10, 59, 0, 0, time.UTC)
-						})
-
-						It("should get an offer", func(done Done) {
-							defer close(done)
-							offers, err := offersCollection.GetForRegion(region, startTime, endTime)
-							Expect(err).NotTo(HaveOccurred())
-							Expect(offers).To(HaveLen(1))
-							Expect(offers).To(ContainOfferMock(2))
-						})
-					})
-
-					Context("with date just after fromTime-24h", func() {
-						BeforeEach(func() {
-							startTime = time.Date(2014, 11, 12, 11, 01, 0, 0, time.UTC)
-						})
-
-						It("should not get any offers", func(done Done) {
-							defer close(done)
-							offers, err := offersCollection.GetForRegion(region, startTime, endTime)
-							Expect(err).NotTo(HaveOccurred())
-							Expect(offers).To(BeEmpty())
-						})
-					})
-				})
+			ItHandlesStartAndEndTime(func(startTime, endTime time.Time) ([]*model.Offer, error) {
+				return offersCollection.GetForRegion(region, startTime, endTime)
 			})
 
 			Context("with the region matching rest of the offers", func() {
@@ -226,6 +261,54 @@ var _ = Describe("Offers", func() {
 					Expect(offers).NotTo(ContainOfferMock(2))
 				})
 
+			})
+		})
+	})
+
+	Describe("GetNear", func() {
+		var (
+			loc geo.Location
+		)
+
+		Context("with location on top of one of the restaurants", func() {
+			BeforeEach(func() {
+				loc = geo.Location{
+					Lat: 58.37,
+					Lng: 26.72,
+				}
+			})
+
+			It("should return close restaurants in order of proximity", func(done Done) {
+				defer close(done)
+				defer GinkgoRecover()
+				offers, err := offersCollection.GetNear(loc, earliestTime, latestTime)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(offers).To(HaveLen(2))
+				Expect(offers[0].Title).To(Equal(mocks.offers[0].Title))
+				Expect(offers[1].Title).To(Equal(mocks.offers[2].Title))
+			})
+
+			ItHandlesStartAndEndTime(func(startTime, endTime time.Time) ([]*model.Offer, error) {
+				return offersCollection.GetNear(loc, startTime, endTime)
+			})
+		})
+
+		Context("with location on top of a different restaurant", func() {
+			BeforeEach(func() {
+				loc = geo.Location{
+					Lat: 58.36,
+					Lng: 26.73,
+				}
+			})
+
+			It("should return close restaurants in order of proximity", func(done Done) {
+				defer close(done)
+				defer GinkgoRecover()
+				offers, err := offersCollection.GetNear(loc, earliestTime, latestTime)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(offers).To(HaveLen(2))
+				Expect(offers[0].Title).To(Equal(mocks.offers[2].Title))
+				Expect(offers[1].Title).To(Equal(mocks.offers[0].Title))
 			})
 		})
 	})

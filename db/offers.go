@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/deiwin/luncher-api/db/model"
+	"github.com/deiwin/luncher-api/geo"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -11,6 +12,7 @@ import (
 type Offers interface {
 	Insert(...*model.Offer) ([]*model.Offer, error)
 	GetForRegion(region string, startTime, endTime time.Time) ([]*model.Offer, error)
+	GetNear(loc geo.Location, startTime, endTime time.Time) ([]*model.Offer, error)
 	GetForRestaurant(restaurantName string, startTime time.Time) ([]*model.Offer, error)
 	UpdateID(bson.ObjectId, *model.Offer) error
 	GetID(bson.ObjectId) (*model.Offer, error)
@@ -59,6 +61,25 @@ func (c offersCollection) GetForRegion(region string, startTime, endTime time.Ti
 			"$gte": startTime,
 		},
 		"restaurant.region": region,
+	}).All(&offers)
+	return offers, err
+}
+
+func (c offersCollection) GetNear(loc geo.Location, startTime, endTime time.Time) ([]*model.Offer, error) {
+	var offers []*model.Offer
+	err := c.Find(bson.M{
+		"from_time": bson.M{
+			"$lte": endTime,
+		},
+		"to_time": bson.M{
+			"$gte": startTime,
+		},
+		"restaurant.location": bson.M{
+			"$near": bson.M{
+				"$geometry":    model.NewPoint(loc),
+				"$maxDistance": 5000,
+			},
+		},
 	}).All(&offers)
 	return offers, err
 }
