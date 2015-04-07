@@ -30,14 +30,12 @@ func (matcher *mockOfferMatcher) Match(actual interface{}) (success bool, err er
 	}
 	expected := mocks.offers[expectedIndex]
 
-	var contains = false
 	for _, offer := range response {
 		if offer.Title == expected.Title {
-			contains = true
-			break
+			return true, nil
 		}
 	}
-	return contains, nil
+	return false, nil
 }
 
 func (matcher *mockOfferMatcher) FailureMessage(actual interface{}) (message string) {
