@@ -23,7 +23,10 @@ func main() {
 	defer dbClient.Disconnect()
 
 	usersCollection := db.NewUsers(dbClient)
-	offersCollection := db.NewOffers(dbClient)
+	offersCollection, err := db.NewOffers(dbClient)
+	if err != nil {
+		panic(err)
+	}
 	tagsCollection := db.NewTags(dbClient)
 	regionsCollection := db.NewRegions(dbClient)
 	restaurantsCollection := db.NewRestaurants(dbClient)

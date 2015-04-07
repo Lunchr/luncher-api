@@ -19,10 +19,6 @@ func (c offersCollection) ensureOffersTTLIndex() error {
 
 func (c offersCollection) ensureOffersHaystackIndex() error {
 	return c.EnsureIndex(mgo.Index{
-		Key: []string{"$geoHaystack:restaurant.location", "title"},
-		// For reference, Tartu is about 0.04 lat and 0.08 lng
-		// XXX BucketSize is currently missing from mgo
-		// this needs to be merged: https://github.com/go-mgo/mgo/pull/90
-		// BucketSize: 0.1,
+		Key: []string{"$2dsphere:restaurant.location", "title"},
 	})
 }

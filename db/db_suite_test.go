@@ -56,8 +56,10 @@ func initCollections() {
 }
 
 func initOffersCollection() {
-	offersCollection = db.NewOffers(dbClient)
-	_, err := insertOffers()
+	var err error
+	offersCollection, err = db.NewOffers(dbClient)
+	Expect(err).NotTo(HaveOccurred())
+	_, err = insertOffers()
 	Expect(err).NotTo(HaveOccurred())
 }
 

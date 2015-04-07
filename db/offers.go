@@ -20,12 +20,16 @@ type offersCollection struct {
 	*mgo.Collection
 }
 
-func NewOffers(client *Client) Offers {
+func NewOffers(client *Client) (Offers, error) {
 	collection := client.database.C(model.OfferCollectionName)
 	offers := &offersCollection{collection}
-	offers.ensureOffersTTLIndex()
-	offers.ensureOffersHaystackIndex()
-	return offers
+	if err := offers.ensureOffersTTLIndex(); err != nil {
+		return nil, err
+	}
+	if err := offers.ensureOffersHaystackIndex(); err != nil {
+		return nil, err
+	}
+	return offers, nil
 }
 
 func (c offersCollection) Insert(offersToInsert ...*model.Offer) ([]*model.Offer, error) {
