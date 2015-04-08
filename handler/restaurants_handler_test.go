@@ -9,7 +9,7 @@ import (
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
 	. "github.com/deiwin/luncher-api/handler"
-	. "github.com/deiwin/luncher-api/router"
+	"github.com/deiwin/luncher-api/router"
 	"github.com/deiwin/luncher-api/session"
 	"github.com/deiwin/luncher-api/storage"
 
@@ -21,7 +21,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 	Describe("GET /restaurants", func() {
 		var (
 			mockRestaurantsCollection db.Restaurants
-			handler                   Handler
+			handler                   router.Handler
 		)
 
 		BeforeEach(func() {
@@ -97,7 +97,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 			sessionManager            session.Manager
 			mockRestaurantsCollection db.Restaurants
 			mockUsersCollection       db.Users
-			handler                   Handler
+			handler                   router.Handler
 		)
 
 		BeforeEach(func() {
@@ -108,7 +108,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 			handler = Restaurant(mockRestaurantsCollection, sessionManager, mockUsersCollection)
 		})
 
-		ExpectUserToBeLoggedIn(func() *HandlerError {
+		ExpectUserToBeLoggedIn(func() *router.HandlerError {
 			return handler(responseRecorder, request)
 		}, func(mgr session.Manager, users db.Users) {
 			sessionManager = mgr
@@ -150,7 +150,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 			sessionManager            session.Manager
 			mockRestaurantsCollection db.Restaurants
 			mockUsersCollection       db.Users
-			handler                   Handler
+			handler                   router.Handler
 			mockOffersCollection      db.Offers
 			imageStorage              storage.Images
 		)
@@ -164,7 +164,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 			handler = RestaurantOffers(mockRestaurantsCollection, sessionManager, mockUsersCollection, mockOffersCollection, imageStorage)
 		})
 
-		ExpectUserToBeLoggedIn(func() *HandlerError {
+		ExpectUserToBeLoggedIn(func() *router.HandlerError {
 			return handler(responseRecorder, request)
 		}, func(mgr session.Manager, users db.Users) {
 			sessionManager = mgr

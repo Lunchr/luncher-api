@@ -13,7 +13,7 @@ import (
 	"github.com/deiwin/facebook"
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
-	. "github.com/deiwin/luncher-api/router"
+	"github.com/deiwin/luncher-api/router"
 	"github.com/deiwin/luncher-api/session"
 	"github.com/deiwin/luncher-api/storage"
 	"github.com/julienschmidt/httprouter"
@@ -21,32 +21,32 @@ import (
 )
 
 // Offers handles GET requests to /offers. It returns all current day's offers.
-func Offers(offersCollection db.Offers, regionsCollection db.Regions, imageStorage storage.Images) Handler {
-	return func(w http.ResponseWriter, r *http.Request) *HandlerError {
+func Offers(offersCollection db.Offers, regionsCollection db.Regions, imageStorage storage.Images) router.Handler {
+	return func(w http.ResponseWriter, r *http.Request) *router.HandlerError {
 		regionName := r.FormValue("region")
 		if regionName == "" {
-			return &HandlerError{errors.New("Region not specified for GET /offers"), "Please specify a region", http.StatusBadRequest}
+			return &router.HandlerError{errors.New("Region not specified for GET /offers"), "Please specify a region", http.StatusBadRequest}
 		}
 		region, err := regionsCollection.GetName(regionName)
 		if err != nil {
-			return &HandlerError{err, "Unable to find the specified region", http.StatusInternalServerError}
+			return &router.HandlerError{err, "Unable to find the specified region", http.StatusNotFound}
 		}
 		loc, err := time.LoadLocation(region.Location)
 		if err != nil {
-			return &HandlerError{err, "The location of this region is misconfigured", http.StatusInternalServerError}
+			return &router.HandlerError{err, "The location of this region is misconfigured", http.StatusInternalServerError}
 		}
 		now := time.Now()
 		startTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 		endTime := startTime.AddDate(0, 0, 1)
 		offers, err := offersCollection.GetForRegion(regionName, startTime, endTime)
 		if err != nil {
-			return &HandlerError{err, "An error occured while trying to fetch todays offers", http.StatusInternalServerError}
+			return &router.HandlerError{err, "An error occured while trying to fetch todays offers", http.StatusInternalServerError}
 		}
 		for _, offer := range offers {
 			if offer.Image != "" {
 				offer.Image, err = imageStorage.PathForLarge(offer.Image)
 				if err != nil {
-					return &HandlerError{err, "Failed to find an image for an offer", http.StatusInternalServerError}
+					return &router.HandlerError{err, "Failed to find an image for an offer", http.StatusInternalServerError}
 				}
 			}
 		}
@@ -57,33 +57,33 @@ func Offers(offersCollection db.Offers, regionsCollection db.Regions, imageStora
 // PostOffers handles POST requests to /offers. It stores the offer in the DB and
 // sends it to Facebook to be posted on the page's wall at the requested time.
 func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants,
-	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage storage.Images) Handler {
-	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *HandlerError {
+	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage storage.Images) router.Handler {
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
 		api := fbAuth.APIConnection(&user.Session.FacebookUserToken)
 		restaurant, err := restaurantsCollection.GetID(user.RestaurantID)
 		if err != nil {
-			return &HandlerError{err, "Couldn't find a restaurant related to this user", http.StatusInternalServerError}
+			return &router.HandlerError{err, "Couldn't find a restaurant related to this user", http.StatusInternalServerError}
 		}
 		offer, err := parseOffer(r, restaurant)
 		if err != nil {
-			return &HandlerError{err, "Failed to parse the offer", http.StatusBadRequest}
+			return &router.HandlerError{err, "Failed to parse the offer", http.StatusBadRequest}
 		}
 		if offer.Image != "" {
 			imageChecksum, err := parseAndStoreImage(offer.Image, imageStorage)
 			if err != nil {
-				return &HandlerError{err, "Failed to store the image", http.StatusInternalServerError}
+				return &router.HandlerError{err, "Failed to store the image", http.StatusInternalServerError}
 			}
 			offer.Image = imageChecksum
 		}
 		message := formFBOfferMessage(*offer)
 		post, err := api.PagePublish(user.Session.FacebookPageToken, user.FacebookPageID, message)
 		if err != nil {
-			return &HandlerError{err, "Failed to post the offer to Facebook", http.StatusBadGateway}
+			return &router.HandlerError{err, "Failed to post the offer to Facebook", http.StatusBadGateway}
 		}
 		offer.FBPostID = post.ID
 		offers, err := offersCollection.Insert(offer)
 		if err != nil {
-			return &HandlerError{err, "Failed to store the offer in the DB", http.StatusInternalServerError}
+			return &router.HandlerError{err, "Failed to store the offer in the DB", http.StatusInternalServerError}
 		}
 
 		return writeJSON(w, offers[0])
@@ -94,33 +94,33 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 // PutOffers handles PUT requests to /offers. It updates the offer in the DB and
 // updates the related Facebook post.
 func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants,
-	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage storage.Images) HandlerWithParams {
-	handler := func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *HandlerError {
+	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage storage.Images) router.HandlerWithParams {
+	handler := func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *router.HandlerError {
 		idString := ps.ByName("id")
 		if !bson.IsObjectIdHex(idString) {
 			err := errors.New("Invalid offer ID")
-			return &HandlerError{err, "", http.StatusBadRequest}
+			return &router.HandlerError{err, "", http.StatusBadRequest}
 		}
 		id := bson.ObjectIdHex(idString)
 		currentOffer, err := offersCollection.GetID(id)
 		if err != nil {
-			return &HandlerError{err, "Couldn't find an offer with this ID", http.StatusBadRequest}
+			return &router.HandlerError{err, "Couldn't find an offer with this ID", http.StatusBadRequest}
 		}
 		api := fbAuth.APIConnection(&user.Session.FacebookUserToken)
 		restaurant, err := restaurantsCollection.GetID(user.RestaurantID)
 		if err != nil {
-			return &HandlerError{err, "Couldn't find the restaurant this offer belongs to", http.StatusInternalServerError}
+			return &router.HandlerError{err, "Couldn't find the restaurant this offer belongs to", http.StatusInternalServerError}
 		}
 		offer, err := parseOffer(r, restaurant)
 		if err != nil {
-			return &HandlerError{err, "Failed to parse the offer", http.StatusBadRequest}
+			return &router.HandlerError{err, "Failed to parse the offer", http.StatusBadRequest}
 		}
 		if changed, err := imageChanged(currentOffer.Image, offer.Image, imageStorage); err != nil {
 			return err
 		} else if changed {
 			imageChecksum, err := parseAndStoreImage(offer.Image, imageStorage)
 			if err != nil {
-				return &HandlerError{err, "Failed to store the image", http.StatusInternalServerError}
+				return &router.HandlerError{err, "Failed to store the image", http.StatusInternalServerError}
 			}
 			offer.Image = imageChecksum
 		} else {
@@ -129,18 +129,18 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 		if currentOffer.FBPostID != "" {
 			err = api.PostDelete(user.Session.FacebookPageToken, currentOffer.FBPostID)
 			if err != nil {
-				return &HandlerError{err, "Failed to delete the current post from Facebook", http.StatusBadGateway}
+				return &router.HandlerError{err, "Failed to delete the current post from Facebook", http.StatusBadGateway}
 			}
 		}
 		message := formFBOfferMessage(*offer)
 		post, err := api.PagePublish(user.Session.FacebookPageToken, user.FacebookPageID, message)
 		if err != nil {
-			return &HandlerError{err, "Failed to post the offer to Facebook", http.StatusBadGateway}
+			return &router.HandlerError{err, "Failed to post the offer to Facebook", http.StatusBadGateway}
 		}
 		offer.FBPostID = post.ID
 		err = offersCollection.UpdateID(id, offer)
 		if err != nil {
-			return &HandlerError{err, "Failed to update the offer in DB", http.StatusInternalServerError}
+			return &router.HandlerError{err, "Failed to update the offer in DB", http.StatusInternalServerError}
 		}
 		offer.ID = id
 
@@ -189,13 +189,13 @@ func parseAndStoreImage(imageDataURL string, imageStorage storage.Images) (strin
 	return imageChecksum, nil
 }
 
-func imageChanged(currentImage, putImage string, imageStorage storage.Images) (bool, *HandlerError) {
+func imageChanged(currentImage, putImage string, imageStorage storage.Images) (bool, *router.HandlerError) {
 	if currentImage == "" {
 		return putImage != "", nil
 	}
 	currentImagePath, err := imageStorage.PathForLarge(currentImage)
 	if err != nil {
-		return false, &HandlerError{err, "Failed to find the current image for this offer", http.StatusInternalServerError}
+		return false, &router.HandlerError{err, "Failed to find the current image for this offer", http.StatusInternalServerError}
 	}
 	return putImage != currentImagePath, nil
 }

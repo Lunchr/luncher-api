@@ -4,14 +4,14 @@ import (
 	"net/http"
 
 	"github.com/deiwin/luncher-api/db"
-	. "github.com/deiwin/luncher-api/router"
+	"github.com/deiwin/luncher-api/router"
 	"github.com/deiwin/luncher-api/session"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-func ExpectUserToBeLoggedIn(handler func() *HandlerError, setDependencies func(session.Manager, db.Users)) {
+func ExpectUserToBeLoggedIn(handler func() *router.HandlerError, setDependencies func(session.Manager, db.Users)) {
 	Describe("it expects the user to be logged in", func() {
 		Context("with no session set", func() {
 			BeforeEach(func() {

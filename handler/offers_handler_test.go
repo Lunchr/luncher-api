@@ -12,7 +12,7 @@ import (
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
 	. "github.com/deiwin/luncher-api/handler"
-	. "github.com/deiwin/luncher-api/router"
+	"github.com/deiwin/luncher-api/router"
 	"github.com/deiwin/luncher-api/session"
 	"github.com/deiwin/luncher-api/storage"
 	"github.com/julienschmidt/httprouter"
@@ -35,7 +35,7 @@ var _ = Describe("OffersHandler", func() {
 
 	Describe("Offers", func() {
 		var (
-			handler           Handler
+			handler           router.Handler
 			regionsCollection db.Regions
 			imageStorage      storage.Images
 		)
@@ -143,7 +143,7 @@ var _ = Describe("OffersHandler", func() {
 		var (
 			usersCollection       db.Users
 			restaurantsCollection db.Restaurants
-			handler               Handler
+			handler               router.Handler
 			authenticator         facebook.Authenticator
 			sessionManager        session.Manager
 			imageStorage          storage.Images
@@ -159,7 +159,7 @@ var _ = Describe("OffersHandler", func() {
 			handler = PostOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, authenticator, imageStorage)
 		})
 
-		ExpectUserToBeLoggedIn(func() *HandlerError {
+		ExpectUserToBeLoggedIn(func() *router.HandlerError {
 			return handler(responseRecorder, request)
 		}, func(mgr session.Manager, users db.Users) {
 			sessionManager = mgr
@@ -233,7 +233,7 @@ var _ = Describe("OffersHandler", func() {
 		var (
 			usersCollection       db.Users
 			restaurantsCollection db.Restaurants
-			handler               HandlerWithParams
+			handler               router.HandlerWithParams
 			authenticator         facebook.Authenticator
 			sessionManager        session.Manager
 			imageStorage          storage.Images
@@ -254,7 +254,7 @@ var _ = Describe("OffersHandler", func() {
 			handler = PutOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, authenticator, imageStorage)
 		})
 
-		ExpectUserToBeLoggedIn(func() *HandlerError {
+		ExpectUserToBeLoggedIn(func() *router.HandlerError {
 			return handler(responseRecorder, request, nil)
 		}, func(mgr session.Manager, users db.Users) {
 			sessionManager = mgr

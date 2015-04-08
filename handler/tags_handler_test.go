@@ -8,7 +8,7 @@ import (
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
 	. "github.com/deiwin/luncher-api/handler"
-	. "github.com/deiwin/luncher-api/router"
+	"github.com/deiwin/luncher-api/router"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,7 +17,7 @@ import (
 var _ = Describe("TagsHandler", func() {
 	var (
 		mockTagsCollection db.Tags
-		handler            Handler
+		handler            router.Handler
 	)
 
 	BeforeEach(func() {
