@@ -321,14 +321,6 @@ type mockOffers struct {
 	db.Offers
 }
 
-func (m mockOffers) GetForRegion(region string, startTime, endTime time.Time) (offers []*model.Offer, err error) {
-	Expect(region).To(Equal("Tartu"))
-	if m.getForTimeRangeFunc != nil {
-		offers, err = m.getForTimeRangeFunc(startTime, endTime)
-	}
-	return
-}
-
 func (m mockOffers) Insert(offers ...*model.Offer) ([]*model.Offer, error) {
 	Expect(offers).To(HaveLen(1))
 	offer := offers[0]
