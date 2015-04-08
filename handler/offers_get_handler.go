@@ -1,26 +1,19 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 	"time"
 
 	"github.com/deiwin/luncher-api/db"
+	"github.com/deiwin/luncher-api/db/model"
 	"github.com/deiwin/luncher-api/router"
 	"github.com/deiwin/luncher-api/storage"
 )
 
-// Offers handles GET requests to /offers. It returns all current day's offers.
-func Offers(offersCollection db.Offers, regionsCollection db.Regions, imageStorage storage.Images) router.Handler {
-	return func(w http.ResponseWriter, r *http.Request) *router.HandlerError {
-		regionName := r.FormValue("region")
-		if regionName == "" {
-			return &router.HandlerError{errors.New("Region not specified for GET /offers"), "Please specify a region", http.StatusBadRequest}
-		}
-		region, err := regionsCollection.GetName(regionName)
-		if err != nil {
-			return &router.HandlerError{err, "Unable to find the specified region", http.StatusNotFound}
-		}
+// RegionOffers handles GET requests to /regions/:name/offers. It returns all
+// current day's offers for the region.
+func RegionOffers(offersCollection db.Offers, regionsCollection db.Regions, imageStorage storage.Images) router.HandlerWithParams {
+	handler := func(w http.ResponseWriter, r *http.Request, region *model.Region) *router.HandlerError {
 		loc, err := time.LoadLocation(region.Location)
 		if err != nil {
 			return &router.HandlerError{err, "The location of this region is misconfigured", http.StatusInternalServerError}
@@ -28,7 +21,7 @@ func Offers(offersCollection db.Offers, regionsCollection db.Regions, imageStora
 		now := time.Now()
 		startTime := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 		endTime := startTime.AddDate(0, 0, 1)
-		offers, err := offersCollection.GetForRegion(regionName, startTime, endTime)
+		offers, err := offersCollection.GetForRegion(region.Name, startTime, endTime)
 		if err != nil {
 			return &router.HandlerError{err, "An error occured while trying to fetch todays offers", http.StatusInternalServerError}
 		}
@@ -42,4 +35,5 @@ func Offers(offersCollection db.Offers, regionsCollection db.Regions, imageStora
 		}
 		return writeJSON(w, offers)
 	}
+	return forRegion(regionsCollection, handler)
 }

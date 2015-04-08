@@ -22,6 +22,10 @@ func (r Router) GET(path string, handler Handler) {
 	r.Handler("GET", r.prefix+path, handleErrors(handler))
 }
 
+func (r Router) GETWithParams(path string, handler HandlerWithParams) {
+	r.Router.GET(r.prefix+path, handleErrorsWithParams(handler))
+}
+
 func (r Router) POST(path string, handler Handler) {
 	r.Handler("POST", r.prefix+path, handleErrors(handler))
 }

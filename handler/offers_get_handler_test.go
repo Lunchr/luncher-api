@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/deiwin/luncher-api/db"
@@ -12,6 +11,7 @@ import (
 	. "github.com/deiwin/luncher-api/handler"
 	"github.com/deiwin/luncher-api/router"
 	"github.com/deiwin/luncher-api/storage"
+	"github.com/julienschmidt/httprouter"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -26,45 +26,48 @@ var _ = Describe("RegionOffersHandler", func() {
 		offersCollection = &mockOffers{}
 	})
 
-	Describe("Offers", func() {
+	Describe("RegionOffers", func() {
 		var (
-			handler           router.Handler
+			handler           router.HandlerWithParams
 			regionsCollection db.Regions
 			imageStorage      storage.Images
+			params            httprouter.Params
 		)
 
 		BeforeEach(func() {
+			params = httprouter.Params{httprouter.Param{
+				Key:   "name",
+				Value: "",
+			}}
 			regionsCollection = &mockRegions{}
 		})
 
 		JustBeforeEach(func() {
-			handler = Offers(offersCollection, regionsCollection, imageStorage)
+			handler = RegionOffers(offersCollection, regionsCollection, imageStorage)
 		})
 
 		Context("with no region specified", func() {
 			It("should fail", func(done Done) {
 				defer close(done)
-				err := handler(responseRecorder, request)
+				err := handler(responseRecorder, request, params)
 				Expect(err.Code).To(Equal(http.StatusBadRequest))
 			})
 		})
 
 		Context("with region specified", func() {
 			BeforeEach(func() {
-				requestQuery = url.Values{
-					"region": {"Tartu"},
-				}
+				params[0].Value = "Tartu"
 			})
 
 			It("should succeed", func(done Done) {
 				defer close(done)
-				err := handler(responseRecorder, request)
+				err := handler(responseRecorder, request, params)
 				Expect(err).To(BeNil())
 			})
 
 			It("should return json", func(done Done) {
 				defer close(done)
-				handler(responseRecorder, request)
+				handler(responseRecorder, request, params)
 				contentTypes := responseRecorder.HeaderMap["Content-Type"]
 				Expect(contentTypes).To(HaveLen(1))
 				Expect(contentTypes[0]).To(Equal("application/json"))
@@ -102,7 +105,7 @@ var _ = Describe("RegionOffersHandler", func() {
 
 				It("should write the returned data to responsewriter", func(done Done) {
 					defer close(done)
-					handler(responseRecorder, request)
+					handler(responseRecorder, request, params)
 					var result []*model.Offer
 					json.Unmarshal(responseRecorder.Body.Bytes(), &result)
 					Expect(result).To(HaveLen(1))
@@ -125,7 +128,7 @@ var _ = Describe("RegionOffersHandler", func() {
 
 				It("should return error 500", func(done Done) {
 					defer close(done)
-					err := handler(responseRecorder, request)
+					err := handler(responseRecorder, request, params)
 					Expect(err.Code).To(Equal(http.StatusInternalServerError))
 				})
 			})
