@@ -93,8 +93,8 @@ var _ = Describe("RegionOffersHandler", func() {
 		Context("with a proper location specified", func() {
 			BeforeEach(func() {
 				requestQuery = url.Values{
-					"lat": {"25.55"},
-					"lng": {"26.55"},
+					"lat": {"58.380094"},
+					"lng": {"26.722691"},
 				}
 			})
 
@@ -129,12 +129,10 @@ var _ = Describe("RegionOffersHandler", func() {
 							// Due to daylight saving etc it's not always exactly 24h, but
 							// I think with +- 1h it should always pass.
 							Expect(duration).To(BeNumerically("~", 24*time.Hour, time.Hour))
-							// XXX change this once it gets fixed
-							// loc, err := time.LoadLocation("Europe/Tallinn")
-							// Expect(err).NotTo(HaveOccurred())
-							// Expect(startTime.Location()).To(Equal(loc))
-							// Expect(endTime.Location()).To(Equal(loc))
-
+							loc, err := time.LoadLocation("Europe/Tallinn")
+							Expect(err).NotTo(HaveOccurred())
+							Expect(startTime.Location()).To(Equal(loc))
+							Expect(endTime.Location()).To(Equal(loc))
 							offers = mockResult
 							return
 						},
@@ -289,8 +287,8 @@ func (m mockOffers) GetForRegion(region string, startTime, endTime time.Time) (o
 }
 
 func (m mockOffers) GetNear(loc geo.Location, startTime, endTime time.Time) (offers []*model.Offer, err error) {
-	Expect(loc.Lat).To(BeNumerically("~", 25.55))
-	Expect(loc.Lng).To(BeNumerically("~", 26.55))
+	Expect(loc.Lat).To(BeNumerically("~", 58.380094))
+	Expect(loc.Lng).To(BeNumerically("~", 26.722691))
 	if m.getForTimeRangeFunc != nil {
 		offers, err = m.getForTimeRangeFunc(startTime, endTime)
 	}

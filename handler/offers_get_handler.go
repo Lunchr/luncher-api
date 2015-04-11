@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/bradfitz/latlong"
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
 	"github.com/deiwin/luncher-api/geo"
@@ -42,10 +43,12 @@ func ProximalOffers(offersCollection db.Offers, imageStorage storage.Images) rou
 		if handlerError != nil {
 			return handlerError
 		}
-		// XXX how do we figure out the timezone for the request? i don't want to use
-		// some API to guess the timezone from the location, as this will slow things
-		// down. Probably best to expect something from the client
-		timeLocation, err := time.LoadLocation("Local")
+		zone := latlong.LookupZoneName(loc.Lat, loc.Lng)
+		if zone == "" {
+			message := "Failed to find a timezone for this location"
+			return &router.HandlerError{errors.New(message), message, http.StatusInternalServerError}
+		}
+		timeLocation, err := time.LoadLocation(zone)
 		if err != nil {
 			return &router.HandlerError{err, "", http.StatusInternalServerError}
 		}
