@@ -302,6 +302,7 @@ func (m mockUsers) GetSessionID(session string) (*model.User, error) {
 		return nil, errors.New("wrong session")
 	}
 	user := &model.User{
+		ID:             objectID,
 		FacebookPageID: "pageid",
 		RestaurantID:   "restid",
 		Session: &model.UserSession{

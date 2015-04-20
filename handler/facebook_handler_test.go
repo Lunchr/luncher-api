@@ -45,15 +45,15 @@ var _ = Describe("FacebookHandler", func() {
 		It("should redirect to mocked URL", func(done Done) {
 			defer close(done)
 			handlers.Login()(responseRecorder, request)
-			ExpectLocationToBeMockedURL(responseRecorder)
+			ExpectLocationToBeMockedURL(responseRecorder, testURL)
 		})
 	})
 })
 
-func ExpectLocationToBeMockedURL(responseRecorder *httptest.ResponseRecorder) {
+func ExpectLocationToBeMockedURL(responseRecorder *httptest.ResponseRecorder, url string) {
 	location := responseRecorder.HeaderMap["Location"]
 	Expect(location).To(HaveLen(1))
-	Expect(location[0]).To(Equal(testURL))
+	Expect(location[0]).To(Equal(url))
 }
 
 type mockSessionManager struct {

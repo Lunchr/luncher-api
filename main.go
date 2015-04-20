@@ -54,6 +54,7 @@ func main() {
 	r.GET("/tags", handler.Tags(tagsCollection))
 	r.GET("/restaurant", handler.Restaurant(restaurantsCollection, sessionManager, usersCollection))
 	r.GET("/restaurant/offers", handler.RestaurantOffers(restaurantsCollection, sessionManager, usersCollection, offersCollection, imageStorage))
+	r.GET("/logout", handler.Logout(sessionManager, usersCollection))
 	r.GET("/login/facebook", facebookHandler.Login())
 	r.GET("/login/facebook/redirected", facebookHandler.Redirected())
 

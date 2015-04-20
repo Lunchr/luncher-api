@@ -10,6 +10,17 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+func Logout(sessionManager session.Manager, usersCollection db.Users) router.Handler {
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
+		if err := usersCollection.UnsetSessionID(user.ID); err != nil {
+			return &router.HandlerError{err, "", http.StatusInternalServerError}
+		}
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return nil
+	}
+	return checkLogin(sessionManager, usersCollection, handler)
+}
+
 type HandlerWithUser func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError
 type HandlerWithParamsWithUser func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *router.HandlerError
 
