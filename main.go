@@ -46,6 +46,7 @@ func main() {
 	imageStorage := storage.NewImages()
 
 	r := router.NewWithPrefix("/api/v1/")
+	r.GET("/regions", handler.Regions(regionsCollection))
 	r.GETWithParams("/regions/:name/offers", handler.RegionOffers(offersCollection, regionsCollection, imageStorage))
 	r.GET("/offers", handler.ProximalOffers(offersCollection, imageStorage))
 	r.POST("/offers", handler.PostOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, facebookAuthenticator, imageStorage))

@@ -425,6 +425,7 @@ func (m mockAPI) PagePublish(pageAccessToken, pageID, message string) (*fbmodel.
 }
 
 type mockRegions struct {
+	getAllFunc func() db.RegionIter
 	db.Regions
 }
 
