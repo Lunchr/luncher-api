@@ -137,7 +137,7 @@ var _ = Describe("User", func() {
 				BeforeEach(func(done Done) {
 					defer close(done)
 					id = "someid"
-					err := usersCollection.SetSessionID(facebookUserID, id)
+					err := usersCollection.SetSessionID(mocks.userID, id)
 					Expect(err).NotTo(HaveOccurred())
 				})
 

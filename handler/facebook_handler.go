@@ -76,16 +76,20 @@ func (fb fbook) Redirected() router.Handler {
 	}
 }
 
-func (fb fbook) storeAccessTokensInDB(userID string, tok *oauth2.Token, pageAccessToken, sessionID string) error {
-	err := fb.usersCollection.SetAccessToken(userID, *tok)
+func (fb fbook) storeAccessTokensInDB(fbUserID string, tok *oauth2.Token, pageAccessToken, sessionID string) error {
+	err := fb.usersCollection.SetAccessToken(fbUserID, *tok)
 	if err != nil {
 		return err
 	}
-	err = fb.usersCollection.SetPageAccessToken(userID, pageAccessToken)
+	err = fb.usersCollection.SetPageAccessToken(fbUserID, pageAccessToken)
 	if err != nil {
 		return err
 	}
-	return fb.usersCollection.SetSessionID(userID, sessionID)
+	user, err := fb.usersCollection.GetFbID(fbUserID)
+	if err != nil {
+		return err
+	}
+	return fb.usersCollection.SetSessionID(user.ID, sessionID)
 }
 
 func (fb fbook) getUserID(tok *oauth2.Token) (string, error) {

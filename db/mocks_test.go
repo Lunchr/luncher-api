@@ -15,12 +15,15 @@ type Mocks struct {
 	restaurants  []*model.Restaurant
 	restaurantID bson.ObjectId
 	users        []*model.User
+	userID       bson.ObjectId
 }
 
 func createMocks() *Mocks {
 	restaurantID := bson.NewObjectId()
+	userID := bson.NewObjectId()
 	return &Mocks{
 		restaurantID: restaurantID,
+		userID:       userID,
 		offers: []*model.Offer{&model.Offer{
 			Restaurant: model.OfferRestaurant{
 				Name:   "Asian Chef",
@@ -144,6 +147,7 @@ func createMocks() *Mocks {
 		},
 		users: []*model.User{
 			&model.User{
+				ID:             userID,
 				RestaurantID:   restaurantID,
 				FacebookUserID: facebookUserID,
 				FacebookPageID: facebookPageID,
