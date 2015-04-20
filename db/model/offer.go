@@ -29,6 +29,7 @@ type (
 	OfferRestaurant struct {
 		Name     string   `json:"name"     bson:"name"`
 		Region   string   `json:"region"   bson:"region"`
+		Address  string   `json:"address"  bson:"address"`
 		Location Location `json:"location" bson:"location"`
 	}
 )

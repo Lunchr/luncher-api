@@ -138,6 +138,7 @@ func parseOffer(r *http.Request, restaurant *model.Restaurant) (*model.Offer, er
 	offer.Restaurant = model.OfferRestaurant{
 		Name:     restaurant.Name,
 		Region:   restaurant.Region,
+		Address:  restaurant.Address,
 		Location: restaurant.Location,
 	}
 	return &offer, nil
