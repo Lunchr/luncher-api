@@ -151,6 +151,19 @@ var _ = Describe("User", func() {
 					})
 				})
 
+				Describe("UnsetSessionID", func() {
+					It("should remove the session ID", func(done Done) {
+						defer close(done)
+						err := usersCollection.UnsetSessionID(mocks.userID)
+						Expect(err).NotTo(HaveOccurred())
+
+						user, err := usersCollection.GetFbID(facebookUserID)
+						Expect(err).NotTo(HaveOccurred())
+						Expect(user).NotTo(BeNil())
+						Expect(user.Session.ID).To(BeEmpty())
+					})
+				})
+
 				Describe("GetBySessionID", func() {
 					It("should be included in the Get", func(done Done) {
 						defer close(done)

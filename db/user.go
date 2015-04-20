@@ -16,6 +16,7 @@ type Users interface {
 	SetAccessToken(string, oauth2.Token) error
 	SetPageAccessToken(string, string) error
 	SetSessionID(bson.ObjectId, string) error
+	UnsetSessionID(bson.ObjectId) error
 }
 
 // UserIter is a wrapper around *mgo.Iter that allows type safe iteration
@@ -77,6 +78,12 @@ func (c usersCollection) SetPageAccessToken(facebookUserID string, tok string) e
 func (c usersCollection) SetSessionID(id bson.ObjectId, sessionID string) error {
 	return c.Collection.UpdateId(id, bson.M{
 		"$set": bson.M{"session.id": sessionID},
+	})
+}
+
+func (c usersCollection) UnsetSessionID(id bson.ObjectId) error {
+	return c.Collection.UpdateId(id, bson.M{
+		"$unset": bson.M{"session.id": ""},
 	})
 }
 
