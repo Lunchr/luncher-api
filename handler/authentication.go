@@ -5,29 +5,29 @@ import (
 
 	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/db/model"
-	. "github.com/deiwin/luncher-api/router"
+	"github.com/deiwin/luncher-api/router"
 	"github.com/deiwin/luncher-api/session"
 	"github.com/julienschmidt/httprouter"
 )
 
-type HandlerWithUser func(w http.ResponseWriter, r *http.Request, user *model.User) *HandlerError
-type HandlerWithParamsWithUser func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *HandlerError
+type HandlerWithUser func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError
+type HandlerWithParamsWithUser func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *router.HandlerError
 
-func checkLogin(sessionManager session.Manager, usersCollection db.Users, handler HandlerWithUser) Handler {
-	return func(w http.ResponseWriter, r *http.Request) *HandlerError {
+func checkLogin(sessionManager session.Manager, usersCollection db.Users, handler HandlerWithUser) router.Handler {
+	return func(w http.ResponseWriter, r *http.Request) *router.HandlerError {
 		user, err := getUserForSession(sessionManager, usersCollection, r)
 		if err != nil {
-			return &HandlerError{err, "", http.StatusForbidden}
+			return &router.HandlerError{err, "", http.StatusForbidden}
 		}
 		return handler(w, r, user)
 	}
 }
 
-func checkLoginWithParams(sessionManager session.Manager, usersCollection db.Users, handler HandlerWithParamsWithUser) HandlerWithParams {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) *HandlerError {
+func checkLoginWithParams(sessionManager session.Manager, usersCollection db.Users, handler HandlerWithParamsWithUser) router.HandlerWithParams {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) *router.HandlerError {
 		user, err := getUserForSession(sessionManager, usersCollection, r)
 		if err != nil {
-			return &HandlerError{err, "", http.StatusForbidden}
+			return &router.HandlerError{err, "", http.StatusForbidden}
 		}
 		return handler(w, r, ps, user)
 	}
