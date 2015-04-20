@@ -57,7 +57,7 @@ var _ = Describe("Regions", func() {
 		})
 	})
 
-	Describe("UpdateID", func() {
+	Describe("UpdateName", func() {
 		RebuildDBAfterEach()
 		It("should fail for a non-existent name", func(done Done) {
 			defer close(done)

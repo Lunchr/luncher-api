@@ -21,14 +21,18 @@ var _ = Describe("TagsHandler", func() {
 	)
 
 	BeforeEach(func() {
-		mockTagsCollection = &mockTags{}
+		mockTagsCollection = &mockTags{
+			getAllFunc: func() db.TagIter {
+				return &mockTagIter{}
+			},
+		}
 	})
 
 	JustBeforeEach(func() {
 		handler = Tags(mockTagsCollection)
 	})
 
-	Describe("Get", func() {
+	Describe("Tags", func() {
 		It("should succeed", func(done Done) {
 			defer close(done)
 			err := handler(responseRecorder, request)
@@ -48,13 +52,14 @@ var _ = Describe("TagsHandler", func() {
 				mockResult []*model.Tag
 			)
 			BeforeEach(func() {
-				mockResult = []*model.Tag{&model.Tag{Name: "sometag"}}
+				mockResult = []*model.Tag{
+					&model.Tag{Name: "sometag"},
+					&model.Tag{Name: "sometag2"},
+				}
 				mockTagsCollection = &mockTags{
-					func() (tags []*model.Tag, err error) {
-						tags = mockResult
-						return
+					getAllFunc: func() db.TagIter {
+						return &mockTagIter{mockResult: mockResult}
 					},
-					nil,
 				}
 			})
 
@@ -63,8 +68,9 @@ var _ = Describe("TagsHandler", func() {
 				handler(responseRecorder, request)
 				var result []*model.Tag
 				json.Unmarshal(responseRecorder.Body.Bytes(), &result)
-				Expect(result).To(HaveLen(1))
+				Expect(result).To(HaveLen(2))
 				Expect(result[0].Name).To(Equal(mockResult[0].Name))
+				Expect(result[1].Name).To(Equal(mockResult[1].Name))
 			})
 		})
 
@@ -73,11 +79,9 @@ var _ = Describe("TagsHandler", func() {
 
 			BeforeEach(func() {
 				mockTagsCollection = &mockTags{
-					func() (tags []*model.Tag, err error) {
-						err = dbErr
-						return
+					getAllFunc: func() db.TagIter {
+						return &mockTagIter{err: dbErr}
 					},
-					nil,
 				}
 			})
 
@@ -90,14 +94,37 @@ var _ = Describe("TagsHandler", func() {
 	})
 })
 
-type mockTags struct {
-	getFunc func() ([]*model.Tag, error)
-	db.Tags
+func (m mockTags) GetAll() db.TagIter {
+	if m.getAllFunc != nil {
+		return m.getAllFunc()
+	}
+	return nil
 }
 
-func (mock mockTags) Get() (tags []*model.Tag, err error) {
-	if mock.getFunc != nil {
-		tags, err = mock.getFunc()
+type mockTagIter struct {
+	mockResult []*model.Tag
+	i          int
+	err        error
+	db.TagIter
+}
+
+func (m *mockTagIter) Next(tag *model.Tag) bool {
+	if m.err != nil {
+		return false
 	}
-	return
+	if m.i >= len(m.mockResult) {
+		return false
+	}
+	*tag = *m.mockResult[m.i]
+	m.i++
+	return true
+}
+
+func (m mockTagIter) Close() error {
+	return m.err
+}
+
+type mockTags struct {
+	getAllFunc func() db.TagIter
+	db.Tags
 }

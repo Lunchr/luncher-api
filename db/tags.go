@@ -8,11 +8,19 @@ import (
 
 type Tags interface {
 	Insert(...*model.Tag) error
-	Get() ([]*model.Tag, error)
+	GetName(string) (*model.Tag, error)
+	GetAll() TagIter
+	UpdateName(string, *model.Tag) error
+}
+
+// TagIter is a wrapper around *mgo.Iter that allows type safe iteration
+type TagIter interface {
+	Close() error
+	Next(*model.Tag) bool
 }
 
 type tagsCollection struct {
-	c *mgo.Collection
+	*mgo.Collection
 }
 
 func NewTags(client *Client) Tags {
@@ -20,15 +28,35 @@ func NewTags(client *Client) Tags {
 	return &tagsCollection{collection}
 }
 
-func (collection tagsCollection) Insert(tagsToInsert ...*model.Tag) (err error) {
+func (c tagsCollection) Insert(tagsToInsert ...*model.Tag) (err error) {
 	docs := make([]interface{}, len(tagsToInsert))
 	for i, tag := range tagsToInsert {
 		docs[i] = tag
 	}
-	return collection.c.Insert(docs...)
+	return c.Collection.Insert(docs...)
 }
 
-func (collection tagsCollection) Get() (tags []*model.Tag, err error) {
-	err = collection.c.Find(bson.M{}).All(&tags)
-	return
+func (c tagsCollection) GetName(name string) (*model.Tag, error) {
+	var tag model.Tag
+	err := c.Find(bson.M{
+		"name": name,
+	}).One(&tag)
+	return &tag, err
+}
+
+func (c tagsCollection) GetAll() TagIter {
+	i := c.Find(nil).Iter()
+	return &tagIter{i}
+}
+
+func (c tagsCollection) UpdateName(name string, tag *model.Tag) error {
+	return c.Update(bson.M{"name": name}, bson.M{"$set": tag})
+}
+
+type tagIter struct {
+	*mgo.Iter
+}
+
+func (u *tagIter) Next(tag *model.Tag) bool {
+	return u.Iter.Next(tag)
 }
