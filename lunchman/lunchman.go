@@ -20,11 +20,13 @@ var (
 	addRegion     = add.Command("region", "Add a region")
 	addRestaurant = add.Command("restaurant", "Add a restarant")
 	addUser       = add.Command("user", "Add a user")
+	addTag        = add.Command("tag", "Add a tag")
 
 	list            = lunchman.Command("list", "List the current values in DB")
 	listRegions     = list.Command("regions", "List all regions")
 	listRestaurants = list.Command("restaurants", "List all restaurants")
 	listUsers       = list.Command("users", "List all users")
+	listTags        = list.Command("tags", "List all tags")
 
 	show             = lunchman.Command("show", "Show a specific DB item")
 	showRegion       = show.Command("region", "Show a region")
@@ -33,6 +35,8 @@ var (
 	showRestaurantID = showRestaurant.Arg("id", "The restaurant's ID").Required().String()
 	showUser         = show.Command("user", "Show a user")
 	showUserID       = showUser.Arg("facebookid", "The user's Facebook ID").Required().String()
+	showTag          = show.Command("tag", "Show a tag")
+	showTagName      = showTag.Arg("name", "The tag's name").Required().String()
 
 	edit             = lunchman.Command("edit", "Edit a specific DB item")
 	editRegion       = edit.Command("region", "Edit a region")
@@ -41,6 +45,8 @@ var (
 	editRestaurantID = editRestaurant.Arg("id", "The restaurant's ID").Required().String()
 	editUser         = edit.Command("user", "Edit a user")
 	editUserID       = editUser.Arg("facebookid", "The user's Facebook ID").Required().String()
+	editTag          = edit.Command("tag", "Edit a tag")
+	editTagName      = editTag.Arg("name", "The tag's name").Required().String()
 
 	checkNotEmpty = func(i string) error {
 		if i == "" {
@@ -83,6 +89,9 @@ func main() {
 	case addUser.FullCommand():
 		user := initUser(actor, dbClient)
 		user.Add()
+	case addTag.FullCommand():
+		tag := initTag(actor, dbClient)
+		tag.Add()
 
 	case listRegions.FullCommand():
 		region := initRegion(actor, dbClient)
@@ -93,6 +102,9 @@ func main() {
 	case listUsers.FullCommand():
 		user := initUser(actor, dbClient)
 		user.List()
+	case listTags.FullCommand():
+		tag := initTag(actor, dbClient)
+		tag.List()
 
 	case showRegion.FullCommand():
 		region := initRegion(actor, dbClient)
@@ -103,6 +115,9 @@ func main() {
 	case showUser.FullCommand():
 		user := initUser(actor, dbClient)
 		user.Show(*showUserID)
+	case showTag.FullCommand():
+		tag := initTag(actor, dbClient)
+		tag.Show(*showTagName)
 
 	case editRegion.FullCommand():
 		region := initRegion(actor, dbClient)
@@ -113,6 +128,9 @@ func main() {
 	case editUser.FullCommand():
 		user := initUser(actor, dbClient)
 		user.Edit(*editUserID)
+	case editTag.FullCommand():
+		tag := initTag(actor, dbClient)
+		tag.Edit(*editTagName)
 	}
 }
 
@@ -133,6 +151,11 @@ func initUser(actor interact.Actor, dbClient *db.Client) User {
 	usersCollection := db.NewUsers(dbClient)
 	restaurantsCollection := db.NewRestaurants(dbClient)
 	return User{actor, usersCollection, restaurantsCollection}
+}
+
+func initTag(actor interact.Actor, dbClient *db.Client) Tag {
+	tagsCollection := db.NewTags(dbClient)
+	return Tag{actor, tagsCollection}
 }
 
 func confirmDBInsertion(actor interact.Actor, o interface{}) {
