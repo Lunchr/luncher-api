@@ -114,9 +114,12 @@ var _ = Describe("User", func() {
 			Context("with user updated with a page id change", func() {
 				BeforeEach(func(done Done) {
 					defer close(done)
-					updatedUser := mocks.users[0]
+					updatedUser := *mocks.users[0]
 					updatedUser.FacebookPageID = "bsd"
-					err := usersCollection.Update(facebookUserID, updatedUser)
+					// this isn't strictly necessary, but otherwise this test seems to fail
+					// on older MongoDB versions
+					updatedUser.ID = ""
+					err := usersCollection.Update(facebookUserID, &updatedUser)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
