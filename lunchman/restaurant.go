@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/deiwin/interact"
 	"github.com/deiwin/luncher-api/db"
@@ -114,21 +115,36 @@ func (r Restaurant) findLocationOrExit(address, regionName string) geo.Location 
 		os.Exit(1)
 	}
 	location, err := r.Geocoder.CodeForRegion(address, region.CCTLD)
-	if err != nil {
-		if err != geo.ErrorPartialMatch {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+	if err == nil {
+		return location
+	}
+	if err == geo.ErrorPartialMatch {
 		message := fmt.Sprintf("Geocoder returned a partial match of (%.6f, %.6f). Do you want to continue using the partial match?", location.Lat, location.Lng)
 		if confirmed, err := r.Actor.Confirm(message, interact.ConfirmDefaultToNo); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
-		} else if !confirmed {
-			fmt.Println("Alright. Canceling.")
-			os.Exit(1)
+		} else if confirmed {
+			return location
 		}
 	}
-	return location
+	fmt.Println(err)
+	shouldPromptForCoords, err := r.Actor.Confirm("Do you want to enter the coordinates manually?", interact.ConfirmDefaultToYes)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	} else if !shouldPromptForCoords {
+		fmt.Println("Alright. Canceling.")
+		os.Exit(1)
+	}
+	latitudeString := promptOrExit(r.Actor, "Please enter the latitude", checkNotEmpty, checkCanBeLatitude)
+	latitude, _ := strconv.ParseFloat(latitudeString, 64)
+	longitudeString := promptOrExit(r.Actor, "Please enter the longitude", checkNotEmpty, checkCanBeLongitude)
+	longitude, _ := strconv.ParseFloat(longitudeString, 64)
+
+	return geo.Location{
+		Lat: latitude,
+		Lng: longitude,
+	}
 }
 
 func (r Restaurant) getRestaurantUniquenessCheck() interact.InputCheck {
@@ -151,3 +167,26 @@ func (u User) getRestaurantExistanceCheck() interact.InputCheck {
 		return nil
 	}
 }
+
+var (
+	checkCanBeLatitude = func(i string) error {
+		f, err := strconv.ParseFloat(i, 64)
+		if err != nil {
+			return err
+		}
+		if f < -90 || f > 90 {
+			return errors.New("Latitude must be between -90 and 90 degrees!")
+		}
+		return nil
+	}
+	checkCanBeLongitude = func(i string) error {
+		f, err := strconv.ParseFloat(i, 64)
+		if err != nil {
+			return err
+		}
+		if f < -180 || f > 180 {
+			return errors.New("Longitude must be between -180 and 180 degrees!")
+		}
+		return nil
+	}
+)
