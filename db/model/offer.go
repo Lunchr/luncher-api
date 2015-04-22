@@ -32,4 +32,11 @@ type (
 		Address  string   `json:"address"  bson:"address"`
 		Location Location `json:"location" bson:"location"`
 	}
+
+	// OfferWithDistance wraps an offer and adds a distance field. This struct can
+	// be used to respond to queries about nearby offers.
+	OfferWithDistance struct {
+		Offer
+		Distance float64 `json:"distance" bson:"distance"`
+	}
 )

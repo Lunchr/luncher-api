@@ -288,8 +288,26 @@ var _ = Describe("Offers", func() {
 				Expect(offers[1].Title).To(Equal(mocks.offers[2].Title))
 			})
 
+			It("should include distances", func(done Done) {
+				defer close(done)
+				defer GinkgoRecover()
+				offers, err := offersCollection.GetNear(loc, earliestTime, latestTime)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(offers).To(HaveLen(2))
+				Expect(offers[0].Distance).To(BeNumerically("~", 0))
+				Expect(offers[1].Distance).To(BeNumerically("~", 1257, 1))
+			})
+
 			ItHandlesStartAndEndTime(func(startTime, endTime time.Time) ([]*model.Offer, error) {
-				return offersCollection.GetNear(loc, startTime, endTime)
+				offersWithDist, err := offersCollection.GetNear(loc, startTime, endTime)
+				if err != nil {
+					return nil, err
+				}
+				var offers = make([]*model.Offer, len(offersWithDist))
+				for i, o := range offersWithDist {
+					offers[i] = &o.Offer
+				}
+				return offers, nil
 			})
 		})
 

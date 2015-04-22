@@ -12,7 +12,7 @@ import (
 type Offers interface {
 	Insert(...*model.Offer) ([]*model.Offer, error)
 	GetForRegion(region string, startTime, endTime time.Time) ([]*model.Offer, error)
-	GetNear(loc geo.Location, startTime, endTime time.Time) ([]*model.Offer, error)
+	GetNear(loc geo.Location, startTime, endTime time.Time) ([]*model.OfferWithDistance, error)
 	GetForRestaurant(restaurantName string, startTime time.Time) ([]*model.Offer, error)
 	UpdateID(bson.ObjectId, *model.Offer) error
 	GetID(bson.ObjectId) (*model.Offer, error)
@@ -20,11 +20,15 @@ type Offers interface {
 
 type offersCollection struct {
 	*mgo.Collection
+	database *mgo.Database
 }
 
-func NewOffers(client *Client) (Offers, error) {
-	collection := client.database.C(model.OfferCollectionName)
-	offers := &offersCollection{collection}
+func NewOffers(c *Client) (Offers, error) {
+	collection := c.database.C(model.OfferCollectionName)
+	offers := &offersCollection{
+		Collection: collection,
+		database:   c.database,
+	}
 	if err := offers.ensureOffersTTLIndex(); err != nil {
 		return nil, err
 	}
@@ -61,25 +65,6 @@ func (c offersCollection) GetForRegion(region string, startTime, endTime time.Ti
 			"$gte": startTime,
 		},
 		"restaurant.region": region,
-	}).All(&offers)
-	return offers, err
-}
-
-func (c offersCollection) GetNear(loc geo.Location, startTime, endTime time.Time) ([]*model.Offer, error) {
-	var offers []*model.Offer
-	err := c.Find(bson.M{
-		"from_time": bson.M{
-			"$lte": endTime,
-		},
-		"to_time": bson.M{
-			"$gte": startTime,
-		},
-		"restaurant.location": bson.M{
-			"$near": bson.M{
-				"$geometry":    model.NewPoint(loc),
-				"$maxDistance": 5000,
-			},
-		},
 	}).All(&offers)
 	return offers, err
 }
