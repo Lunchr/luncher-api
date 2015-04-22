@@ -294,7 +294,7 @@ var _ = Describe("Offers", func() {
 				offers, err := offersCollection.GetNear(loc, earliestTime, latestTime)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(offers).To(HaveLen(2))
-				Expect(offers[0].Distance).To(BeNumerically("~", 0))
+				Expect(offers[0].Distance).To(BeNumerically("~", 0, 1))
 				Expect(offers[1].Distance).To(BeNumerically("~", 1257, 1))
 			})
 
