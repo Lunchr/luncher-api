@@ -57,7 +57,7 @@ func ProximalOffers(offersCollection db.Offers, imageStorage storage.Images) rou
 		if err != nil {
 			return &router.HandlerError{err, "An error occured while trying to fetch today's offers", http.StatusInternalServerError}
 		}
-		if handlerError := changeOfferImageChecksumsToPaths(offers, imageStorage); handlerError != nil {
+		if handlerError := changeOfferWithDistanceImageChecksumsToPaths(offers, imageStorage); handlerError != nil {
 			return handlerError
 		}
 		return writeJSON(w, offers)
@@ -69,6 +69,19 @@ func getTodaysTimeRange(timeLocation *time.Location) (startTime, endTime time.Ti
 	startTime = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, timeLocation)
 	endTime = startTime.AddDate(0, 0, 1)
 	return startTime, endTime
+}
+
+func changeOfferWithDistanceImageChecksumsToPaths(offers []*model.OfferWithDistance, imageStorage storage.Images) *router.HandlerError {
+	var err error
+	for _, offer := range offers {
+		if offer.Image != "" {
+			offer.Image, err = imageStorage.PathForLarge(offer.Image)
+			if err != nil {
+				return &router.HandlerError{err, "Failed to find an image for an offer", http.StatusInternalServerError}
+			}
+		}
+	}
+	return nil
 }
 
 func changeOfferImageChecksumsToPaths(offers []*model.Offer, imageStorage storage.Images) *router.HandlerError {

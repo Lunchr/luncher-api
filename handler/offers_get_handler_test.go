@@ -142,11 +142,12 @@ var _ = Describe("RegionOffersHandler", func() {
 				It("should write the returned data to responsewriter", func(done Done) {
 					defer close(done)
 					handler(responseRecorder, request)
-					var result []*model.Offer
+					var result []*model.OfferWithDistance
 					json.Unmarshal(responseRecorder.Body.Bytes(), &result)
 					Expect(result).To(HaveLen(1))
 					Expect(result[0].Title).To(Equal(mockResult[0].Title))
 					Expect(result[0].Image).To(Equal("images/a large image path"))
+					Expect(result[0].Distance).To(BeNumerically("~", 100))
 				})
 			})
 
@@ -286,11 +287,22 @@ func (m mockOffers) GetForRegion(region string, startTime, endTime time.Time) (o
 	return
 }
 
-func (m mockOffers) GetNear(loc geo.Location, startTime, endTime time.Time) (offers []*model.Offer, err error) {
+func (m mockOffers) GetNear(loc geo.Location, startTime, endTime time.Time) ([]*model.OfferWithDistance, error) {
 	Expect(loc.Lat).To(BeNumerically("~", 58.380094))
 	Expect(loc.Lng).To(BeNumerically("~", 26.722691))
+	var offersWithDistance []*model.OfferWithDistance
 	if m.getForTimeRangeFunc != nil {
-		offers, err = m.getForTimeRangeFunc(startTime, endTime)
+		offers, err := m.getForTimeRangeFunc(startTime, endTime)
+		if err != nil {
+			return nil, err
+		}
+		offersWithDistance = make([]*model.OfferWithDistance, len(offers))
+		for i, offer := range offers {
+			offersWithDistance[i] = &model.OfferWithDistance{
+				Offer:    *offer,
+				Distance: 100,
+			}
+		}
 	}
-	return
+	return offersWithDistance, nil
 }
