@@ -96,7 +96,7 @@ func (c offersCollection) GetForRestaurant(restaurantName string, startTime time
 }
 
 func (c offersCollection) GetID(id bson.ObjectId) (*model.Offer, error) {
-	var offer *model.Offer
+	var offer model.Offer
 	err := c.FindId(id).One(&offer)
-	return offer, err
+	return &offer, err
 }
