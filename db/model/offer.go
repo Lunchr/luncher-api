@@ -33,10 +33,17 @@ type (
 		Location Location `json:"location" bson:"location"`
 	}
 
-	// OfferWithDistance wraps an offer and adds a distance field. This struct can
-	// be used to respond to queries about nearby offers.
+	// OfferRestaurantWithDistance wraps an OfferRestaurant and adds a distance field.
+	// This struct can be used to respond to queries about nearby offers.
+	OfferRestaurantWithDistance struct {
+		OfferRestaurant
+		Distance float64 `json:"distance" bson:"distance"`
+	}
+
+	// OfferWithDistance wraps an offer and adds a distance field to the included
+	// restaurant struct. This struct can be used to respond to queries about nearby offers.
 	OfferWithDistance struct {
 		Offer
-		Distance float64 `json:"distance" bson:"distance"`
+		Restaurant OfferRestaurantWithDistance `json:"restaurant" bson:"restaurant"`
 	}
 )

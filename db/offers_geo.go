@@ -44,8 +44,11 @@ func (c offersCollection) geoNear(loc geo.Location, additionalOptions bson.M) ([
 	var offers = make([]*model.OfferWithDistance, len(response.Results))
 	for i, result := range response.Results {
 		offers[i] = &model.OfferWithDistance{
-			Offer:    result.Obj,
-			Distance: result.Dis,
+			Offer: result.Obj,
+			Restaurant: model.OfferRestaurantWithDistance{
+				OfferRestaurant: result.Obj.Restaurant,
+				Distance:        result.Dis,
+			},
 		}
 	}
 	return offers, nil

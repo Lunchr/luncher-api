@@ -294,8 +294,8 @@ var _ = Describe("Offers", func() {
 				offers, err := offersCollection.GetNear(loc, earliestTime, latestTime)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(offers).To(HaveLen(2))
-				Expect(offers[0].Distance).To(BeNumerically("~", 0, 1))
-				Expect(offers[1].Distance).To(BeNumerically("~", 1257, 1))
+				Expect(offers[0].Restaurant.Distance).To(BeNumerically("~", 0, 1))
+				Expect(offers[1].Restaurant.Distance).To(BeNumerically("~", 1257, 1))
 			})
 
 			ItHandlesStartAndEndTime(func(startTime, endTime time.Time) ([]*model.Offer, error) {

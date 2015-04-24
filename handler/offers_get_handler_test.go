@@ -147,7 +147,7 @@ var _ = Describe("RegionOffersHandler", func() {
 					Expect(result).To(HaveLen(1))
 					Expect(result[0].Title).To(Equal(mockResult[0].Title))
 					Expect(result[0].Image).To(Equal("images/a large image path"))
-					Expect(result[0].Distance).To(BeNumerically("~", 100))
+					Expect(result[0].Restaurant.Distance).To(BeNumerically("~", 100))
 				})
 			})
 
@@ -299,8 +299,11 @@ func (m mockOffers) GetNear(loc geo.Location, startTime, endTime time.Time) ([]*
 		offersWithDistance = make([]*model.OfferWithDistance, len(offers))
 		for i, offer := range offers {
 			offersWithDistance[i] = &model.OfferWithDistance{
-				Offer:    *offer,
-				Distance: 100,
+				Offer: *offer,
+				Restaurant: model.OfferRestaurantWithDistance{
+					OfferRestaurant: offer.Restaurant,
+					Distance:        100,
+				},
 			}
 		}
 	}
