@@ -67,7 +67,8 @@ func handleErrorsWithParams(h HandlerWithParams) httprouter.Handle {
 }
 
 func handleError(w http.ResponseWriter, e *HandlerError) {
-	log.Print(e.Err)
+	log.Println(e.Err)
+	log.Printf("Responded to the user with code %d and message: %s\n", e.Code, e.Message)
 	http.Error(w, e.Message, e.Code)
 }
 
