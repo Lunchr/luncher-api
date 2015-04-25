@@ -69,7 +69,7 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 		id := bson.ObjectIdHex(idString)
 		currentOffer, err := offersCollection.GetID(id)
 		if err != nil {
-			return &router.HandlerError{err, "Couldn't find an offer with this ID", http.StatusBadRequest}
+			return &router.HandlerError{err, "Couldn't find an offer with this ID", http.StatusNotFound}
 		}
 		api := fbAuth.APIConnection(&user.Session.FacebookUserToken)
 		restaurant, err := restaurantsCollection.GetID(user.RestaurantID)

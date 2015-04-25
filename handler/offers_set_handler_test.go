@@ -162,7 +162,7 @@ var _ = Describe("OffersHandler", func() {
 			It("should fail", func(done Done) {
 				defer close(done)
 				err := handler(responseRecorder, request, params)
-				Expect(err.Code).To(Equal(http.StatusBadRequest))
+				Expect(err.Code).To(Equal(http.StatusNotFound))
 			})
 		})
 
