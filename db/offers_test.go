@@ -7,6 +7,7 @@ import (
 	"github.com/deiwin/luncher-api/geo"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -81,6 +82,37 @@ var _ = Describe("Offers", func() {
 				result, err := offersCollection.GetID(id)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(result.Title).To(Equal("an updated title"))
+			})
+		})
+	})
+
+	Describe("RemoveID", func() {
+		RebuildDBAfterEach()
+		It("should fail for a non-existent ID", func(done Done) {
+			defer close(done)
+			err := offersCollection.RemoveID(bson.NewObjectId())
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(Equal(mgo.ErrNotFound))
+		})
+
+		Context("with an offer with known ID inserted", func() {
+			var id bson.ObjectId
+			BeforeEach(func(done Done) {
+				defer close(done)
+				id = bson.NewObjectId()
+				offer := anOffer()
+				offer.ID = id
+				_, err := offersCollection.Insert(offer)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should remove the offer from DB", func(done Done) {
+				defer close(done)
+				err := offersCollection.RemoveID(id)
+				Expect(err).NotTo(HaveOccurred())
+				_, err = offersCollection.GetID(id)
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(Equal(mgo.ErrNotFound))
 			})
 		})
 	})

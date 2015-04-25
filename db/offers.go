@@ -16,6 +16,7 @@ type Offers interface {
 	GetForRestaurant(restaurantName string, startTime time.Time) ([]*model.Offer, error)
 	UpdateID(bson.ObjectId, *model.Offer) error
 	GetID(bson.ObjectId) (*model.Offer, error)
+	RemoveID(bson.ObjectId) error
 }
 
 type offersCollection struct {
@@ -84,4 +85,8 @@ func (c offersCollection) GetID(id bson.ObjectId) (*model.Offer, error) {
 	var offer model.Offer
 	err := c.FindId(id).One(&offer)
 	return &offer, err
+}
+
+func (c offersCollection) RemoveID(id bson.ObjectId) error {
+	return c.RemoveId(id)
 }
