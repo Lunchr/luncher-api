@@ -50,7 +50,7 @@ func main() {
 	r.GETWithParams("/regions/:name/offers", handler.RegionOffers(offersCollection, regionsCollection, imageStorage))
 	r.GET("/offers", handler.ProximalOffers(offersCollection, imageStorage))
 	r.POST("/offers", handler.PostOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, facebookAuthenticator, imageStorage))
-	r.PUTWithParams("/offers/:id", handler.PutOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, facebookAuthenticator, imageStorage))
+	r.PUT("/offers/:id", handler.PutOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, facebookAuthenticator, imageStorage))
 	r.GET("/tags", handler.Tags(tagsCollection))
 	r.GET("/restaurant", handler.Restaurant(restaurantsCollection, sessionManager, usersCollection))
 	r.GET("/restaurant/offers", handler.RestaurantOffers(restaurantsCollection, sessionManager, usersCollection, offersCollection, imageStorage))

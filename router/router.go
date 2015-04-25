@@ -30,8 +30,8 @@ func (r Router) POST(path string, handler Handler) {
 	r.Handler("POST", r.prefix+path, handleErrors(handler))
 }
 
-func (r Router) PUTWithParams(path string, handler HandlerWithParams) {
-	r.PUT(r.prefix+path, handleErrorsWithParams(handler))
+func (r Router) PUT(path string, handler HandlerWithParams) {
+	r.Router.PUT(r.prefix+path, handleErrorsWithParams(handler))
 }
 
 // Router is a wrapper around julienschmidt/httprouter that implements error
