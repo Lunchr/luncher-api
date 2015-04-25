@@ -196,6 +196,7 @@ var _ = Describe("OffersHandler", func() {
 					"image":       "images/a large image path",
 				}
 				currentOffer := &model.Offer{
+					ID:       objectID,
 					Title:    "an offer title",
 					FBPostID: "fb post id",
 					Image:    "image checksum",
@@ -233,6 +234,7 @@ var _ = Describe("OffersHandler", func() {
 					"image":       "image data url",
 				}
 				currentOffer := &model.Offer{
+					ID:       objectID,
 					Title:    "an offer title",
 					FBPostID: "fb post id",
 					Image:    "image checksum",

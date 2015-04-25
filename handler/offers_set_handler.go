@@ -19,6 +19,8 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+type HandlerWithUserAndOffer func(w http.ResponseWriter, r *http.Request, user *model.User, offer *model.Offer) *router.HandlerError
+
 // PostOffers handles POST requests to /offers. It stores the offer in the DB and
 // sends it to Facebook to be posted on the page's wall at the requested time.
 func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants,
@@ -60,17 +62,7 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 // updates the related Facebook post.
 func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants,
 	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage storage.Images) router.HandlerWithParams {
-	handler := func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *router.HandlerError {
-		idString := ps.ByName("id")
-		if !bson.IsObjectIdHex(idString) {
-			err := errors.New("Invalid offer ID")
-			return &router.HandlerError{err, "", http.StatusBadRequest}
-		}
-		id := bson.ObjectIdHex(idString)
-		currentOffer, err := offersCollection.GetID(id)
-		if err != nil {
-			return &router.HandlerError{err, "Couldn't find an offer with this ID", http.StatusNotFound}
-		}
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, currentOffer *model.Offer) *router.HandlerError {
 		api := fbAuth.APIConnection(&user.Session.FacebookUserToken)
 		restaurant, err := restaurantsCollection.GetID(user.RestaurantID)
 		if err != nil {
@@ -103,16 +95,32 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 			return &router.HandlerError{err, "Failed to post the offer to Facebook", http.StatusBadGateway}
 		}
 		offer.FBPostID = post.ID
-		err = offersCollection.UpdateID(id, offer)
+		err = offersCollection.UpdateID(currentOffer.ID, offer)
 		if err != nil {
 			return &router.HandlerError{err, "Failed to update the offer in DB", http.StatusInternalServerError}
 		}
-		offer.ID = id
+		offer.ID = currentOffer.ID
 
 		return writeJSON(w, offer)
 	}
 
-	return checkLoginWithParams(sessionManager, usersCollection, handler)
+	return checkLoginWithParams(sessionManager, usersCollection, forOffer(offersCollection, handler))
+}
+
+func forOffer(offersCollection db.Offers, handler HandlerWithUserAndOffer) HandlerWithParamsWithUser {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *router.HandlerError {
+		idString := ps.ByName("id")
+		if !bson.IsObjectIdHex(idString) {
+			err := errors.New("Invalid offer ID")
+			return &router.HandlerError{err, "", http.StatusBadRequest}
+		}
+		id := bson.ObjectIdHex(idString)
+		offer, err := offersCollection.GetID(id)
+		if err != nil {
+			return &router.HandlerError{err, "Couldn't find an offer with this ID", http.StatusNotFound}
+		}
+		return handler(w, r, user, offer)
+	}
 }
 
 func formFBOfferMessage(o model.Offer) string {
