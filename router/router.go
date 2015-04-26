@@ -34,6 +34,10 @@ func (r Router) PUT(path string, handler HandlerWithParams) {
 	r.Router.PUT(r.prefix+path, handleErrorsWithParams(handler))
 }
 
+func (r Router) DELETE(path string, handler HandlerWithParams) {
+	r.Router.DELETE(r.prefix+path, handleErrorsWithParams(handler))
+}
+
 // Router is a wrapper around julienschmidt/httprouter that implements error
 // handling specific to this application.
 type Router struct {

@@ -107,6 +107,27 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 	return checkLoginWithParams(sessionManager, usersCollection, forOffer(offersCollection, handler))
 }
 
+// DeleteOffers handles DELETE requests to /offers. It deletes the offer from the DB and
+// deletes the related Facebook post.
+func DeleteOffers(offersCollection db.Offers, usersCollection db.Users, sessionManager session.Manager, fbAuth facebook.Authenticator) router.HandlerWithParams {
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, currentOffer *model.Offer) *router.HandlerError {
+		fbAPI := fbAuth.APIConnection(&user.Session.FacebookUserToken)
+		if currentOffer.FBPostID != "" {
+			err := fbAPI.PostDelete(user.Session.FacebookPageToken, currentOffer.FBPostID)
+			if err != nil {
+				return &router.HandlerError{err, "Failed to delete the current post from Facebook", http.StatusBadGateway}
+			}
+		}
+		err := offersCollection.RemoveID(currentOffer.ID)
+		if err != nil {
+			return &router.HandlerError{err, "Failed to delete the offer from DB", http.StatusInternalServerError}
+		}
+		w.WriteHeader(http.StatusOK)
+		return nil
+	}
+	return checkLoginWithParams(sessionManager, usersCollection, forOffer(offersCollection, handler))
+}
+
 func forOffer(offersCollection db.Offers, handler HandlerWithUserAndOffer) HandlerWithParamsWithUser {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *router.HandlerError {
 		idString := ps.ByName("id")

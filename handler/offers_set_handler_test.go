@@ -3,6 +3,7 @@ package handler_test
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -291,6 +292,107 @@ var _ = Describe("OffersHandler", func() {
 			})
 		})
 	})
+
+	Describe("DeleteOffers", func() {
+		var (
+			usersCollection db.Users
+			handler         router.HandlerWithParams
+			authenticator   facebook.Authenticator
+			sessionManager  session.Manager
+			params          httprouter.Params
+		)
+
+		BeforeEach(func() {
+			usersCollection = &mockUsers{}
+			authenticator = &mockAuthenticator{}
+			params = httprouter.Params{httprouter.Param{
+				Key:   "id",
+				Value: objectID.Hex(),
+			}}
+		})
+
+		JustBeforeEach(func() {
+			handler = DeleteOffers(offersCollection, usersCollection, sessionManager, authenticator)
+		})
+
+		ExpectUserToBeLoggedIn(func() *router.HandlerError {
+			return handler(responseRecorder, request, nil)
+		}, func(mgr session.Manager, users db.Users) {
+			sessionManager = mgr
+			usersCollection = users
+		})
+
+		Context("with no matching offer in the DB", func() {
+			BeforeEach(func() {
+				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
+			})
+
+			It("should fail", func(done Done) {
+				defer close(done)
+				err := handler(responseRecorder, request, params)
+				Expect(err.Code).To(Equal(http.StatusNotFound))
+			})
+		})
+
+		Context("with an ID that's not an object ID", func() {
+			BeforeEach(func() {
+				params = httprouter.Params{httprouter.Param{
+					Key:   "id",
+					Value: "not a proper bson.ObjectId",
+				}}
+				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
+			})
+
+			It("should fail", func(done Done) {
+				defer close(done)
+				err := handler(responseRecorder, request, params)
+				Expect(err.Code).To(Equal(http.StatusBadRequest))
+			})
+		})
+
+		Context("with session set, a matching user in DB and an offer in DB", func() {
+			BeforeEach(func() {
+				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
+				requestMethod = "DELETE"
+				currentOffer := &model.Offer{
+					ID:       objectID,
+					Title:    "an offer title",
+					FBPostID: "fb post id",
+					Image:    "image checksum",
+				}
+				offersCollection = &mockOffers{
+					mockOffer: currentOffer,
+				}
+				authenticator = &mockAuthenticator{
+					api: &mockAPI{},
+				}
+			})
+
+			Context("with post to FB failing", func() {
+				BeforeEach(func() {
+					authenticator = &mockAuthenticator{
+						api: &mockAPI{
+							message:    "postmessage",
+							shouldFail: true,
+						},
+					}
+				})
+
+				It("should fail", func(done Done) {
+					defer close(done)
+					err := handler(responseRecorder, request, params)
+					Expect(err.Code).To(Equal(http.StatusBadGateway))
+				})
+			})
+
+			It("should succeed", func(done Done) {
+				defer close(done)
+				err := handler(responseRecorder, request, params)
+				Expect(err).To(BeNil())
+				fmt.Println(responseRecorder)
+			})
+		})
+	})
 })
 
 var objectID = bson.NewObjectId()
@@ -370,6 +472,11 @@ func (m mockOffers) UpdateID(id bson.ObjectId, offer *model.Offer) error {
 	Expect(offer.FromTime).To(Equal(time.Date(2014, 11, 11, 9, 0, 0, 0, time.UTC)))
 	Expect(offer.ToTime).To(Equal(time.Date(2014, 11, 11, 11, 0, 0, 0, time.UTC)))
 	Expect(offer.Image).To(Equal("image checksum"))
+	return nil
+}
+
+func (m mockOffers) RemoveID(id bson.ObjectId) error {
+	Expect(id).To(Equal(objectID))
 	return nil
 }
 
