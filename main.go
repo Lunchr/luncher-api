@@ -51,7 +51,7 @@ func main() {
 	r.GET("/offers", handler.ProximalOffers(offersCollection, imageStorage))
 	r.POST("/offers", handler.PostOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, facebookAuthenticator, imageStorage))
 	r.PUT("/offers/:id", handler.PutOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, facebookAuthenticator, imageStorage))
-	r.DELETE("/offers/:id", handler.DeleteOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, facebookAuthenticator, imageStorage))
+	r.DELETE("/offers/:id", handler.DeleteOffers(offersCollection, usersCollection, sessionManager, facebookAuthenticator))
 	r.GET("/tags", handler.Tags(tagsCollection))
 	r.GET("/restaurant", handler.Restaurant(restaurantsCollection, sessionManager, usersCollection))
 	r.GET("/restaurant/offers", handler.RestaurantOffers(restaurantsCollection, sessionManager, usersCollection, offersCollection, imageStorage))
