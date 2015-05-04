@@ -38,7 +38,7 @@ func main() {
 	}
 
 	redirectURL := mainConfig.Domain + "/api/v1/login/facebook/redirected"
-	scopes := []string{"manage_pages", "publish_actions"}
+	scopes := []string{"manage_pages", "publish_pages"}
 	facebookConfig := facebook.NewConfig(redirectURL, scopes)
 	facebookAuthenticator := facebook.NewAuthenticator(facebookConfig)
 	facebookHandler := handler.NewFacebook(facebookAuthenticator, sessionManager, usersCollection)
