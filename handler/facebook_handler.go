@@ -52,36 +52,38 @@ func (fb fbook) Redirected() router.Handler {
 			}
 			return &router.HandlerError{err, "Failed to connect to Facebook", http.StatusInternalServerError}
 		}
-		userID, err := fb.getUserID(tok)
+		fbUserID, err := fb.getUserID(tok)
 		if err != nil {
 			return &router.HandlerError{err, "Failed to get the user information from Facebook", http.StatusInternalServerError}
 		}
-		pageID, err := fb.getPageID(userID)
-		if err != nil {
-			return &router.HandlerError{err, "Failed to find a Facebook page related to this user", http.StatusInternalServerError}
-		}
-		pageAccessToken, err := fb.auth.PageAccessToken(tok, pageID)
-		if err != nil {
-			if err == facebook.ErrNoSuchPage {
-				return &router.HandlerError{err, "Access denied by Facebook to the managed page", http.StatusForbidden}
-			}
-			return &router.HandlerError{err, "Failed to get access to the Facebook page", http.StatusInternalServerError}
-		}
-		err = fb.storeAccessTokensInDB(userID, tok, pageAccessToken, session)
+		err = fb.storeAccessTokensInDB(fbUserID, tok, session)
 		if err != nil {
 			return &router.HandlerError{err, "Failed to persist Facebook login information", http.StatusInternalServerError}
+		}
+		pageID, handlerErr := fb.getPageID(fbUserID)
+		if handlerErr != nil {
+			return handlerErr
+		}
+		if pageID != "" {
+			pageAccessToken, err := fb.auth.PageAccessToken(tok, pageID)
+			if err != nil {
+				if err == facebook.ErrNoSuchPage {
+					return &router.HandlerError{err, "Access denied by Facebook to the managed page", http.StatusForbidden}
+				}
+				return &router.HandlerError{err, "Failed to get access to the Facebook page", http.StatusInternalServerError}
+			}
+			err = fb.usersCollection.SetPageAccessToken(fbUserID, pageAccessToken)
+			if err != nil {
+				return &router.HandlerError{err, "Failed to persist Facebook login information", http.StatusInternalServerError}
+			}
 		}
 		http.Redirect(w, r, "/#/admin", http.StatusSeeOther)
 		return nil
 	}
 }
 
-func (fb fbook) storeAccessTokensInDB(fbUserID string, tok *oauth2.Token, pageAccessToken, sessionID string) error {
+func (fb fbook) storeAccessTokensInDB(fbUserID string, tok *oauth2.Token, sessionID string) error {
 	err := fb.usersCollection.SetAccessToken(fbUserID, *tok)
-	if err != nil {
-		return err
-	}
-	err = fb.usersCollection.SetPageAccessToken(fbUserID, pageAccessToken)
 	if err != nil {
 		return err
 	}
@@ -101,10 +103,10 @@ func (fb fbook) getUserID(tok *oauth2.Token) (string, error) {
 	return user.ID, nil
 }
 
-func (fb fbook) getPageID(userID string) (string, error) {
+func (fb fbook) getPageID(userID string) (string, *router.HandlerError) {
 	userInDB, err := fb.usersCollection.GetFbID(userID)
 	if err != nil {
-		return "", err
+		return "", &router.HandlerError{err, "Failed to find a user in DB related to this Facebook User ID", http.StatusInternalServerError}
 	}
 	return userInDB.FacebookPageID, nil
 }
