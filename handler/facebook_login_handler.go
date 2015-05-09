@@ -4,35 +4,14 @@ import (
 	"net/http"
 
 	"github.com/deiwin/facebook"
-	"github.com/deiwin/luncher-api/db"
 	"github.com/deiwin/luncher-api/router"
-	"github.com/deiwin/luncher-api/session"
 	"golang.org/x/oauth2"
 )
-
-type Facebook interface {
-	// Login returns a handler that redirects the user to Facebook to log in
-	Login() router.Handler
-	// Redirected returns a handler that receives the user and page tokens for the
-	// user who has just logged in through Facebook. Updates the user and page
-	// access tokens in the DB
-	Redirected() router.Handler
-}
-
-type fbook struct {
-	auth            facebook.Authenticator
-	sessionManager  session.Manager
-	usersCollection db.Users
-}
-
-func NewFacebook(fbAuth facebook.Authenticator, sessMgr session.Manager, usersCollection db.Users) Facebook {
-	return fbook{fbAuth, sessMgr, usersCollection}
-}
 
 func (fb fbook) Login() router.Handler {
 	return func(w http.ResponseWriter, r *http.Request) *router.HandlerError {
 		session := fb.sessionManager.GetOrInit(w, r)
-		redirectURL := fb.auth.AuthURL(session)
+		redirectURL := fb.loginAuth.AuthURL(session)
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return nil
 	}
@@ -41,7 +20,7 @@ func (fb fbook) Login() router.Handler {
 func (fb fbook) Redirected() router.Handler {
 	return func(w http.ResponseWriter, r *http.Request) *router.HandlerError {
 		session := fb.sessionManager.GetOrInit(w, r)
-		tok, err := fb.auth.Token(session, r)
+		tok, err := fb.loginAuth.Token(session, r)
 		if err != nil {
 			if err == facebook.ErrMissingState {
 				return &router.HandlerError{err, "Expecting a 'state' value", http.StatusBadRequest}
@@ -65,7 +44,7 @@ func (fb fbook) Redirected() router.Handler {
 			return handlerErr
 		}
 		if pageID != "" {
-			pageAccessToken, err := fb.auth.PageAccessToken(tok, pageID)
+			pageAccessToken, err := fb.loginAuth.PageAccessToken(tok, pageID)
 			if err != nil {
 				if err == facebook.ErrNoSuchPage {
 					return &router.HandlerError{err, "Access denied by Facebook to the managed page", http.StatusForbidden}
@@ -95,7 +74,7 @@ func (fb fbook) storeAccessTokensInDB(fbUserID string, tok *oauth2.Token, sessio
 }
 
 func (fb fbook) getUserID(tok *oauth2.Token) (string, error) {
-	api := fb.auth.APIConnection(tok)
+	api := fb.loginAuth.APIConnection(tok)
 	user, err := api.Me()
 	if err != nil {
 		return "", err

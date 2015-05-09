@@ -37,11 +37,16 @@ func main() {
 		panic(err)
 	}
 
-	redirectURL := mainConfig.Domain + "/api/v1/login/facebook/redirected"
 	scopes := []string{"manage_pages", "publish_pages"}
-	facebookConfig := facebook.NewConfig(redirectURL, scopes)
-	facebookAuthenticator := facebook.NewAuthenticator(facebookConfig)
-	facebookHandler := handler.NewFacebook(facebookAuthenticator, sessionManager, usersCollection)
+	loginRedirectURL := mainConfig.Domain + "/api/v1/login/facebook/redirected"
+	facebookLoginConfig := facebook.NewConfig(loginRedirectURL, scopes)
+	facebookLoginAuthenticator := facebook.NewAuthenticator(facebookLoginConfig)
+
+	registrationRedirectURL := mainConfig.Domain + "/api/v1/register/facebook/redirected"
+	facebookRegistrationConfig := facebook.NewConfig(registrationRedirectURL, scopes)
+	facebookRegistrationAuthenticator := facebook.NewAuthenticator(facebookRegistrationConfig)
+
+	facebookHandler := handler.NewFacebook(facebookLoginAuthenticator, facebookRegistrationAuthenticator, sessionManager, usersCollection)
 
 	imageStorage := storage.NewImages()
 
@@ -49,9 +54,9 @@ func main() {
 	r.GET("/regions", handler.Regions(regionsCollection))
 	r.GETWithParams("/regions/:name/offers", handler.RegionOffers(offersCollection, regionsCollection, imageStorage))
 	r.GET("/offers", handler.ProximalOffers(offersCollection, imageStorage))
-	r.POST("/offers", handler.PostOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, facebookAuthenticator, imageStorage))
-	r.PUT("/offers/:id", handler.PutOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, facebookAuthenticator, imageStorage))
-	r.DELETE("/offers/:id", handler.DeleteOffers(offersCollection, usersCollection, sessionManager, facebookAuthenticator))
+	r.POST("/offers", handler.PostOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, facebookLoginAuthenticator, imageStorage))
+	r.PUT("/offers/:id", handler.PutOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, facebookLoginAuthenticator, imageStorage))
+	r.DELETE("/offers/:id", handler.DeleteOffers(offersCollection, usersCollection, sessionManager, facebookLoginAuthenticator))
 	r.GET("/tags", handler.Tags(tagsCollection))
 	r.GET("/restaurant", handler.Restaurant(restaurantsCollection, sessionManager, usersCollection))
 	r.GET("/restaurant/offers", handler.RestaurantOffers(restaurantsCollection, sessionManager, usersCollection, offersCollection, imageStorage))

@@ -20,19 +20,21 @@ const (
 
 var _ = Describe("FacebookHandler", func() {
 	var (
-		auther              facebook.Authenticator
+		loginAuther         facebook.Authenticator
+		registrationAuther  facebook.Authenticator
 		mockSessMgr         session.Manager
 		mockUsersCollection db.Users
 		handlers            Facebook
 	)
 
 	BeforeEach(func() {
-		auther = &mockAuthenticator{}
+		loginAuther = &mockAuthenticator{}
+		registrationAuther = &mockAuthenticator{}
 		mockSessMgr = &mockSessionManager{}
 	})
 
 	JustBeforeEach(func() {
-		handlers = NewFacebook(auther, mockSessMgr, mockUsersCollection)
+		handlers = NewFacebook(loginAuther, registrationAuther, mockSessMgr, mockUsersCollection)
 	})
 
 	Describe("Login", func() {
