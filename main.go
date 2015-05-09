@@ -63,6 +63,8 @@ func main() {
 	r.GET("/logout", handler.Logout(sessionManager, usersCollection))
 	r.GET("/login/facebook", facebookHandler.RedirectToFBForLogin())
 	r.GET("/login/facebook/redirected", facebookHandler.RedirectedFromFBForLogin())
+	r.GET("/register/facebook", facebookHandler.RedirectToFBForRegistration())
+	r.GET("/register/facebook/redirected", facebookHandler.RedirectedFromFBForRegistration())
 
 	http.Handle("/api/v1/", r)
 	portString := fmt.Sprintf(":%d", mainConfig.Port)
