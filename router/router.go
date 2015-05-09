@@ -1,6 +1,7 @@
 package router
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"strings"
@@ -12,10 +13,41 @@ type Handler func(http.ResponseWriter, *http.Request) *HandlerError
 
 type HandlerWithParams func(http.ResponseWriter, *http.Request, httprouter.Params) *HandlerError
 
+// HandlerError is a customized error type used to improve error reporting in handlers
+// by including additional information to be sent back to the user
 type HandlerError struct {
 	Err     error
 	Message string
 	Code    int
+}
+
+// NewHandlerError initializes an HandlerError
+func NewHandlerError(err error, message string, code int) *HandlerError {
+	return &HandlerError{
+		Err:     err,
+		Message: message,
+		Code:    code,
+	}
+}
+
+// NewStringHandlerError initializes an HandlerError, but first converts the
+// err string into an error type using errors.New
+func NewStringHandlerError(err, message string, code int) *HandlerError {
+	return &HandlerError{
+		Err:     errors.New(err),
+		Message: message,
+		Code:    code,
+	}
+}
+
+// NewSimpleHandlerError initializes an HandlerError by first duplicating the
+// error message into an error type using errors.New
+func NewSimpleHandlerError(message string, code int) *HandlerError {
+	return &HandlerError{
+		Err:     errors.New(message),
+		Message: message,
+		Code:    code,
+	}
 }
 
 func (r Router) GET(path string, handler Handler) {

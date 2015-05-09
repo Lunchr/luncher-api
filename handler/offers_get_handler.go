@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -20,12 +19,12 @@ func RegionOffers(offersCollection db.Offers, regionsCollection db.Regions, imag
 	handler := func(w http.ResponseWriter, r *http.Request, region *model.Region) *router.HandlerError {
 		timeLocation, err := time.LoadLocation(region.Location)
 		if err != nil {
-			return &router.HandlerError{err, "The location of this region is misconfigured", http.StatusInternalServerError}
+			return router.NewHandlerError(err, "The location of this region is misconfigured", http.StatusInternalServerError)
 		}
 		startTime, endTime := getTodaysTimeRange(timeLocation)
 		offers, err := offersCollection.GetForRegion(region.Name, startTime, endTime)
 		if err != nil {
-			return &router.HandlerError{err, "An error occured while trying to fetch today's offers", http.StatusInternalServerError}
+			return router.NewHandlerError(err, "An error occured while trying to fetch today's offers", http.StatusInternalServerError)
 		}
 		if handlerError := changeOfferImageChecksumsToPaths(offers, imageStorage); handlerError != nil {
 			return handlerError
@@ -46,16 +45,16 @@ func ProximalOffers(offersCollection db.Offers, imageStorage storage.Images) rou
 		zone := latlong.LookupZoneName(loc.Lat, loc.Lng)
 		if zone == "" {
 			message := "Failed to find a timezone for this location"
-			return &router.HandlerError{errors.New(message), message, http.StatusInternalServerError}
+			return router.NewSimpleHandlerError(message, http.StatusInternalServerError)
 		}
 		timeLocation, err := time.LoadLocation(zone)
 		if err != nil {
-			return &router.HandlerError{err, "", http.StatusInternalServerError}
+			return router.NewHandlerError(err, "", http.StatusInternalServerError)
 		}
 		startTime, endTime := getTodaysTimeRange(timeLocation)
 		offers, err := offersCollection.GetNear(loc, startTime, endTime)
 		if err != nil {
-			return &router.HandlerError{err, "An error occured while trying to fetch today's offers", http.StatusInternalServerError}
+			return router.NewHandlerError(err, "An error occured while trying to fetch today's offers", http.StatusInternalServerError)
 		}
 		if handlerError := changeOfferWithDistanceImageChecksumsToPaths(offers, imageStorage); handlerError != nil {
 			return handlerError
@@ -77,7 +76,7 @@ func changeOfferWithDistanceImageChecksumsToPaths(offers []*model.OfferWithDista
 		if offer.Image != "" {
 			offer.Image, err = imageStorage.PathForLarge(offer.Image)
 			if err != nil {
-				return &router.HandlerError{err, "Failed to find an image for an offer", http.StatusInternalServerError}
+				return router.NewHandlerError(err, "Failed to find an image for an offer", http.StatusInternalServerError)
 			}
 		}
 	}
@@ -90,7 +89,7 @@ func changeOfferImageChecksumsToPaths(offers []*model.Offer, imageStorage storag
 		if offer.Image != "" {
 			offer.Image, err = imageStorage.PathForLarge(offer.Image)
 			if err != nil {
-				return &router.HandlerError{err, "Failed to find an image for an offer", http.StatusInternalServerError}
+				return router.NewHandlerError(err, "Failed to find an image for an offer", http.StatusInternalServerError)
 			}
 		}
 	}
@@ -100,19 +99,19 @@ func changeOfferImageChecksumsToPaths(offers []*model.Offer, imageStorage storag
 func getLocFromRequest(r *http.Request) (geo.Location, *router.HandlerError) {
 	latString := r.FormValue("lat")
 	if latString == "" {
-		return geo.Location{}, &router.HandlerError{errors.New("Latitude not specified"), "Please specify your latitude using the 'lat' attribute.", http.StatusBadRequest}
+		return geo.Location{}, router.NewStringHandlerError("Latitude not specified", "Please specify your latitude using the 'lat' attribute.", http.StatusBadRequest)
 	}
 	lat, err := strconv.ParseFloat(latString, 64)
 	if err != nil {
-		return geo.Location{}, &router.HandlerError{err, "Couldn't parse the latitude", http.StatusBadRequest}
+		return geo.Location{}, router.NewHandlerError(err, "Couldn't parse the latitude", http.StatusBadRequest)
 	}
 	lngString := r.FormValue("lng")
 	if lngString == "" {
-		return geo.Location{}, &router.HandlerError{errors.New("Longitude not specified"), "Please specify your longitude using the 'lng' attribute.", http.StatusBadRequest}
+		return geo.Location{}, router.NewStringHandlerError("Longitude not specified", "Please specify your longitude using the 'lng' attribute.", http.StatusBadRequest)
 	}
 	lng, err := strconv.ParseFloat(lngString, 64)
 	if err != nil {
-		return geo.Location{}, &router.HandlerError{err, "Couldn't parse the longitude", http.StatusBadRequest}
+		return geo.Location{}, router.NewHandlerError(err, "Couldn't parse the longitude", http.StatusBadRequest)
 	}
 	return geo.Location{
 		Lat: lat,
