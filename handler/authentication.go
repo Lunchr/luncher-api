@@ -13,7 +13,7 @@ import (
 func Logout(sessionManager session.Manager, usersCollection db.Users) router.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
 		if err := usersCollection.UnsetSessionID(user.ID); err != nil {
-			return &router.HandlerError{err, "", http.StatusInternalServerError}
+			return router.NewHandlerError(err, "", http.StatusInternalServerError)
 		}
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return nil
@@ -28,7 +28,7 @@ func checkLogin(sessionManager session.Manager, usersCollection db.Users, handle
 	return func(w http.ResponseWriter, r *http.Request) *router.HandlerError {
 		user, err := getUserForSession(sessionManager, usersCollection, r)
 		if err != nil {
-			return &router.HandlerError{err, "", http.StatusForbidden}
+			return router.NewHandlerError(err, "", http.StatusForbidden)
 		}
 		return handler(w, r, user)
 	}
@@ -38,7 +38,7 @@ func checkLoginWithParams(sessionManager session.Manager, usersCollection db.Use
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) *router.HandlerError {
 		user, err := getUserForSession(sessionManager, usersCollection, r)
 		if err != nil {
-			return &router.HandlerError{err, "", http.StatusForbidden}
+			return router.NewHandlerError(err, "", http.StatusForbidden)
 		}
 		return handler(w, r, ps, user)
 	}

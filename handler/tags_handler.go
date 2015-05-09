@@ -17,7 +17,7 @@ func Tags(tagsCollection db.Tags) router.Handler {
 			tags = append(tags, tag)
 		}
 		if err := tagsIter.Close(); err != nil {
-			return &router.HandlerError{err, "An error occured while fetching the tags from the DB", http.StatusInternalServerError}
+			return router.NewHandlerError(err, "An error occured while fetching the tags from the DB", http.StatusInternalServerError)
 		}
 		return writeJSON(w, tags)
 	}

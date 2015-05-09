@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/deiwin/luncher-api/db"
@@ -19,7 +18,7 @@ func Regions(regionsCollection db.Regions) router.Handler {
 			regions = append(regions, region)
 		}
 		if err := regionsIter.Close(); err != nil {
-			return &router.HandlerError{err, "An error occured while fetching the regions from the DB", http.StatusInternalServerError}
+			return router.NewHandlerError(err, "An error occured while fetching the regions from the DB", http.StatusInternalServerError)
 		}
 		return writeJSON(w, regions)
 	}
@@ -31,11 +30,11 @@ func forRegion(regionsCollection db.Regions, handler HandlerWithRegion) router.H
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) *router.HandlerError {
 		regionName := ps.ByName("name")
 		if regionName == "" {
-			return &router.HandlerError{errors.New("Region not specified for GET /regions/:name"), "Please specify a region", http.StatusBadRequest}
+			return router.NewStringHandlerError("Region not specified for GET /regions/:name", "Please specify a region", http.StatusBadRequest)
 		}
 		region, err := regionsCollection.GetName(regionName)
 		if err != nil {
-			return &router.HandlerError{err, "Unable to find the specified region", http.StatusNotFound}
+			return router.NewHandlerError(err, "Unable to find the specified region", http.StatusNotFound)
 		}
 		return handler(w, r, region)
 	}

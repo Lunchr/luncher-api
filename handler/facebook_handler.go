@@ -44,21 +44,21 @@ func (fb fbook) Redirected() router.Handler {
 		tok, err := fb.auth.Token(session, r)
 		if err != nil {
 			if err == facebook.ErrMissingState {
-				return &router.HandlerError{err, "Expecting a 'state' value", http.StatusBadRequest}
+				return router.NewHandlerError(err, "Expecting a 'state' value", http.StatusBadRequest)
 			} else if err == facebook.ErrInvalidState {
-				return &router.HandlerError{err, "Invalid 'state' value", http.StatusForbidden}
+				return router.NewHandlerError(err, "Invalid 'state' value", http.StatusForbidden)
 			} else if err == facebook.ErrMissingCode {
-				return &router.HandlerError{err, "Expecting a 'code' value", http.StatusBadRequest}
+				return router.NewHandlerError(err, "Expecting a 'code' value", http.StatusBadRequest)
 			}
-			return &router.HandlerError{err, "Failed to connect to Facebook", http.StatusInternalServerError}
+			return router.NewHandlerError(err, "Failed to connect to Facebook", http.StatusInternalServerError)
 		}
 		fbUserID, err := fb.getUserID(tok)
 		if err != nil {
-			return &router.HandlerError{err, "Failed to get the user information from Facebook", http.StatusInternalServerError}
+			return router.NewHandlerError(err, "Failed to get the user information from Facebook", http.StatusInternalServerError)
 		}
 		err = fb.storeAccessTokensInDB(fbUserID, tok, session)
 		if err != nil {
-			return &router.HandlerError{err, "Failed to persist Facebook login information", http.StatusInternalServerError}
+			return router.NewHandlerError(err, "Failed to persist Facebook login information", http.StatusInternalServerError)
 		}
 		pageID, handlerErr := fb.getPageID(fbUserID)
 		if handlerErr != nil {
@@ -68,13 +68,13 @@ func (fb fbook) Redirected() router.Handler {
 			pageAccessToken, err := fb.auth.PageAccessToken(tok, pageID)
 			if err != nil {
 				if err == facebook.ErrNoSuchPage {
-					return &router.HandlerError{err, "Access denied by Facebook to the managed page", http.StatusForbidden}
+					return router.NewHandlerError(err, "Access denied by Facebook to the managed page", http.StatusForbidden)
 				}
-				return &router.HandlerError{err, "Failed to get access to the Facebook page", http.StatusInternalServerError}
+				return router.NewHandlerError(err, "Failed to get access to the Facebook page", http.StatusInternalServerError)
 			}
 			err = fb.usersCollection.SetPageAccessToken(fbUserID, pageAccessToken)
 			if err != nil {
-				return &router.HandlerError{err, "Failed to persist Facebook login information", http.StatusInternalServerError}
+				return router.NewHandlerError(err, "Failed to persist Facebook login information", http.StatusInternalServerError)
 			}
 		}
 		http.Redirect(w, r, "/#/admin", http.StatusSeeOther)
@@ -106,7 +106,7 @@ func (fb fbook) getUserID(tok *oauth2.Token) (string, error) {
 func (fb fbook) getPageID(userID string) (string, *router.HandlerError) {
 	userInDB, err := fb.usersCollection.GetFbID(userID)
 	if err != nil {
-		return "", &router.HandlerError{err, "Failed to find a user in DB related to this Facebook User ID", http.StatusInternalServerError}
+		return "", router.NewHandlerError(err, "Failed to find a user in DB related to this Facebook User ID", http.StatusInternalServerError)
 	}
 	return userInDB.FacebookPageID, nil
 }
