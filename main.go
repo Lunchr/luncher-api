@@ -61,8 +61,8 @@ func main() {
 	r.GET("/restaurant", handler.Restaurant(restaurantsCollection, sessionManager, usersCollection))
 	r.GET("/restaurant/offers", handler.RestaurantOffers(restaurantsCollection, sessionManager, usersCollection, offersCollection, imageStorage))
 	r.GET("/logout", handler.Logout(sessionManager, usersCollection))
-	r.GET("/login/facebook", facebookHandler.Login())
-	r.GET("/login/facebook/redirected", facebookHandler.Redirected())
+	r.GET("/login/facebook", facebookHandler.RedirectToFBForLogin())
+	r.GET("/login/facebook/redirected", facebookHandler.RedirectedFromFBForLogin())
 
 	http.Handle("/api/v1/", r)
 	portString := fmt.Sprintf(":%d", mainConfig.Port)

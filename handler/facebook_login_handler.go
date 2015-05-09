@@ -8,8 +8,8 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// Login returns a handler that redirects the user to Facebook to log in
-func (f Facebook) Login() router.Handler {
+// RedirectToFBForLogin returns a handler that redirects the user to Facebook to log in
+func (f Facebook) RedirectToFBForLogin() router.Handler {
 	return func(w http.ResponseWriter, r *http.Request) *router.HandlerError {
 		session := f.sessionManager.GetOrInit(w, r)
 		redirectURL := f.loginAuth.AuthURL(session)
@@ -18,10 +18,10 @@ func (f Facebook) Login() router.Handler {
 	}
 }
 
-// Redirected returns a handler that receives the user and page tokens for the
+// RedirectedFromFBForLogin returns a handler that receives the user and page tokens for the
 // user who has just logged in through Facebook. Updates the user and page
 // access tokens in the DB
-func (f Facebook) Redirected() router.Handler {
+func (f Facebook) RedirectedFromFBForLogin() router.Handler {
 	return func(w http.ResponseWriter, r *http.Request) *router.HandlerError {
 		session := f.sessionManager.GetOrInit(w, r)
 		tok, err := f.loginAuth.Token(session, r)
