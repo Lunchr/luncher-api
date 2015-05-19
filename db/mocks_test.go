@@ -24,23 +24,25 @@ func createMocks() *Mocks {
 	return &Mocks{
 		restaurantID: restaurantID,
 		userID:       userID,
-		offers: []*model.Offer{&model.Offer{
-			Restaurant: model.OfferRestaurant{
-				Name:   "Asian Chef",
-				Region: "Tartu",
-				Location: model.Location{
-					Type:        "Point",
-					Coordinates: []float64{26.72, 58.37},
+		offers: []*model.Offer{
+			&model.Offer{
+				Restaurant: model.OfferRestaurant{
+					Name:   "Asian Chef",
+					Region: "Tartu",
+					Location: model.Location{
+						Type:        "Point",
+						Coordinates: []float64{26.72, 58.37},
+					},
+					Phone: "+372 5678 910",
 				},
+				Title:       "Sweet & Sour Chicken",
+				Ingredients: []string{"Kana", "aedviljad", "tsillikaste"},
+				FromTime:    parseTime("2014-11-10T09:00:00.000Z"),
+				ToTime:      parseTime("2014-11-10T11:00:00.000Z"),
+				Price:       3.4,
+				Tags:        []string{"lind"},
+				Image:       "08446744073709551615",
 			},
-			Title:       "Sweet & Sour Chicken",
-			Ingredients: []string{"Kana", "aedviljad", "tsillikaste"},
-			FromTime:    parseTime("2014-11-10T09:00:00.000Z"),
-			ToTime:      parseTime("2014-11-10T11:00:00.000Z"),
-			Price:       3.4,
-			Tags:        []string{"lind"},
-			Image:       "08446744073709551615",
-		},
 			&model.Offer{
 				Restaurant: model.OfferRestaurant{
 					Name:   "Bulgarian Dude",
@@ -49,6 +51,7 @@ func createMocks() *Mocks {
 						Type:        "Point",
 						Coordinates: []float64{24.74, 59.42},
 					},
+					Phone: "+372 5678 910",
 				},
 				Title:       "Sweet & Sour Pork",
 				Ingredients: []string{"Seafilee", "aedviljad", "mahushapu kaste"},
@@ -66,6 +69,7 @@ func createMocks() *Mocks {
 						Type:        "Point",
 						Coordinates: []float64{26.73, 58.36},
 					},
+					Phone: "+372 5678 910",
 				},
 				Title:       "Sweet & Sour Duck",
 				Ingredients: []string{"Pardifilee", "aedviljad", "magushapu kaste"},
@@ -124,6 +128,7 @@ func createMocks() *Mocks {
 					Type:        "Point",
 					Coordinates: []float64{24.74, 59.42},
 				},
+				Phone: "+372 5678 910",
 			},
 			&model.Restaurant{
 				ID:      restaurantID,
@@ -134,6 +139,7 @@ func createMocks() *Mocks {
 					Type:        "Point",
 					Coordinates: []float64{26.72, 58.37},
 				},
+				Phone: "+372 5678 910",
 			},
 			&model.Restaurant{
 				Name:    "Caesarian Kitchen",
@@ -143,6 +149,7 @@ func createMocks() *Mocks {
 					Type:        "Point",
 					Coordinates: []float64{26.73, 58.36},
 				},
+				Phone: "+372 5678 910",
 			},
 		},
 		users: []*model.User{
