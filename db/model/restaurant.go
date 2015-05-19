@@ -14,6 +14,7 @@ type (
 		Region   string        `json:"region"        bson:"region"`
 		Address  string        `json:"address"       bson:"address"`
 		Location Location      `json:"location"      bson:"location"`
+		Phone    string        `json:"phone"         bson:"phone"`
 	}
 
 	// Location is a (limited) representation of a GeoJSON object

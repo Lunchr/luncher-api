@@ -444,6 +444,7 @@ func (m mockOffers) Insert(offers ...*model.Offer) ([]*model.Offer, error) {
 	Expect(offer.Restaurant.Address).To(Equal("an-address"))
 	Expect(offer.Restaurant.Location.Coordinates[0]).To(BeNumerically("~", 26.7))
 	Expect(offer.Restaurant.Location.Coordinates[1]).To(BeNumerically("~", 58.4))
+	Expect(offer.Restaurant.Phone).To(Equal("+372 5678 910"))
 	Expect(offer.FromTime).To(Equal(time.Date(2014, 11, 11, 9, 0, 0, 0, time.UTC)))
 	Expect(offer.ToTime).To(Equal(time.Date(2014, 11, 11, 11, 0, 0, 0, time.UTC)))
 	Expect(offer.Image).To(Equal("image checksum"))
@@ -469,6 +470,7 @@ func (m mockOffers) UpdateID(id bson.ObjectId, offer *model.Offer) error {
 	Expect(offer.Restaurant.Address).To(Equal("an-address"))
 	Expect(offer.Restaurant.Location.Coordinates[0]).To(BeNumerically("~", 26.7))
 	Expect(offer.Restaurant.Location.Coordinates[1]).To(BeNumerically("~", 58.4))
+	Expect(offer.Restaurant.Phone).To(Equal("+372 5678 910"))
 	Expect(offer.FromTime).To(Equal(time.Date(2014, 11, 11, 9, 0, 0, 0, time.UTC)))
 	Expect(offer.ToTime).To(Equal(time.Date(2014, 11, 11, 11, 0, 0, 0, time.UTC)))
 	Expect(offer.Image).To(Equal("image checksum"))
@@ -498,6 +500,7 @@ func (m mockRestaurants) GetID(id bson.ObjectId) (*model.Restaurant, error) {
 			Type:        "Point",
 			Coordinates: []float64{26.7, 58.4},
 		},
+		Phone: "+372 5678 910",
 	}
 	return restaurant, nil
 }
