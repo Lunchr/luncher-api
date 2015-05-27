@@ -6,9 +6,9 @@ import (
 	"net/http/httptest"
 
 	"github.com/deiwin/facebook"
-	"github.com/deiwin/luncher-api/db"
-	. "github.com/deiwin/luncher-api/handler"
-	"github.com/deiwin/luncher-api/session"
+	"github.com/Lunchr/luncher-api/db"
+	. "github.com/Lunchr/luncher-api/handler"
+	"github.com/Lunchr/luncher-api/session"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

@@ -3,10 +3,10 @@ package handler_test
 import (
 	"net/http"
 
-	"github.com/deiwin/luncher-api/db"
-	. "github.com/deiwin/luncher-api/handler"
-	"github.com/deiwin/luncher-api/router"
-	"github.com/deiwin/luncher-api/session"
+	"github.com/Lunchr/luncher-api/db"
+	. "github.com/Lunchr/luncher-api/handler"
+	"github.com/Lunchr/luncher-api/router"
+	"github.com/Lunchr/luncher-api/session"
 	"gopkg.in/mgo.v2/bson"
 
 	. "github.com/onsi/ginkgo"

@@ -3,8 +3,8 @@ package handler
 import (
 	"net/http"
 
+	"github.com/Lunchr/luncher-api/router"
 	"github.com/deiwin/facebook"
-	"github.com/deiwin/luncher-api/router"
 	"golang.org/x/oauth2"
 )
 

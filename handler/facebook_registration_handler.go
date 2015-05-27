@@ -3,7 +3,7 @@ package handler
 import (
 	"net/http"
 
-	"github.com/deiwin/luncher-api/router"
+	"github.com/Lunchr/luncher-api/router"
 )
 
 // RedirectToFBForRegistration returns a handler that redirects the user to Facebook to log in

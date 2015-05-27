@@ -1,9 +1,9 @@
 package handler
 
 import (
+	"github.com/Lunchr/luncher-api/db"
+	"github.com/Lunchr/luncher-api/session"
 	"github.com/deiwin/facebook"
-	"github.com/deiwin/luncher-api/db"
-	"github.com/deiwin/luncher-api/session"
 )
 
 // Facebook holds the the handlers dealing with login and registration via Facebook

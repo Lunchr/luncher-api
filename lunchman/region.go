@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/deiwin/interact"
-	"github.com/deiwin/luncher-api/db"
-	"github.com/deiwin/luncher-api/db/model"
+	"github.com/Lunchr/luncher-api/db"
+	"github.com/Lunchr/luncher-api/db/model"
 	"gopkg.in/mgo.v2"
 )
 

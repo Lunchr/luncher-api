@@ -4,8 +4,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/deiwin/luncher-api/db/model"
-	"github.com/deiwin/luncher-api/geo"
+	"github.com/Lunchr/luncher-api/db/model"
+	"github.com/Lunchr/luncher-api/geo"
 	"gopkg.in/mgo.v2/bson"
 )
 

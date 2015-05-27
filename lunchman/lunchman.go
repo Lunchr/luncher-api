@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/deiwin/interact"
-	"github.com/deiwin/luncher-api/db"
-	"github.com/deiwin/luncher-api/geo"
+	"github.com/Lunchr/luncher-api/db"
+	"github.com/Lunchr/luncher-api/geo"
 	"gopkg.in/alecthomas/kingpin.v1"
 	"gopkg.in/mgo.v2/bson"
 )
