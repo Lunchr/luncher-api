@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"strings"
 
-	. "github.com/deiwin/luncher-api/session"
+	. "github.com/Lunchr/luncher-api/session"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

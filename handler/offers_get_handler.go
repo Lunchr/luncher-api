@@ -6,11 +6,11 @@ import (
 	"time"
 
 	"github.com/bradfitz/latlong"
-	"github.com/deiwin/luncher-api/db"
-	"github.com/deiwin/luncher-api/db/model"
-	"github.com/deiwin/luncher-api/geo"
-	"github.com/deiwin/luncher-api/router"
-	"github.com/deiwin/luncher-api/storage"
+	"github.com/Lunchr/luncher-api/db"
+	"github.com/Lunchr/luncher-api/db/model"
+	"github.com/Lunchr/luncher-api/geo"
+	"github.com/Lunchr/luncher-api/router"
+	"github.com/Lunchr/luncher-api/storage"
 )
 
 // RegionOffers handles GET requests to /regions/:name/offers. It returns all

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	. "github.com/deiwin/luncher-api/router"
+	. "github.com/Lunchr/luncher-api/router"
 )
 
 func writeJSON(w http.ResponseWriter, v interface{}) *HandlerError {

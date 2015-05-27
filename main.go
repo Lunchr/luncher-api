@@ -5,12 +5,12 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/Lunchr/luncher-api/db"
+	"github.com/Lunchr/luncher-api/handler"
+	"github.com/Lunchr/luncher-api/router"
+	"github.com/Lunchr/luncher-api/session"
+	"github.com/Lunchr/luncher-api/storage"
 	"github.com/deiwin/facebook"
-	"github.com/deiwin/luncher-api/db"
-	"github.com/deiwin/luncher-api/handler"
-	"github.com/deiwin/luncher-api/router"
-	"github.com/deiwin/luncher-api/session"
-	"github.com/deiwin/luncher-api/storage"
 )
 
 func main() {

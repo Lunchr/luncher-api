@@ -1,7 +1,7 @@
 package db_test
 
 import (
-	"github.com/deiwin/luncher-api/db/model"
+	"github.com/Lunchr/luncher-api/db/model"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"gopkg.in/mgo.v2/bson"

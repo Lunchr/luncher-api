@@ -1,7 +1,7 @@
 package db
 
 import (
-	"github.com/deiwin/luncher-api/db/model"
+	"github.com/Lunchr/luncher-api/db/model"
 	"golang.org/x/oauth2"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"

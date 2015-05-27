@@ -1,7 +1,7 @@
 package model
 
 import (
-	"github.com/deiwin/luncher-api/geo"
+	"github.com/Lunchr/luncher-api/geo"
 	"gopkg.in/mgo.v2/bson"
 )
 
