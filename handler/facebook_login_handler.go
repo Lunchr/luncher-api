@@ -24,16 +24,9 @@ func (f Facebook) RedirectToFBForLogin() router.Handler {
 func (f Facebook) RedirectedFromFBForLogin() router.Handler {
 	return func(w http.ResponseWriter, r *http.Request) *router.HandlerError {
 		session := f.sessionManager.GetOrInit(w, r)
-		tok, err := f.loginAuth.Token(session, r)
-		if err != nil {
-			if err == facebook.ErrMissingState {
-				return router.NewHandlerError(err, "Expecting a 'state' value", http.StatusBadRequest)
-			} else if err == facebook.ErrInvalidState {
-				return router.NewHandlerError(err, "Invalid 'state' value", http.StatusForbidden)
-			} else if err == facebook.ErrMissingCode {
-				return router.NewHandlerError(err, "Expecting a 'code' value", http.StatusBadRequest)
-			}
-			return router.NewHandlerError(err, "Failed to connect to Facebook", http.StatusInternalServerError)
+		tok, handlerErr := f.getLongTermToken(session, r)
+		if handlerErr != nil {
+			return handlerErr
 		}
 		fbUserID, err := f.getUserID(tok)
 		if err != nil {
@@ -63,6 +56,21 @@ func (f Facebook) RedirectedFromFBForLogin() router.Handler {
 		http.Redirect(w, r, "/#/admin", http.StatusSeeOther)
 		return nil
 	}
+}
+
+func (f Facebook) getLongTermToken(session string, r *http.Request) (*oauth2.Token, *router.HandlerError) {
+	tok, err := f.loginAuth.Token(session, r)
+	if err != nil {
+		if err == facebook.ErrMissingState {
+			return nil, router.NewHandlerError(err, "Expecting a 'state' value", http.StatusBadRequest)
+		} else if err == facebook.ErrInvalidState {
+			return nil, router.NewHandlerError(err, "Invalid 'state' value", http.StatusForbidden)
+		} else if err == facebook.ErrMissingCode {
+			return nil, router.NewHandlerError(err, "Expecting a 'code' value", http.StatusBadRequest)
+		}
+		return nil, router.NewHandlerError(err, "Failed to connect to Facebook", http.StatusInternalServerError)
+	}
+	return tok, nil
 }
 
 func (f Facebook) storeAccessTokensInDB(fbUserID string, tok *oauth2.Token, sessionID string) error {
