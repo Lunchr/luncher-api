@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/deiwin/facebook"
 	"github.com/Lunchr/luncher-api/db"
 	. "github.com/Lunchr/luncher-api/handler"
 	"github.com/Lunchr/luncher-api/session"
+	"github.com/deiwin/facebook"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -21,7 +21,6 @@ const (
 var _ = Describe("FacebookHandler", func() {
 	var (
 		loginAuther         facebook.Authenticator
-		registrationAuther  facebook.Authenticator
 		mockSessMgr         session.Manager
 		mockUsersCollection db.Users
 		handlers            Facebook
@@ -29,12 +28,11 @@ var _ = Describe("FacebookHandler", func() {
 
 	BeforeEach(func() {
 		loginAuther = &mockAuthenticator{}
-		registrationAuther = &mockAuthenticator{}
 		mockSessMgr = &mockSessionManager{}
 	})
 
 	JustBeforeEach(func() {
-		handlers = NewFacebook(loginAuther, registrationAuther, mockSessMgr, mockUsersCollection)
+		handlers = NewFacebook(loginAuther, nil, mockSessMgr, mockUsersCollection)
 	})
 
 	Describe("Login", func() {
