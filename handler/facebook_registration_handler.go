@@ -17,7 +17,8 @@ func (f Facebook) RedirectToFBForRegistration() router.Handler {
 	}
 }
 
-// TODO
+// RedirectedFromFBForRegistration provides a handler that stores the data about the current user
+// required to continue the registration in the DB.
 func (f Facebook) RedirectedFromFBForRegistration() router.Handler {
 	return nil
 }
