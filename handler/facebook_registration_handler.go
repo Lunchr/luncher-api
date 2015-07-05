@@ -39,8 +39,10 @@ func (f Facebook) RedirectedFromFBForRegistration() router.Handler {
 			return router.NewHandlerError(err, "Failed to get the user information from Facebook", http.StatusInternalServerError)
 		}
 		// We can't guarantee that the user doesn't just close the browser or something during the registration process.
-		// Because of this, there already might be a user object with this FB User ID in the DB.
-		_, err = f.usersCollection.GetFbID(fbUserID)
+		// Because of this, there already might be a user object with this FB User ID in the DB. If the user exists in the DB,
+		// but doesn't have a restaurant connected to it, continue as the user would've been just created. But, to be safe, when
+		// the user already exists and has a restaurant connected to it, fail immediately.
+		user, err := f.usersCollection.GetFbID(fbUserID)
 		if err == mgo.ErrNotFound {
 			err = f.usersCollection.Insert(&model.User{FacebookUserID: fbUserID})
 			if err != nil {
@@ -48,6 +50,8 @@ func (f Facebook) RedirectedFromFBForRegistration() router.Handler {
 			}
 		} else if err != nil {
 			return router.NewHandlerError(err, "Failed to check the DB for users", http.StatusInternalServerError)
+		} else if err == nil && user.RestaurantID != "" {
+			return router.NewSimpleHandlerError("This Facebook user is already registered", http.StatusForbidden)
 		}
 		err = f.storeAccessTokensInDB(fbUserID, tok, session)
 		if err != nil {
