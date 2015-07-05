@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"golang.org/x/oauth2"
@@ -10,6 +11,7 @@ import (
 	"github.com/Lunchr/luncher-api/db/model"
 	"github.com/Lunchr/luncher-api/router"
 	fbmodel "github.com/deiwin/facebook/model"
+	"github.com/julienschmidt/httprouter"
 )
 
 // RedirectToFBForRegistration returns a handler that redirects the user to Facebook to log in
@@ -69,6 +71,23 @@ func (f Facebook) ListPagesManagedByUser() router.Handler {
 	return checkLogin(f.sessionManager, f.usersCollection, handler)
 }
 
+// Page returns a handler that returns information about the specified page
+func (f Facebook) Page() router.HandlerWithParams {
+	handler := func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *router.HandlerError {
+		id := ps.ByName("id")
+		if id == "" {
+			return router.NewSimpleHandlerError("Expecting a Page ID", http.StatusBadRequest)
+		}
+		fbPage, err := f.getPage(id, &user.Session.FacebookUserToken)
+		if err != nil {
+			return err
+		}
+		page := mapFBPageToModelPage(fbPage)
+		return writeJSON(w, page)
+	}
+	return checkLoginWithParams(f.sessionManager, f.usersCollection, handler)
+}
+
 func (f Facebook) getPages(tok *oauth2.Token) ([]fbmodel.Page, error) {
 	api := f.registrationAuth.APIConnection(tok)
 	accs, err := api.Accounts()
@@ -76,6 +95,18 @@ func (f Facebook) getPages(tok *oauth2.Token) ([]fbmodel.Page, error) {
 		return nil, err
 	}
 	return accs.Data, nil
+}
+
+func (f Facebook) getPage(id string, tok *oauth2.Token) (*fbmodel.Page, *router.HandlerError) {
+	api := f.registrationAuth.APIConnection(tok)
+	page, err := api.Page(id)
+	if err != nil {
+		return nil, router.NewHandlerError(err, "Couldn't get the page", http.StatusBadGateway)
+	}
+	if page == nil {
+		return nil, router.NewSimpleHandlerError("Page not found", http.StatusNotFound)
+	}
+	return page, nil
 }
 
 // Page represents a Facebook page
@@ -98,4 +129,18 @@ func mapFBPagesToModelPages(fbPages []fbmodel.Page) []Page {
 		}
 	}
 	return pages
+}
+
+func mapFBPageToModelPage(fbPage *fbmodel.Page) *Page {
+	return &Page{
+		ID:      fbPage.ID,
+		Name:    fbPage.Name,
+		Address: formAddressFromFBLocation(fbPage.Location),
+		Phone:   fbPage.Phone,
+		Website: fbPage.Website,
+	}
+}
+
+func formAddressFromFBLocation(loc fbmodel.Location) string {
+	return fmt.Sprintf("%s, %s, %s", loc.Street, loc.City, loc.Country)
 }
