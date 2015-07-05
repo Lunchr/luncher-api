@@ -3,10 +3,13 @@ package handler
 import (
 	"net/http"
 
+	"golang.org/x/oauth2"
+
 	"gopkg.in/mgo.v2"
 
 	"github.com/Lunchr/luncher-api/db/model"
 	"github.com/Lunchr/luncher-api/router"
+	fbmodel "github.com/deiwin/facebook/model"
 )
 
 // RedirectToFBForRegistration returns a handler that redirects the user to Facebook to log in
@@ -51,4 +54,48 @@ func (f Facebook) RedirectedFromFBForRegistration() router.Handler {
 		http.Redirect(w, r, "/#/register/pages", http.StatusSeeOther)
 		return nil
 	}
+}
+
+// ListPagesManagedByUser returns a handler that lists all pages managed by the currently logged in user
+func (f Facebook) ListPagesManagedByUser() router.Handler {
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
+		fbPages, err := f.getPages(&user.Session.FacebookUserToken)
+		if err != nil {
+			return router.NewHandlerError(err, "Couldn't get the list of pages managed by this user", http.StatusBadGateway)
+		}
+		pages := mapFBPagesToModelPages(fbPages)
+		return writeJSON(w, pages)
+	}
+	return checkLogin(f.sessionManager, f.usersCollection, handler)
+}
+
+func (f Facebook) getPages(tok *oauth2.Token) ([]fbmodel.Page, error) {
+	api := f.registrationAuth.APIConnection(tok)
+	accs, err := api.Accounts()
+	if err != nil {
+		return nil, err
+	}
+	return accs.Data, nil
+}
+
+// Page represents a Facebook page
+type Page struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Address string `json:"address,omitempty"`
+	Phone   string `json:"phone,omitempty"`
+	Website string `json:"website,omitempty"`
+}
+
+// mapFBPagesToModelPages only maps the ID and the Name field, because that's really
+// all that's required for the page listing
+func mapFBPagesToModelPages(fbPages []fbmodel.Page) []Page {
+	pages := make([]Page, len(fbPages))
+	for i, v := range fbPages {
+		pages[i] = Page{
+			ID:   v.ID,
+			Name: v.Name,
+		}
+	}
+	return pages
 }
