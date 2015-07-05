@@ -50,7 +50,7 @@ func (f Facebook) RedirectedFromFBForRegistration() router.Handler {
 			}
 		} else if err != nil {
 			return router.NewHandlerError(err, "Failed to check the DB for users", http.StatusInternalServerError)
-		} else if err == nil && user.RestaurantID != "" {
+		} else if user.RestaurantID != "" {
 			return router.NewSimpleHandlerError("This Facebook user is already registered", http.StatusForbidden)
 		}
 		err = f.storeAccessTokensInDB(fbUserID, tok, session)
