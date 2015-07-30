@@ -6,12 +6,16 @@ import (
 	"net/http"
 	"time"
 
+	"gopkg.in/mgo.v2/bson"
+
 	"github.com/Lunchr/luncher-api/db"
 	"github.com/Lunchr/luncher-api/db/model"
 	. "github.com/Lunchr/luncher-api/handler"
+	"github.com/Lunchr/luncher-api/handler/mocks"
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
 	"github.com/Lunchr/luncher-api/storage"
+	"github.com/stretchr/testify/mock"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -88,6 +92,144 @@ var _ = Describe("RestaurantsHandlers", func() {
 				defer close(done)
 				err := handler(responseRecorder, request)
 				Expect(err.Code).To(Equal(http.StatusInternalServerError))
+			})
+		})
+	})
+
+	Describe("POST /restaurants", func() {
+		var (
+			sessionManager        session.Manager
+			restaurantsCollection db.Restaurants
+			usersCollection       db.Users
+			handler               router.Handler
+		)
+
+		JustBeforeEach(func() {
+			handler = PostRestaurants(restaurantsCollection, sessionManager, usersCollection)
+		})
+
+		ExpectUserToBeLoggedIn(func() *router.HandlerError {
+			return handler(responseRecorder, request)
+		}, func(mgr session.Manager, users db.Users) {
+			sessionManager = mgr
+			usersCollection = users
+		})
+
+		Context("with session set and a matching user in DB", func() {
+			var (
+				mockSessionManager        *mocks.Manager
+				mockRestaurantsCollection *mocks.Restaurants
+				mockUsersCollection       *mocks.Users
+				user                      *model.User
+				id                        bson.ObjectId
+			)
+
+			BeforeEach(func() {
+				mockSessionManager = new(mocks.Manager)
+				sessionManager = mockSessionManager
+				mockRestaurantsCollection = new(mocks.Restaurants)
+				restaurantsCollection = mockRestaurantsCollection
+				mockUsersCollection = new(mocks.Users)
+				usersCollection = mockUsersCollection
+				user = &model.User{}
+				id = bson.NewObjectId()
+
+				mockSessionManager.On("Get", mock.Anything).Return("session", nil)
+				mockUsersCollection.On("GetSessionID", "session").Return(user, nil)
+
+				requestMethod = "POST"
+				requestData = map[string]interface{}{
+					"name":    "A Restaurant Name",
+					"address": "Street 10, City, Country",
+					"phone":   "+372 1234567890",
+					"website": "https://some.address.com/some/path",
+					"email":   "an.email@address.com",
+					"location": map[string]interface{}{
+						"type":        "Point",
+						"coordinates": []float64{12.34, 56.78},
+					},
+				}
+			})
+
+			Context("with DB inserts succeeding", func() {
+				BeforeEach(func() {
+					mockRestaurantsCollection.On("Insert", mock.AnythingOfType("[]*model.Restaurant")).Return([]*model.Restaurant{
+						&model.Restaurant{
+							ID: id,
+						},
+					}, nil)
+					mockUsersCollection.On("Update", mock.AnythingOfType("string"), mock.AnythingOfType("*model.User")).Return(nil)
+				})
+
+				It("should succeed", func(done Done) {
+					defer close(done)
+					err := handler(responseRecorder, request)
+					Expect(err).To(BeNil())
+				})
+
+				It("should return json", func(done Done) {
+					defer close(done)
+					handler(responseRecorder, request)
+					contentTypes := responseRecorder.HeaderMap["Content-Type"]
+					Expect(contentTypes).To(HaveLen(1))
+					Expect(contentTypes[0]).To(Equal("application/json"))
+				})
+
+				It("should include the restaurant with the new ID", func(done Done) {
+					defer close(done)
+					handler(responseRecorder, request)
+					var restaurant *model.Restaurant
+					json.Unmarshal(responseRecorder.Body.Bytes(), &restaurant)
+					Expect(restaurant.ID).To(Equal(id))
+				})
+			})
+
+			Context("the inserted restaurant", func() {
+				var insertedRestaurant *model.Restaurant
+				BeforeEach(func() {
+					mockRestaurantsCollection.On("Insert", mock.AnythingOfType("[]*model.Restaurant")).Return([]*model.Restaurant{
+						&model.Restaurant{
+							ID: id,
+						},
+					}, nil).Run(func(args mock.Arguments) {
+						insertedRestaurant = args.Get(0).([]*model.Restaurant)[0]
+					})
+					mockUsersCollection.On("Update", mock.AnythingOfType("string"), mock.AnythingOfType("*model.User")).Return(nil)
+				})
+
+				It("should correctly parse and insert the restaurant", func() {
+					handler(responseRecorder, request)
+
+					Expect(insertedRestaurant.Name).To(Equal("A Restaurant Name"))
+					Expect(insertedRestaurant.Address).To(Equal("Street 10, City, Country"))
+					Expect(insertedRestaurant.Region).To(Equal("Tallinn"))
+					Expect(insertedRestaurant.Phone).To(Equal("+372 1234567890"))
+					// Expect(insertedRestaurant.Website TODO
+					// Expect(insertedRestaurant.Email TODO
+					Expect(insertedRestaurant.Location.Type).To(Equal("Point"))
+					Expect(insertedRestaurant.Location.Coordinates[0]).To(Equal(12.34))
+					Expect(insertedRestaurant.Location.Coordinates[1]).To(Equal(56.78))
+				})
+			})
+
+			Context("the updated user", func() {
+				var updatedUser *model.User
+				BeforeEach(func() {
+					mockRestaurantsCollection.On("Insert", mock.AnythingOfType("[]*model.Restaurant")).Return([]*model.Restaurant{
+						&model.Restaurant{
+							ID: id,
+						},
+					}, nil)
+					mockUsersCollection.On("Update", mock.AnythingOfType("string"), mock.AnythingOfType("*model.User")).Return(nil).Run(func(args mock.Arguments) {
+						updatedUser = args.Get(1).(*model.User)
+					})
+				})
+
+				It("should update the user to include a reference to the restaurant", func() {
+					handler(responseRecorder, request)
+
+					Expect(updatedUser.RestaurantID).To(Equal(id))
+				})
 			})
 		})
 	})
