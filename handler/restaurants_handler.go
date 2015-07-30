@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Lunchr/luncher-api/db"
@@ -35,6 +37,30 @@ func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users
 	return checkLogin(sessionManager, users, handler)
 }
 
+// Restaurant returns a router.Handler that returns the restaurant information for the
+// restaurant linked to the currently logged in user
+func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.Users) router.Handler {
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
+		restaurant, err := parseRestaurant(r)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to parse the restaurant", http.StatusBadRequest)
+		}
+		insertedRestaurants, err := c.Insert(restaurant)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to store the restaurant in the DB", http.StatusInternalServerError)
+		}
+		var insertedRestaurant = insertedRestaurants[0]
+		user.RestaurantID = insertedRestaurant.ID
+		err = users.Update(user.FacebookUserID, user)
+		if err != nil {
+			// TODO: revert the restaurant insertion we just did?
+			return router.NewHandlerError(err, "Failed to store the restaurant in the DB", http.StatusInternalServerError)
+		}
+		return writeJSON(w, insertedRestaurant)
+	}
+	return checkLogin(sessionManager, users, handler)
+}
+
 // RestaurantOffers returns all upcoming offers for the restaurant linked to the
 // currently logged in user
 func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, offers db.Offers, imageStorage storage.Images) router.Handler {
@@ -58,4 +84,20 @@ func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager
 		return writeJSON(w, offers)
 	}
 	return checkLogin(sessionManager, users, handler)
+}
+
+func parseRestaurant(r *http.Request) (*model.Restaurant, error) {
+	var restaurant model.Restaurant
+	err := json.NewDecoder(r.Body).Decode(&restaurant)
+	if err != nil {
+		return nil, err
+	}
+	// XXX please look away, this is a hack
+	if strings.Contains(strings.ToLower(restaurant.Address), "tartu") {
+		restaurant.Region = "Tartu"
+	} else {
+		restaurant.Region = "Tallinn"
+		// yup ...
+	}
+	return &restaurant, nil
 }
