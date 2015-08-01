@@ -204,8 +204,8 @@ var _ = Describe("RestaurantsHandlers", func() {
 					Expect(insertedRestaurant.Address).To(Equal("Street 10, City, Country"))
 					Expect(insertedRestaurant.Region).To(Equal("Tallinn"))
 					Expect(insertedRestaurant.Phone).To(Equal("+372 1234567890"))
-					// Expect(insertedRestaurant.Website TODO
-					// Expect(insertedRestaurant.Email TODO
+					Expect(insertedRestaurant.Website).To(Equal("https://some.address.com/some/path"))
+					Expect(insertedRestaurant.Email).To(Equal("an.email@address.com"))
 					Expect(insertedRestaurant.Location.Type).To(Equal("Point"))
 					Expect(insertedRestaurant.Location.Coordinates[0]).To(Equal(12.34))
 					Expect(insertedRestaurant.Location.Coordinates[1]).To(Equal(56.78))
