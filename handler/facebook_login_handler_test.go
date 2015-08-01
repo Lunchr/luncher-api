@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/deiwin/facebook"
 	"github.com/Lunchr/luncher-api/db"
 	. "github.com/Lunchr/luncher-api/handler"
 	"github.com/Lunchr/luncher-api/session"
+	"github.com/deiwin/facebook"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -20,31 +20,31 @@ const (
 
 var _ = Describe("FacebookHandler", func() {
 	var (
-		auther              facebook.Authenticator
+		loginAuther         facebook.Authenticator
 		mockSessMgr         session.Manager
 		mockUsersCollection db.Users
 		handlers            Facebook
 	)
 
 	BeforeEach(func() {
-		auther = &mockAuthenticator{}
+		loginAuther = &mockAuthenticator{}
 		mockSessMgr = &mockSessionManager{}
 	})
 
 	JustBeforeEach(func() {
-		handlers = NewFacebook(auther, mockSessMgr, mockUsersCollection)
+		handlers = NewFacebook(loginAuther, nil, mockSessMgr, mockUsersCollection)
 	})
 
 	Describe("Login", func() {
 		It("should redirect", func(done Done) {
 			defer close(done)
-			handlers.Login()(responseRecorder, request)
+			handlers.RedirectToFBForLogin()(responseRecorder, request)
 			Expect(responseRecorder.Code).To(Equal(http.StatusSeeOther))
 		})
 
 		It("should redirect to mocked URL", func(done Done) {
 			defer close(done)
-			handlers.Login()(responseRecorder, request)
+			handlers.RedirectToFBForLogin()(responseRecorder, request)
 			ExpectLocationToBeMockedURL(responseRecorder, testURL)
 		})
 	})
