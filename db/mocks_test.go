@@ -158,11 +158,11 @@ func createMocks() *Mocks {
 		users: []*model.User{
 			&model.User{
 				ID:             userID,
-				RestaurantID:   restaurantID,
+				RestaurantIDs:  []bson.ObjectId{restaurantID},
 				FacebookUserID: facebookUserID,
 			},
 			&model.User{
-				RestaurantID:   restaurantID,
+				RestaurantIDs:  []bson.ObjectId{restaurantID},
 				FacebookUserID: "another user",
 			},
 		},

@@ -33,7 +33,7 @@ var _ = Describe("User", func() {
 			user, err := usersCollection.GetFbID(facebookUserID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(user).NotTo(BeNil())
-			restaurant, err := restaurantsCollection.GetID(user.RestaurantID)
+			restaurant, err := restaurantsCollection.GetID(user.RestaurantIDs[0])
 			Expect(err).NotTo(HaveOccurred())
 			Expect(restaurant).NotTo(BeNil())
 			Expect(restaurant.Name).To(Equal("Asian Chef"))
@@ -117,7 +117,7 @@ var _ = Describe("User", func() {
 					defer close(done)
 					updatedUser := *mocks.users[0]
 					newID = bson.NewObjectId()
-					updatedUser.RestaurantID = newID
+					updatedUser.RestaurantIDs = []bson.ObjectId{newID}
 					// this isn't strictly necessary, but otherwise this test seems to fail
 					// on older MongoDB versions
 					updatedUser.ID = ""
@@ -130,7 +130,7 @@ var _ = Describe("User", func() {
 					user, err := usersCollection.GetFbID(facebookUserID)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(user).NotTo(BeNil())
-					Expect(user.RestaurantID).To(Equal(newID))
+					Expect(user.RestaurantIDs[0]).To(Equal(newID))
 				})
 			})
 		})

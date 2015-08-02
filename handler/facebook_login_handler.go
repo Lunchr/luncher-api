@@ -101,7 +101,7 @@ func getPageID(userID string, usersCollection db.Users, restaurantsCollection db
 	if err != nil {
 		return "", router.NewHandlerError(err, "Failed to find a user in DB related to this Facebook User ID", http.StatusInternalServerError)
 	}
-	restaurant, err := restaurantsCollection.GetID(user.RestaurantID)
+	restaurant, err := restaurantsCollection.GetID(user.RestaurantIDs[0])
 	if err != nil {
 		return "", router.NewHandlerError(err, "Failed to find the restaurant in the DB", http.StatusInternalServerError)
 	}

@@ -28,7 +28,7 @@ func Restaurants(restaurantsCollection db.Restaurants) router.Handler {
 // restaurant linked to the currently logged in user
 func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users) router.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
-		restaurant, err := c.GetID(user.RestaurantID)
+		restaurant, err := c.GetID(user.RestaurantIDs[0])
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to find the restaurant connected to this user", http.StatusInternalServerError)
 		}
@@ -50,7 +50,7 @@ func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.
 			return router.NewHandlerError(err, "Failed to store the restaurant in the DB", http.StatusInternalServerError)
 		}
 		var insertedRestaurant = insertedRestaurants[0]
-		user.RestaurantID = insertedRestaurant.ID
+		user.RestaurantIDs = append(user.RestaurantIDs, insertedRestaurant.ID)
 		err = users.Update(user.FacebookUserID, user)
 		if err != nil {
 			// TODO: revert the restaurant insertion we just did?
@@ -65,7 +65,7 @@ func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.
 // currently logged in user
 func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, offers db.Offers, imageStorage storage.Images) router.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
-		restaurant, err := restaurants.GetID(user.RestaurantID)
+		restaurant, err := restaurants.GetID(user.RestaurantIDs[0])
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to find the restaurant connected to this user", http.StatusInternalServerError)
 		}

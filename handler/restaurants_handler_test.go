@@ -235,8 +235,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 
 				It("should update the user to include a reference to the restaurant", func() {
 					handler(responseRecorder, request)
-
-					Expect(updatedUser.RestaurantID).To(Equal(id))
+					Expect(updatedUser.RestaurantIDs[0]).To(Equal(id))
 				})
 			})
 		})

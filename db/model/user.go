@@ -11,10 +11,10 @@ const UserCollectionName = "users"
 type (
 	// User provides the mapping to the users as represented in the DB
 	User struct {
-		ID             bson.ObjectId `json:"_id,omitempty" bson:"_id,omitempty"`
-		RestaurantID   bson.ObjectId `json:"restaurant_id,omitempty" bson:"restaurant_id,omitempty"`
-		FacebookUserID string        `json:"facebook_user_id" bson:"facebook_user_id"`
-		Session        *UserSession  `json:"session,omitempty" bson:"session,omitempty"`
+		ID             bson.ObjectId   `json:"_id,omitempty" bson:"_id,omitempty"`
+		RestaurantIDs  []bson.ObjectId `json:"restaurant_ids,omitempty" bson:"restaurant_ids,omitempty"`
+		FacebookUserID string          `json:"facebook_user_id" bson:"facebook_user_id"`
+		Session        *UserSession    `json:"session,omitempty" bson:"session,omitempty"`
 	}
 	// UserSession holds data about the current user session. Some of this data
 	// (facebook auth tokens, for example) may persist throughout multiple client

@@ -25,7 +25,7 @@ type HandlerWithUserAndOffer func(w http.ResponseWriter, r *http.Request, user *
 func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants,
 	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage storage.Images) router.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
-		restaurant, err := restaurantsCollection.GetID(user.RestaurantID)
+		restaurant, err := restaurantsCollection.GetID(user.RestaurantIDs[0])
 		if err != nil {
 			return router.NewHandlerError(err, "Couldn't find a restaurant related to this user", http.StatusInternalServerError)
 		}
@@ -67,7 +67,7 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants,
 	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage storage.Images) router.HandlerWithParams {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, currentOffer *model.Offer) *router.HandlerError {
-		restaurant, err := restaurantsCollection.GetID(user.RestaurantID)
+		restaurant, err := restaurantsCollection.GetID(user.RestaurantIDs[0])
 		if err != nil {
 			return router.NewHandlerError(err, "Couldn't find the restaurant this offer belongs to", http.StatusInternalServerError)
 		}
