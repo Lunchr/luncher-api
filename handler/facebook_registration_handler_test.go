@@ -160,6 +160,7 @@ var _ = Describe("Facebook registration handler", func() {
 					},
 					Phone:   "a_phone",
 					Website: "a_website",
+					Emails:  []string{"an_email", "other_email"},
 				}, nil)
 				params = httprouter.Params{httprouter.Param{
 					Key:   "id",
@@ -195,6 +196,7 @@ var _ = Describe("Facebook registration handler", func() {
 				Expect(result.Address).To(Equal("a_street 10, a_city, a_country"))
 				Expect(result.Phone).To(Equal("a_phone"))
 				Expect(result.Website).To(Equal("a_website"))
+				Expect(result.Email).To(Equal("an_email"))
 			})
 		})
 	})

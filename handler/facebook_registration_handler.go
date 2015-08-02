@@ -120,6 +120,7 @@ type Page struct {
 	Address string `json:"address,omitempty"`
 	Phone   string `json:"phone,omitempty"`
 	Website string `json:"website,omitempty"`
+	Email   string `json:"emails,omitempty"`
 }
 
 // mapFBPagesToModelPages only maps the ID and the Name field, because that's really
@@ -142,6 +143,7 @@ func mapFBPageToModelPage(fbPage *fbmodel.Page) *Page {
 		Address: formAddressFromFBLocation(fbPage.Location),
 		Phone:   fbPage.Phone,
 		Website: fbPage.Website,
+		Email:   fbPage.Emails[0], // There could be multiple emails, but we'll just use the first one
 	}
 }
 
