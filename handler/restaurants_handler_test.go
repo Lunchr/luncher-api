@@ -139,6 +139,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 
 				requestMethod = "POST"
 				requestData = map[string]interface{}{
+					"pageID":  "1337",
 					"name":    "A Restaurant Name",
 					"address": "Street 10, City, Country",
 					"phone":   "+372 1234567890",
@@ -229,6 +230,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 					handler(responseRecorder, request)
 
 					Expect(updatedUser.RestaurantID).To(Equal(id))
+					Expect(updatedUser.FacebookPageID).To(Equal("1337"))
 				})
 			})
 		})
