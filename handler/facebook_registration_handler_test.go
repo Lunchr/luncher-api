@@ -19,54 +19,47 @@ import (
 
 var _ = Describe("Facebook registration handler", func() {
 	var (
-		registrationAuther  *mocks.Authenticator
-		mockSessMgr         session.Manager
-		mockUsersCollection db.Users
-		handlers            Facebook
+		auther          *mocks.Authenticator
+		sessionManager  session.Manager
+		usersCollection db.Users
+		handler         router.Handler
 	)
 
 	BeforeEach(func() {
-		registrationAuther = new(mocks.Authenticator)
-		mockSessMgr = &mockSessionManager{}
-	})
-
-	JustBeforeEach(func() {
-		handlers = NewFacebook(nil, registrationAuther, mockSessMgr, mockUsersCollection)
+		auther = new(mocks.Authenticator)
+		sessionManager = &mockSessionManager{}
 	})
 
 	Describe("Login", func() {
-
 		BeforeEach(func() {
-			registrationAuther.On("AuthURL", "session").Return(testURL)
+			auther.On("AuthURL", "session").Return(testURL)
 		})
 
-		It("should redirect", func(done Done) {
-			defer close(done)
-			handlers.RedirectToFBForRegistration()(responseRecorder, request)
+		JustBeforeEach(func() {
+			handler = RedirectToFBForRegistration(sessionManager, auther)
+		})
+
+		It("should redirect", func() {
+			handler(responseRecorder, request)
 			Expect(responseRecorder.Code).To(Equal(http.StatusSeeOther))
 		})
 
-		It("should redirect to mocked URL", func(done Done) {
-			defer close(done)
-			handlers.RedirectToFBForRegistration()(responseRecorder, request)
+		It("should redirect to mocked URL", func() {
+			handler(responseRecorder, request)
 			ExpectLocationToBeMockedURL(responseRecorder, testURL)
 		})
 	})
 
 	Describe("ListPagesManagedByUser", func() {
-		var (
-			handler router.Handler
-		)
-
 		JustBeforeEach(func() {
-			handler = handlers.ListPagesManagedByUser()
+			handler = ListPagesManagedByUser(sessionManager, auther, usersCollection)
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
 			return handler(responseRecorder, request)
 		}, func(mgr session.Manager, users db.Users) {
-			mockSessMgr = mgr
-			mockUsersCollection = users
+			sessionManager = mgr
+			usersCollection = users
 		})
 
 		Context("with user logged in", func() {
@@ -74,10 +67,10 @@ var _ = Describe("Facebook registration handler", func() {
 				api *mocks.API
 			)
 			BeforeEach(func() {
-				mockSessMgr = &mockSessionManager{isSet: true, id: "correctSession"}
-				mockUsersCollection = mockUsers{}
+				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
+				usersCollection = mockUsers{}
 				api = new(mocks.API)
-				registrationAuther.On("APIConnection", mock.AnythingOfType("*oauth2.Token")).Return(api)
+				auther.On("APIConnection", mock.AnythingOfType("*oauth2.Token")).Return(api)
 				api.On("Accounts").Return(&model.Accounts{
 					Data: []model.Page{
 						model.Page{
@@ -93,18 +86,16 @@ var _ = Describe("Facebook registration handler", func() {
 			})
 
 			AfterEach(func() {
-				registrationAuther.AssertExpectations(GinkgoT())
+				auther.AssertExpectations(GinkgoT())
 				api.AssertExpectations(GinkgoT())
 			})
 
-			It("should succeed", func(done Done) {
-				defer close(done)
+			It("should succeed", func() {
 				err := handler(responseRecorder, request)
 				Expect(err).To(BeNil())
 			})
 
-			It("should return json", func(done Done) {
-				defer close(done)
+			It("should return json", func() {
 				handler(responseRecorder, request)
 				contentTypes := responseRecorder.HeaderMap["Content-Type"]
 				Expect(contentTypes).To(HaveLen(1))
@@ -113,7 +104,7 @@ var _ = Describe("Facebook registration handler", func() {
 
 			It("should respond with a list of pages returned from Facebook", func() {
 				handler(responseRecorder, request)
-				var result []*Page
+				var result []*FacebookPage
 				json.Unmarshal(responseRecorder.Body.Bytes(), &result)
 				Expect(result).To(HaveLen(2))
 				Expect(result[0].ID).To(Equal("id1"))
@@ -125,19 +116,17 @@ var _ = Describe("Facebook registration handler", func() {
 	})
 
 	Describe("GET Page", func() {
-		var (
-			handler router.HandlerWithParams
-		)
+		var handler router.HandlerWithParams
 
 		JustBeforeEach(func() {
-			handler = handlers.Page()
+			handler = Page(sessionManager, auther, usersCollection)
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
 			return handler(responseRecorder, request, nil)
 		}, func(mgr session.Manager, users db.Users) {
-			mockSessMgr = mgr
-			mockUsersCollection = users
+			sessionManager = mgr
+			usersCollection = users
 		})
 
 		Context("with user logged in", func() {
@@ -145,11 +134,12 @@ var _ = Describe("Facebook registration handler", func() {
 				api    *mocks.API
 				params httprouter.Params
 			)
+
 			BeforeEach(func() {
-				mockSessMgr = &mockSessionManager{isSet: true, id: "correctSession"}
-				mockUsersCollection = mockUsers{}
+				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
+				usersCollection = mockUsers{}
 				api = new(mocks.API)
-				registrationAuther.On("APIConnection", mock.AnythingOfType("*oauth2.Token")).Return(api)
+				auther.On("APIConnection", mock.AnythingOfType("*oauth2.Token")).Return(api)
 				api.On("Page", "a_page_id").Return(&model.Page{
 					ID:   "id1",
 					Name: "name1",
@@ -169,18 +159,16 @@ var _ = Describe("Facebook registration handler", func() {
 			})
 
 			AfterEach(func() {
-				registrationAuther.AssertExpectations(GinkgoT())
+				auther.AssertExpectations(GinkgoT())
 				api.AssertExpectations(GinkgoT())
 			})
 
-			It("should succeed", func(done Done) {
-				defer close(done)
+			It("should succeed", func() {
 				err := handler(responseRecorder, request, params)
 				Expect(err).To(BeNil())
 			})
 
-			It("should return json", func(done Done) {
-				defer close(done)
+			It("should return json", func() {
 				handler(responseRecorder, request, params)
 				contentTypes := responseRecorder.HeaderMap["Content-Type"]
 				Expect(contentTypes).To(HaveLen(1))
@@ -189,7 +177,7 @@ var _ = Describe("Facebook registration handler", func() {
 
 			It("should respond with a list of pages returned from Facebook", func() {
 				handler(responseRecorder, request, params)
-				var result *Page
+				var result *FacebookPage
 				json.Unmarshal(responseRecorder.Body.Bytes(), &result)
 				Expect(result.ID).To(Equal("id1"))
 				Expect(result.Name).To(Equal("name1"))

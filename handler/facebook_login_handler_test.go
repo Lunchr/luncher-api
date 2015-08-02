@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/Lunchr/luncher-api/db"
 	. "github.com/Lunchr/luncher-api/handler"
+	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
 	"github.com/deiwin/facebook"
 
@@ -20,31 +20,28 @@ const (
 
 var _ = Describe("FacebookHandler", func() {
 	var (
-		loginAuther         facebook.Authenticator
-		mockSessMgr         session.Manager
-		mockUsersCollection db.Users
-		handlers            Facebook
+		auther         facebook.Authenticator
+		sessionManager session.Manager
+		handler        router.Handler
 	)
 
 	BeforeEach(func() {
-		loginAuther = &mockAuthenticator{}
-		mockSessMgr = &mockSessionManager{}
+		auther = &mockAuthenticator{}
+		sessionManager = &mockSessionManager{}
 	})
 
 	JustBeforeEach(func() {
-		handlers = NewFacebook(loginAuther, nil, mockSessMgr, mockUsersCollection)
+		handler = RedirectToFBForLogin(sessionManager, auther)
 	})
 
 	Describe("Login", func() {
-		It("should redirect", func(done Done) {
-			defer close(done)
-			handlers.RedirectToFBForLogin()(responseRecorder, request)
+		It("should redirect", func() {
+			handler(responseRecorder, request)
 			Expect(responseRecorder.Code).To(Equal(http.StatusSeeOther))
 		})
 
-		It("should redirect to mocked URL", func(done Done) {
-			defer close(done)
-			handlers.RedirectToFBForLogin()(responseRecorder, request)
+		It("should redirect to mocked URL", func() {
+			handler(responseRecorder, request)
 			ExpectLocationToBeMockedURL(responseRecorder, testURL)
 		})
 	})

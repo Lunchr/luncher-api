@@ -152,6 +152,12 @@ var _ = Describe("RestaurantsHandlers", func() {
 				}
 			})
 
+			AfterEach(func() {
+				mockSessionManager.AssertExpectations(GinkgoT())
+				mockRestaurantsCollection.AssertExpectations(GinkgoT())
+				mockUsersCollection.AssertExpectations(GinkgoT())
+			})
+
 			Context("with DB inserts succeeding", func() {
 				BeforeEach(func() {
 					mockRestaurantsCollection.On("Insert", mock.AnythingOfType("[]*model.Restaurant")).Return([]*model.Restaurant{

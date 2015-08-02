@@ -46,8 +46,6 @@ func main() {
 	facebookRegistrationConfig := facebook.NewConfig(registrationRedirectURL, scopes)
 	facebookRegistrationAuthenticator := facebook.NewAuthenticator(facebookRegistrationConfig)
 
-	facebookHandler := handler.NewFacebook(facebookLoginAuthenticator, facebookRegistrationAuthenticator, sessionManager, usersCollection)
-
 	imageStorage := storage.NewImages()
 
 	r := router.NewWithPrefix("/api/v1/")
@@ -62,12 +60,12 @@ func main() {
 	r.POST("/restaurants", handler.PostRestaurants(restaurantsCollection, sessionManager, usersCollection))
 	r.GET("/restaurant/offers", handler.RestaurantOffers(restaurantsCollection, sessionManager, usersCollection, offersCollection, imageStorage))
 	r.GET("/logout", handler.Logout(sessionManager, usersCollection))
-	r.GET("/login/facebook", facebookHandler.RedirectToFBForLogin())
-	r.GET("/login/facebook/redirected", facebookHandler.RedirectedFromFBForLogin())
-	r.GET("/register/facebook", facebookHandler.RedirectToFBForRegistration())
-	r.GET("/register/facebook/redirected", facebookHandler.RedirectedFromFBForRegistration())
-	r.GET("/register/facebook/pages", facebookHandler.ListPagesManagedByUser())
-	r.GETWithParams("/register/facebook/pages/:id", facebookHandler.Page())
+	r.GET("/login/facebook", handler.RedirectToFBForLogin(sessionManager, facebookLoginAuthenticator))
+	r.GET("/login/facebook/redirected", handler.RedirectedFromFBForLogin(sessionManager, facebookLoginAuthenticator, usersCollection))
+	r.GET("/register/facebook", handler.RedirectToFBForRegistration(sessionManager, facebookRegistrationAuthenticator))
+	r.GET("/register/facebook/redirected", handler.RedirectedFromFBForRegistration(sessionManager, facebookRegistrationAuthenticator, usersCollection))
+	r.GET("/register/facebook/pages", handler.ListPagesManagedByUser(sessionManager, facebookRegistrationAuthenticator, usersCollection))
+	r.GETWithParams("/register/facebook/pages/:id", handler.Page(sessionManager, facebookRegistrationAuthenticator, usersCollection))
 
 	http.Handle("/api/v1/", r)
 	portString := fmt.Sprintf(":%d", mainConfig.Port)
