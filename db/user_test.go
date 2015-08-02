@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"golang.org/x/oauth2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 const (
@@ -19,7 +20,6 @@ var _ = Describe("User", func() {
 			user, err := usersCollection.GetFbID(facebookUserID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(user).NotTo(BeNil())
-			Expect(user.FacebookPageID).To(Equal(facebookPageID))
 		})
 
 		It("should get nothing for wrong facebook id", func(done Done) {
@@ -111,11 +111,13 @@ var _ = Describe("User", func() {
 		})
 
 		Describe("Update", func() {
-			Context("with user updated with a page id change", func() {
+			Context("with user updated with a facebook user id change", func() {
+				var newID bson.ObjectId
 				BeforeEach(func(done Done) {
 					defer close(done)
 					updatedUser := *mocks.users[0]
-					updatedUser.FacebookPageID = "bsd"
+					newID = bson.NewObjectId()
+					updatedUser.RestaurantID = newID
 					// this isn't strictly necessary, but otherwise this test seems to fail
 					// on older MongoDB versions
 					updatedUser.ID = ""
@@ -128,7 +130,7 @@ var _ = Describe("User", func() {
 					user, err := usersCollection.GetFbID(facebookUserID)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(user).NotTo(BeNil())
-					Expect(user.FacebookPageID).To(Equal("bsd"))
+					Expect(user.RestaurantID).To(Equal(newID))
 				})
 			})
 		})

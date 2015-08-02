@@ -23,7 +23,7 @@ func RedirectToFBForLogin(sessionManager session.Manager, auther facebook.Authen
 // RedirectedFromFBForLogin returns a handler that receives the user and page tokens for the
 // user who has just logged in through Facebook. Updates the user and page
 // access tokens in the DB
-func RedirectedFromFBForLogin(sessionManager session.Manager, auther facebook.Authenticator, usersCollection db.Users) router.Handler {
+func RedirectedFromFBForLogin(sessionManager session.Manager, auther facebook.Authenticator, usersCollection db.Users, restaurantsCollection db.Restaurants) router.Handler {
 	return func(w http.ResponseWriter, r *http.Request) *router.HandlerError {
 		session := sessionManager.GetOrInit(w, r)
 		tok, handlerErr := getLongTermToken(session, r, auther)
@@ -38,7 +38,7 @@ func RedirectedFromFBForLogin(sessionManager session.Manager, auther facebook.Au
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to persist Facebook login information", http.StatusInternalServerError)
 		}
-		pageID, handlerErr := getPageID(fbUserID, usersCollection)
+		pageID, handlerErr := getPageID(fbUserID, usersCollection, restaurantsCollection)
 		if handlerErr != nil {
 			return handlerErr
 		}
@@ -96,10 +96,14 @@ func getUserID(tok *oauth2.Token, auther facebook.Authenticator) (string, error)
 	return user.ID, nil
 }
 
-func getPageID(userID string, usersCollection db.Users) (string, *router.HandlerError) {
-	userInDB, err := usersCollection.GetFbID(userID)
+func getPageID(userID string, usersCollection db.Users, restaurantsCollection db.Restaurants) (string, *router.HandlerError) {
+	user, err := usersCollection.GetFbID(userID)
 	if err != nil {
 		return "", router.NewHandlerError(err, "Failed to find a user in DB related to this Facebook User ID", http.StatusInternalServerError)
 	}
-	return userInDB.FacebookPageID, nil
+	restaurant, err := restaurantsCollection.GetID(user.RestaurantID)
+	if err != nil {
+		return "", router.NewHandlerError(err, "Failed to find the restaurant in the DB", http.StatusInternalServerError)
+	}
+	return restaurant.FacebookPageID, nil
 }

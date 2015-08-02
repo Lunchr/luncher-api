@@ -41,19 +41,16 @@ func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users
 // restaurant linked to the currently logged in user
 func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.Users) router.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
-		restaurantRegistration, err := parseRestaurantRegistration(r)
+		restaurant, err := parseRestaurant(r)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to parse the restaurant", http.StatusBadRequest)
 		}
-		insertedRestaurants, err := c.Insert(&restaurantRegistration.Restaurant)
+		insertedRestaurants, err := c.Insert(restaurant)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to store the restaurant in the DB", http.StatusInternalServerError)
 		}
 		var insertedRestaurant = insertedRestaurants[0]
 		user.RestaurantID = insertedRestaurant.ID
-		if restaurantRegistration.PageID != "" {
-			user.FacebookPageID = restaurantRegistration.PageID
-		}
 		err = users.Update(user.FacebookUserID, user)
 		if err != nil {
 			// TODO: revert the restaurant insertion we just did?
@@ -89,23 +86,18 @@ func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager
 	return checkLogin(sessionManager, users, handler)
 }
 
-type RestaurantRegistration struct {
-	model.Restaurant
-	PageID string `json:"pageID,omitempty"`
-}
-
-func parseRestaurantRegistration(r *http.Request) (*RestaurantRegistration, error) {
-	var restaurantRegistration RestaurantRegistration
-	err := json.NewDecoder(r.Body).Decode(&restaurantRegistration)
+func parseRestaurant(r *http.Request) (*model.Restaurant, error) {
+	var restaurant model.Restaurant
+	err := json.NewDecoder(r.Body).Decode(&restaurant)
 	if err != nil {
 		return nil, err
 	}
 	// XXX please look away, this is a hack
-	if strings.Contains(strings.ToLower(restaurantRegistration.Restaurant.Address), "tartu") {
-		restaurantRegistration.Region = "Tartu"
+	if strings.Contains(strings.ToLower(restaurant.Address), "tartu") {
+		restaurant.Region = "Tartu"
 	} else {
-		restaurantRegistration.Region = "Tallinn"
+		restaurant.Region = "Tallinn"
 		// yup ...
 	}
-	return &restaurantRegistration, nil
+	return &restaurant, nil
 }

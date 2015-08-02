@@ -139,12 +139,12 @@ var _ = Describe("RestaurantsHandlers", func() {
 
 				requestMethod = "POST"
 				requestData = map[string]interface{}{
-					"pageID":  "1337",
-					"name":    "A Restaurant Name",
-					"address": "Street 10, City, Country",
-					"phone":   "+372 1234567890",
-					"website": "https://some.address.com/some/path",
-					"email":   "an.email@address.com",
+					"facebook_page_id": "1337",
+					"name":             "A Restaurant Name",
+					"address":          "Street 10, City, Country",
+					"phone":            "+372 1234567890",
+					"website":          "https://some.address.com/some/path",
+					"email":            "an.email@address.com",
 					"location": map[string]interface{}{
 						"type":        "Point",
 						"coordinates": []float64{12.34, 56.78},
@@ -207,6 +207,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 				It("should correctly parse and insert the restaurant", func() {
 					handler(responseRecorder, request)
 
+					Expect(insertedRestaurant.FacebookPageID).To(Equal("1337"))
 					Expect(insertedRestaurant.Name).To(Equal("A Restaurant Name"))
 					Expect(insertedRestaurant.Address).To(Equal("Street 10, City, Country"))
 					Expect(insertedRestaurant.Region).To(Equal("Tallinn"))
@@ -236,7 +237,6 @@ var _ = Describe("RestaurantsHandlers", func() {
 					handler(responseRecorder, request)
 
 					Expect(updatedUser.RestaurantID).To(Equal(id))
-					Expect(updatedUser.FacebookPageID).To(Equal("1337"))
 				})
 			})
 		})

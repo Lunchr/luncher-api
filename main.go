@@ -61,7 +61,7 @@ func main() {
 	r.GET("/restaurant/offers", handler.RestaurantOffers(restaurantsCollection, sessionManager, usersCollection, offersCollection, imageStorage))
 	r.GET("/logout", handler.Logout(sessionManager, usersCollection))
 	r.GET("/login/facebook", handler.RedirectToFBForLogin(sessionManager, facebookLoginAuthenticator))
-	r.GET("/login/facebook/redirected", handler.RedirectedFromFBForLogin(sessionManager, facebookLoginAuthenticator, usersCollection))
+	r.GET("/login/facebook/redirected", handler.RedirectedFromFBForLogin(sessionManager, facebookLoginAuthenticator, usersCollection, restaurantsCollection))
 	r.GET("/register/facebook", handler.RedirectToFBForRegistration(sessionManager, facebookRegistrationAuthenticator))
 	r.GET("/register/facebook/redirected", handler.RedirectedFromFBForRegistration(sessionManager, facebookRegistrationAuthenticator, usersCollection))
 	r.GET("/register/facebook/pages", handler.ListPagesManagedByUser(sessionManager, facebookRegistrationAuthenticator, usersCollection))

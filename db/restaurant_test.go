@@ -100,7 +100,7 @@ var _ = Describe("Restaurant", func() {
 			Expect(err).To(HaveOccurred())
 		})
 
-		Context("with arestaurant with known ID inserted", func() {
+		Context("with a restaurant with known ID inserted", func() {
 			var id bson.ObjectId
 			BeforeEach(func(done Done) {
 				defer close(done)

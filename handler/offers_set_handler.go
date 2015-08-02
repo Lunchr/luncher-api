@@ -8,12 +8,12 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/deiwin/facebook"
 	"github.com/Lunchr/luncher-api/db"
 	"github.com/Lunchr/luncher-api/db/model"
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
 	"github.com/Lunchr/luncher-api/storage"
+	"github.com/deiwin/facebook"
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -25,13 +25,13 @@ type HandlerWithUserAndOffer func(w http.ResponseWriter, r *http.Request, user *
 func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants,
 	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage storage.Images) router.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
-		var api facebook.API
-		if user.FacebookPageID != "" {
-			api = fbAuth.APIConnection(&user.Session.FacebookUserToken)
-		}
 		restaurant, err := restaurantsCollection.GetID(user.RestaurantID)
 		if err != nil {
 			return router.NewHandlerError(err, "Couldn't find a restaurant related to this user", http.StatusInternalServerError)
+		}
+		var api facebook.API
+		if restaurant.FacebookPageID != "" {
+			api = fbAuth.APIConnection(&user.Session.FacebookUserToken)
 		}
 		offer, err := parseOffer(r, restaurant)
 		if err != nil {
@@ -44,9 +44,9 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 			}
 			offer.Image = imageChecksum
 		}
-		if user.FacebookPageID != "" {
+		if restaurant.FacebookPageID != "" {
 			message := formFBOfferMessage(*offer)
-			post, err := api.PagePublish(user.Session.FacebookPageToken, user.FacebookPageID, message)
+			post, err := api.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, message)
 			if err != nil {
 				return router.NewHandlerError(err, "Failed to post the offer to Facebook", http.StatusBadGateway)
 			}
@@ -67,13 +67,13 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants,
 	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage storage.Images) router.HandlerWithParams {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, currentOffer *model.Offer) *router.HandlerError {
-		var api facebook.API
-		if user.FacebookPageID != "" {
-			api = fbAuth.APIConnection(&user.Session.FacebookUserToken)
-		}
 		restaurant, err := restaurantsCollection.GetID(user.RestaurantID)
 		if err != nil {
 			return router.NewHandlerError(err, "Couldn't find the restaurant this offer belongs to", http.StatusInternalServerError)
+		}
+		var api facebook.API
+		if restaurant.FacebookPageID != "" {
+			api = fbAuth.APIConnection(&user.Session.FacebookUserToken)
 		}
 		offer, err := parseOffer(r, restaurant)
 		if err != nil {
@@ -90,7 +90,7 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 		} else {
 			offer.Image = currentOffer.Image
 		}
-		if user.FacebookPageID != "" {
+		if restaurant.FacebookPageID != "" {
 			if currentOffer.FBPostID != "" {
 				err = api.PostDelete(user.Session.FacebookPageToken, currentOffer.FBPostID)
 				if err != nil {
@@ -98,7 +98,7 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 				}
 			}
 			message := formFBOfferMessage(*offer)
-			post, err := api.PagePublish(user.Session.FacebookPageToken, user.FacebookPageID, message)
+			post, err := api.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, message)
 			if err != nil {
 				return router.NewHandlerError(err, "Failed to post the offer to Facebook", http.StatusBadGateway)
 			}

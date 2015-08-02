@@ -121,9 +121,10 @@ func createMocks() *Mocks {
 		},
 		restaurants: []*model.Restaurant{
 			&model.Restaurant{
-				Name:    "Bulgarian Dude",
-				Address: "Võru 23, Tallinn",
-				Region:  "Tallinn",
+				FacebookPageID: "1",
+				Name:           "Bulgarian Dude",
+				Address:        "Võru 23, Tallinn",
+				Region:         "Tallinn",
 				Location: model.Location{
 					Type:        "Point",
 					Coordinates: []float64{24.74, 59.42},
@@ -131,10 +132,11 @@ func createMocks() *Mocks {
 				Phone: "+372 5678 910",
 			},
 			&model.Restaurant{
-				ID:      restaurantID,
-				Name:    "Asian Chef",
-				Address: "Võru 24, Tartu",
-				Region:  "Tartu",
+				FacebookPageID: facebookPageID,
+				ID:             restaurantID,
+				Name:           "Asian Chef",
+				Address:        "Võru 24, Tartu",
+				Region:         "Tartu",
 				Location: model.Location{
 					Type:        "Point",
 					Coordinates: []float64{26.72, 58.37},
@@ -142,9 +144,10 @@ func createMocks() *Mocks {
 				Phone: "+372 5678 910",
 			},
 			&model.Restaurant{
-				Name:    "Caesarian Kitchen",
-				Address: "Võru 25, Tartu",
-				Region:  "Tartu",
+				FacebookPageID: "3",
+				Name:           "Caesarian Kitchen",
+				Address:        "Võru 25, Tartu",
+				Region:         "Tartu",
 				Location: model.Location{
 					Type:        "Point",
 					Coordinates: []float64{26.73, 58.36},
@@ -157,12 +160,10 @@ func createMocks() *Mocks {
 				ID:             userID,
 				RestaurantID:   restaurantID,
 				FacebookUserID: facebookUserID,
-				FacebookPageID: facebookPageID,
 			},
 			&model.User{
 				RestaurantID:   restaurantID,
 				FacebookUserID: "another user",
-				FacebookPageID: facebookPageID,
 			},
 		},
 	}

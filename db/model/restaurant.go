@@ -9,14 +9,15 @@ const RestaurantCollectionName = "restaurants"
 
 type (
 	Restaurant struct {
-		ID       bson.ObjectId `json:"_id,omitempty"     bson:"_id,omitempty"`
-		Name     string        `json:"name"              bson:"name"`
-		Region   string        `json:"region"            bson:"region"`
-		Address  string        `json:"address"           bson:"address"`
-		Location Location      `json:"location"          bson:"location"`
-		Phone    string        `json:"phone,omitempty"   bson:"phone,omitempty"`
-		Email    string        `json:"email,omitempty"   bson:"email,omitempty"`
-		Website  string        `json:"website,omitempty" bson:"website,omitempty"`
+		ID             bson.ObjectId `json:"_id,omitempty"              bson:"_id,omitempty"`
+		Name           string        `json:"name"                       bson:"name"`
+		Region         string        `json:"region"                     bson:"region"`
+		Address        string        `json:"address"                    bson:"address"`
+		Location       Location      `json:"location"                   bson:"location"`
+		Phone          string        `json:"phone,omitempty"            bson:"phone,omitempty"`
+		Email          string        `json:"email,omitempty"            bson:"email,omitempty"`
+		Website        string        `json:"website,omitempty"          bson:"website,omitempty"`
+		FacebookPageID string        `json:"facebook_page_id,omitempty" bson:"facebook_page_id,omitempty"`
 	}
 
 	// Location is a (limited) representation of a GeoJSON object

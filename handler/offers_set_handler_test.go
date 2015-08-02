@@ -406,9 +406,8 @@ func (m mockUsers) GetSessionID(session string) (*model.User, error) {
 		return nil, errors.New("wrong session")
 	}
 	user := &model.User{
-		ID:             objectID,
-		FacebookPageID: "pageid",
-		RestaurantID:   "restid",
+		ID:           objectID,
+		RestaurantID: "restid",
 		Session: &model.UserSession{
 			FacebookUserToken: oauth2.Token{
 				AccessToken: "usertoken",
@@ -493,9 +492,10 @@ func (m mockOffers) GetID(id bson.ObjectId) (*model.Offer, error) {
 func (m mockRestaurants) GetID(id bson.ObjectId) (*model.Restaurant, error) {
 	Expect(id).To(Equal(bson.ObjectId("restid")))
 	restaurant := &model.Restaurant{
-		Name:    "Asian Chef",
-		Region:  "Tartu",
-		Address: "an-address",
+		FacebookPageID: "pageid",
+		Name:           "Asian Chef",
+		Region:         "Tartu",
+		Address:        "an-address",
 		Location: model.Location{
 			Type:        "Point",
 			Coordinates: []float64{26.7, 58.4},
