@@ -24,11 +24,11 @@ func (f Facebook) RedirectToFBForLogin() router.Handler {
 func (f Facebook) RedirectedFromFBForLogin() router.Handler {
 	return func(w http.ResponseWriter, r *http.Request) *router.HandlerError {
 		session := f.sessionManager.GetOrInit(w, r)
-		tok, handlerErr := f.getLongTermToken(session, r)
+		tok, handlerErr := getLongTermToken(f.loginAuth, session, r)
 		if handlerErr != nil {
 			return handlerErr
 		}
-		fbUserID, err := f.getUserID(tok)
+		fbUserID, err := getUserID(f.loginAuth, tok)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to get the user information from Facebook", http.StatusInternalServerError)
 		}
@@ -58,8 +58,8 @@ func (f Facebook) RedirectedFromFBForLogin() router.Handler {
 	}
 }
 
-func (f Facebook) getLongTermToken(session string, r *http.Request) (*oauth2.Token, *router.HandlerError) {
-	tok, err := f.loginAuth.Token(session, r)
+func getLongTermToken(auther facebook.Authenticator, session string, r *http.Request) (*oauth2.Token, *router.HandlerError) {
+	tok, err := auther.Token(session, r)
 	if err != nil {
 		if err == facebook.ErrMissingState {
 			return nil, router.NewHandlerError(err, "Expecting a 'state' value", http.StatusBadRequest)
@@ -85,8 +85,8 @@ func (f Facebook) storeAccessTokensInDB(fbUserID string, tok *oauth2.Token, sess
 	return f.usersCollection.SetSessionID(user.ID, sessionID)
 }
 
-func (f Facebook) getUserID(tok *oauth2.Token) (string, error) {
-	api := f.loginAuth.APIConnection(tok)
+func getUserID(auther facebook.Authenticator, tok *oauth2.Token) (string, error) {
+	api := auther.APIConnection(tok)
 	user, err := api.Me()
 	if err != nil {
 		return "", err

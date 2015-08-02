@@ -30,11 +30,11 @@ func (f Facebook) RedirectToFBForRegistration() router.Handler {
 func (f Facebook) RedirectedFromFBForRegistration() router.Handler {
 	return func(w http.ResponseWriter, r *http.Request) *router.HandlerError {
 		session := f.sessionManager.GetOrInit(w, r)
-		tok, handlerErr := f.getLongTermToken(session, r)
+		tok, handlerErr := getLongTermToken(f.registrationAuth, session, r)
 		if handlerErr != nil {
 			return handlerErr
 		}
-		fbUserID, err := f.getUserID(tok)
+		fbUserID, err := getUserID(f.registrationAuth, tok)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to get the user information from Facebook", http.StatusInternalServerError)
 		}
