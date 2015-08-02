@@ -6,10 +6,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/deiwin/interact"
 	"github.com/Lunchr/luncher-api/db"
 	"github.com/Lunchr/luncher-api/db/model"
 	"github.com/Lunchr/luncher-api/geo"
+	"github.com/deiwin/interact"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -28,9 +28,10 @@ func (r Restaurant) Add() {
 	address := promptOrExit(r.Actor, "Please enter the restaurant's address", checkNotEmpty)
 	regionName := promptOrExit(r.Actor, "Please enter the region you want to register the restaurant into", checkNotEmpty, checkExists)
 	phone := promptOrExit(r.Actor, "Please enter the phone number for the restaurant", checkNotEmpty)
+	fbPageID := promptOrExit(r.Actor, "Please enter the restaurant's Facebook page ID", checkNotEmpty)
 	location := r.findLocationOrExit(address, regionName)
 
-	restaurantID := r.insertRestaurantAndGetID(name, address, regionName, location, phone)
+	restaurantID := r.insertRestaurantAndGetID(name, address, regionName, location, phone, fbPageID)
 
 	fmt.Printf("Restaurant (%v) successfully added!\n", restaurantID)
 }
@@ -50,9 +51,10 @@ func (r Restaurant) Edit(idString string) {
 	address := promptOptionalOrExit(r.Actor, "Please enter the restaurant's address", restaurant.Address, checkNotEmpty)
 	regionName := promptOptionalOrExit(r.Actor, "Please enter the region you want to register the restaurant into", restaurant.Region, checkNotEmpty, checkExists)
 	phone := promptOptionalOrExit(r.Actor, "Please enter the phone number for the restaurant", restaurant.Phone, checkNotEmpty)
+	fbPageID := promptOptionalOrExit(r.Actor, "Please enter the restaurant's Facebook page ID", restaurant.FacebookPageID, checkNotEmpty)
 	location := r.findLocationOrExit(address, regionName)
 
-	r.updateRestaurant(id, name, address, regionName, location, phone)
+	r.updateRestaurant(id, name, address, regionName, location, phone, fbPageID)
 
 	fmt.Println("Restaurant successfully updated!")
 }
@@ -79,8 +81,8 @@ func (r Restaurant) Show(id string) {
 	fmt.Println(pretty(restaurant))
 }
 
-func (r Restaurant) updateRestaurant(id bson.ObjectId, name, address, region string, location geo.Location, phone string) {
-	restaurant := createRestaurant(name, address, region, location, phone)
+func (r Restaurant) updateRestaurant(id bson.ObjectId, name, address, region string, location geo.Location, phone, fbPageID string) {
+	restaurant := createRestaurant(name, address, region, location, phone, fbPageID)
 	confirmDBInsertion(r.Actor, restaurant)
 	err := r.Collection.UpdateID(id, restaurant)
 	if err != nil {
@@ -89,8 +91,8 @@ func (r Restaurant) updateRestaurant(id bson.ObjectId, name, address, region str
 	}
 }
 
-func (r Restaurant) insertRestaurantAndGetID(name, address, region string, location geo.Location, phone string) bson.ObjectId {
-	restaurant := createRestaurant(name, address, region, location, phone)
+func (r Restaurant) insertRestaurantAndGetID(name, address, region string, location geo.Location, phone, fbPageID string) bson.ObjectId {
+	restaurant := createRestaurant(name, address, region, location, phone, fbPageID)
 	confirmDBInsertion(r.Actor, restaurant)
 	insertedRestaurants, err := r.Collection.Insert(restaurant)
 	if err != nil {
@@ -101,13 +103,14 @@ func (r Restaurant) insertRestaurantAndGetID(name, address, region string, locat
 	return restaurantID
 }
 
-func createRestaurant(name, address, region string, location geo.Location, phone string) *model.Restaurant {
+func createRestaurant(name, address, region string, location geo.Location, phone, fbPageID string) *model.Restaurant {
 	return &model.Restaurant{
-		Name:     name,
-		Address:  address,
-		Region:   region,
-		Location: model.NewPoint(location),
-		Phone:    phone,
+		Name:           name,
+		Address:        address,
+		Region:         region,
+		Location:       model.NewPoint(location),
+		Phone:          phone,
+		FacebookPageID: fbPageID,
 	}
 }
 

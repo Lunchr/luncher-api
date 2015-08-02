@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/deiwin/interact"
 	"github.com/Lunchr/luncher-api/db"
 	"github.com/Lunchr/luncher-api/db/model"
+	"github.com/deiwin/interact"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -22,9 +22,8 @@ func (u User) Add() {
 	restaurantIDString := promptOrExit(u.Actor, "Please enter the restaurant's ID this user will administrate", checkNotEmpty, checkIsObjectID, checkExists)
 	restaurantID := bson.ObjectIdHex(restaurantIDString)
 	fbUserID := promptOrExit(u.Actor, "Please enter the restaurant administrator's Facebook user ID", checkNotEmpty)
-	fbPageID := promptOrExit(u.Actor, "Please enter the restaurant's Facebook page ID", checkNotEmpty)
 
-	u.insertUser(restaurantID, fbUserID, fbPageID)
+	u.insertUser(restaurantID, fbUserID)
 
 	fmt.Println("User successfully added!")
 }
@@ -38,12 +37,11 @@ func (u User) Edit(fbUserID string) {
 
 	checkExists := u.getRestaurantExistanceCheck()
 
-	restaurantIDString := promptOptionalOrExit(u.Actor, "Please enter the restaurant's ID this user will administrate", user.RestaurantID.Hex(), checkNotEmpty, checkIsObjectID, checkExists)
+	restaurantIDString := promptOptionalOrExit(u.Actor, "Please enter the restaurant's ID this user will administrate", user.RestaurantIDs[0].Hex(), checkNotEmpty, checkIsObjectID, checkExists)
 	restaurantID := bson.ObjectIdHex(restaurantIDString)
 	newFBUserID := promptOptionalOrExit(u.Actor, "Please enter the restaurant administrator's Facebook user ID", user.FacebookUserID, checkNotEmpty)
-	fbPageID := promptOptionalOrExit(u.Actor, "Please enter the restaurant's Facebook page ID", user.FacebookPageID, checkNotEmpty)
 
-	u.updateUser(fbUserID, restaurantID, newFBUserID, fbPageID)
+	u.updateUser(fbUserID, restaurantID, newFBUserID)
 
 	fmt.Println("User successfully updated!")
 }
@@ -70,8 +68,8 @@ func (u User) Show(fbUserID string) {
 	fmt.Println(pretty(user))
 }
 
-func (u User) updateUser(fbUserID string, restaurantID bson.ObjectId, newFBUserID, fbPageID string) {
-	user := createUser(restaurantID, newFBUserID, fbPageID)
+func (u User) updateUser(fbUserID string, restaurantID bson.ObjectId, newFBUserID string) {
+	user := createUser(restaurantID, newFBUserID)
 	confirmDBInsertion(u.Actor, user)
 	err := u.Collection.Update(fbUserID, user)
 	if err != nil {
@@ -80,8 +78,8 @@ func (u User) updateUser(fbUserID string, restaurantID bson.ObjectId, newFBUserI
 	}
 }
 
-func (u User) insertUser(restaurantID bson.ObjectId, fbUserID, fbPageID string) {
-	user := createUser(restaurantID, fbUserID, fbPageID)
+func (u User) insertUser(restaurantID bson.ObjectId, fbUserID string) {
+	user := createUser(restaurantID, fbUserID)
 	confirmDBInsertion(u.Actor, user)
 	err := u.Collection.Insert(user)
 	if err != nil {
@@ -90,10 +88,9 @@ func (u User) insertUser(restaurantID bson.ObjectId, fbUserID, fbPageID string) 
 	}
 }
 
-func createUser(restaurantID bson.ObjectId, fbUserID, fbPageID string) *model.User {
+func createUser(restaurantID bson.ObjectId, fbUserID string) *model.User {
 	return &model.User{
-		RestaurantID:   restaurantID,
+		RestaurantIDs:  []bson.ObjectId{restaurantID},
 		FacebookUserID: fbUserID,
-		FacebookPageID: fbPageID,
 	}
 }
