@@ -12,7 +12,7 @@ type (
 	// User provides the mapping to the users as represented in the DB
 	User struct {
 		ID             bson.ObjectId `json:"_id,omitempty" bson:"_id,omitempty"`
-		RestaurantID   bson.ObjectId `json:"restaurant_id" bson:"restaurant_id"`
+		RestaurantID   bson.ObjectId `json:"restaurant_id,omitempty" bson:"restaurant_id,omitempty"`
 		FacebookUserID string        `json:"facebook_user_id" bson:"facebook_user_id"`
 		FacebookPageID string        `json:"facebook_page_id" bson:"facebook_page_id"`
 		Session        *UserSession  `json:"session,omitempty" bson:"session,omitempty"`
