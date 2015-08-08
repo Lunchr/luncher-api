@@ -3,6 +3,7 @@ package storage
 import (
 	"path"
 
+	"github.com/Lunchr/luncher-api/db/model"
 	"github.com/deiwin/imstor"
 )
 
@@ -12,19 +13,31 @@ import (
 type Images interface {
 	ChecksumDataURL(string) (string, error)
 	StoreDataURL(string) error
-	PathForLarge(checksum string) (string, error)
+	PathsFor(checksum string) (*model.OfferImagePaths, error)
 }
 
 type images struct {
 	imstor.Storage
 }
 
+const (
+	large     = "large"
+	thumbnail = "thumbnail"
+)
+
 func NewImages() Images {
+	// We don't really care about the widths of the images, but double the height
+	// seems like a reasonable limit
 	sizes := []imstor.Size{
 		imstor.Size{
-			Name:   "large",
-			Width:  800,
+			Name:   large,
+			Width:  2 * 400,
 			Height: 400,
+		},
+		imstor.Size{
+			Name:   thumbnail,
+			Width:  2 * 60,
+			Height: 60,
 		},
 	}
 	formats := []imstor.Format{
@@ -37,8 +50,32 @@ func NewImages() Images {
 	}
 }
 
-func (i images) PathForLarge(checksum string) (string, error) {
-	return i.pathFor(checksum, "large")
+// PathsFor returns a struct holding the image paths to the various sizes of images
+// stored with the provided checksum. Returns nil for an empty checksum.
+func (i images) PathsFor(checksum string) (*model.OfferImagePaths, error) {
+	if checksum == "" {
+		return nil, nil
+	}
+	largePath, err := i.pathForLarge(checksum)
+	if err != nil {
+		return nil, err
+	}
+	thumbnailPath, err := i.pathForThumbnail(checksum)
+	if err != nil {
+		return nil, err
+	}
+	return &model.OfferImagePaths{
+		Large:     largePath,
+		Thumbnail: thumbnailPath,
+	}, nil
+}
+
+func (i images) pathForThumbnail(checksum string) (string, error) {
+	return i.pathFor(checksum, thumbnail)
+}
+
+func (i images) pathForLarge(checksum string) (string, error) {
+	return i.pathFor(checksum, large)
 }
 
 func (i images) pathFor(checksum, size string) (string, error) {

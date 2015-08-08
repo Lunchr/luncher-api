@@ -73,15 +73,11 @@ func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to find upcoming offers for this restaurant", http.StatusInternalServerError)
 		}
-		for _, offer := range offers {
-			if offer.Image != "" {
-				offer.Image, err = imageStorage.PathForLarge(offer.Image)
-				if err != nil {
-					return router.NewHandlerError(err, "Failed to find an image of an offer", http.StatusInternalServerError)
-				}
-			}
+		offerJSONs, handlerErr := mapOffersToJSON(offers, imageStorage)
+		if handlerErr != nil {
+			return handlerErr
 		}
-		return writeJSON(w, offers)
+		return writeJSON(w, offerJSONs)
 	}
 	return checkLogin(sessionManager, users, handler)
 }

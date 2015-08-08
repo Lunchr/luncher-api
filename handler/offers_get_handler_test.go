@@ -119,8 +119,10 @@ var _ = Describe("RegionOffersHandler", func() {
 				BeforeEach(func() {
 					mockResult = []*model.Offer{
 						&model.Offer{
-							Title: "sometitle",
-							Image: "image checksum",
+							CommonOfferFields: model.CommonOfferFields{
+								Title: "sometitle",
+							},
+							ImageChecksum: "image checksum",
 						},
 					}
 					offersCollection = &mockOffers{
@@ -142,11 +144,11 @@ var _ = Describe("RegionOffersHandler", func() {
 				It("should write the returned data to responsewriter", func(done Done) {
 					defer close(done)
 					handler(responseRecorder, request)
-					var result []*model.OfferWithDistance
+					var result []*model.OfferWithDistanceJSON
 					json.Unmarshal(responseRecorder.Body.Bytes(), &result)
 					Expect(result).To(HaveLen(1))
 					Expect(result[0].Title).To(Equal(mockResult[0].Title))
-					Expect(result[0].Image).To(Equal("images/a large image path"))
+					Expect(result[0].Image.Large).To(Equal("images/a large image path"))
 					Expect(result[0].Restaurant.Distance).To(BeNumerically("~", 100))
 				})
 			})
@@ -224,8 +226,10 @@ var _ = Describe("RegionOffersHandler", func() {
 				BeforeEach(func() {
 					mockResult = []*model.Offer{
 						&model.Offer{
-							Title: "sometitle",
-							Image: "image checksum",
+							CommonOfferFields: model.CommonOfferFields{
+								Title: "sometitle",
+							},
+							ImageChecksum: "image checksum",
 						},
 					}
 					offersCollection = &mockOffers{
@@ -249,11 +253,11 @@ var _ = Describe("RegionOffersHandler", func() {
 				It("should write the returned data to responsewriter", func(done Done) {
 					defer close(done)
 					handler(responseRecorder, request, params)
-					var result []*model.Offer
+					var result []*model.OfferJSON
 					json.Unmarshal(responseRecorder.Body.Bytes(), &result)
 					Expect(result).To(HaveLen(1))
 					Expect(result[0].Title).To(Equal(mockResult[0].Title))
-					Expect(result[0].Image).To(Equal("images/a large image path"))
+					Expect(result[0].Image.Large).To(Equal("images/a large image path"))
 				})
 			})
 

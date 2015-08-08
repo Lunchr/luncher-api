@@ -5,12 +5,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/bradfitz/latlong"
 	"github.com/Lunchr/luncher-api/db"
 	"github.com/Lunchr/luncher-api/db/model"
 	"github.com/Lunchr/luncher-api/geo"
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/storage"
+	"github.com/bradfitz/latlong"
 )
 
 // RegionOffers handles GET requests to /regions/:name/offers. It returns all
@@ -26,10 +26,11 @@ func RegionOffers(offersCollection db.Offers, regionsCollection db.Regions, imag
 		if err != nil {
 			return router.NewHandlerError(err, "An error occured while trying to fetch today's offers", http.StatusInternalServerError)
 		}
-		if handlerError := changeOfferImageChecksumsToPaths(offers, imageStorage); handlerError != nil {
+		offerJSONs, handlerError := mapOffersToJSON(offers, imageStorage)
+		if handlerError != nil {
 			return handlerError
 		}
-		return writeJSON(w, offers)
+		return writeJSON(w, offerJSONs)
 	}
 	return forRegion(regionsCollection, handler)
 }
@@ -56,10 +57,11 @@ func ProximalOffers(offersCollection db.Offers, imageStorage storage.Images) rou
 		if err != nil {
 			return router.NewHandlerError(err, "An error occured while trying to fetch today's offers", http.StatusInternalServerError)
 		}
-		if handlerError := changeOfferWithDistanceImageChecksumsToPaths(offers, imageStorage); handlerError != nil {
+		offerJSONs, handlerError := mapOffersWithDistanceToJSON(offers, imageStorage)
+		if handlerError != nil {
 			return handlerError
 		}
-		return writeJSON(w, offers)
+		return writeJSON(w, offerJSONs)
 	}
 }
 
@@ -70,30 +72,44 @@ func getTodaysTimeRange(timeLocation *time.Location) (startTime, endTime time.Ti
 	return startTime, endTime
 }
 
-func changeOfferWithDistanceImageChecksumsToPaths(offers []*model.OfferWithDistance, imageStorage storage.Images) *router.HandlerError {
-	var err error
-	for _, offer := range offers {
-		if offer.Image != "" {
-			offer.Image, err = imageStorage.PathForLarge(offer.Image)
-			if err != nil {
-				return router.NewHandlerError(err, "Failed to find an image for an offer", http.StatusInternalServerError)
-			}
+func mapOffersToJSON(offers []*model.Offer, imageStorage storage.Images) ([]*model.OfferJSON, *router.HandlerError) {
+	offerJSONs := make([]*model.OfferJSON, len(offers))
+	for i, offer := range offers {
+		offerJSON, err := mapOfferToJSON(offer, imageStorage)
+		if err != nil {
+			return nil, err
 		}
+		offerJSONs[i] = offerJSON
 	}
-	return nil
+	return offerJSONs, nil
 }
 
-func changeOfferImageChecksumsToPaths(offers []*model.Offer, imageStorage storage.Images) *router.HandlerError {
-	var err error
-	for _, offer := range offers {
-		if offer.Image != "" {
-			offer.Image, err = imageStorage.PathForLarge(offer.Image)
-			if err != nil {
-				return router.NewHandlerError(err, "Failed to find an image for an offer", http.StatusInternalServerError)
-			}
-		}
+func mapOfferToJSON(offer *model.Offer, imageStorage storage.Images) (*model.OfferJSON, *router.HandlerError) {
+	offerJSON, err := model.MapOfferToJSON(offer, imageStorage.PathsFor)
+	if err != nil {
+		return nil, router.NewHandlerError(err, "Failed to map offers to JSON", http.StatusInternalServerError)
 	}
-	return nil
+	return offerJSON, nil
+}
+
+func mapOffersWithDistanceToJSON(offers []*model.OfferWithDistance, imageStorage storage.Images) ([]*model.OfferWithDistanceJSON, *router.HandlerError) {
+	offerJSONs := make([]*model.OfferWithDistanceJSON, len(offers))
+	for i, offer := range offers {
+		offerJSON, err := mapOfferWithDistanceToJSON(offer, imageStorage)
+		if err != nil {
+			return nil, err
+		}
+		offerJSONs[i] = offerJSON
+	}
+	return offerJSONs, nil
+}
+
+func mapOfferWithDistanceToJSON(offer *model.OfferWithDistance, imageStorage storage.Images) (*model.OfferWithDistanceJSON, *router.HandlerError) {
+	offerJSON, err := model.MapOfferWithDistanceToJSON(offer, imageStorage.PathsFor)
+	if err != nil {
+		return nil, router.NewHandlerError(err, "Failed to map offers to JSON", http.StatusInternalServerError)
+	}
+	return offerJSON, nil
 }
 
 func getLocFromRequest(r *http.Request) (geo.Location, *router.HandlerError) {

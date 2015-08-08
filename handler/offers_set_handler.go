@@ -33,16 +33,13 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 		if restaurant.FacebookPageID != "" {
 			api = fbAuth.APIConnection(&user.Session.FacebookUserToken)
 		}
-		offer, err := parseOffer(r, restaurant)
+		offerPOST, err := parseOffer(r, restaurant)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to parse the offer", http.StatusBadRequest)
 		}
-		if offer.Image != "" {
-			imageChecksum, err := parseAndStoreImage(offer.Image, imageStorage)
-			if err != nil {
-				return router.NewHandlerError(err, "Failed to store the image", http.StatusInternalServerError)
-			}
-			offer.Image = imageChecksum
+		offer, err := model.MapOfferPOSTToOffer(offerPOST, getImageDataToChecksumMapper(imageStorage))
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to map the offer to the internal representation", http.StatusInternalServerError)
 		}
 		if restaurant.FacebookPageID != "" {
 			message := formFBOfferMessage(*offer)
@@ -75,20 +72,16 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 		if restaurant.FacebookPageID != "" {
 			api = fbAuth.APIConnection(&user.Session.FacebookUserToken)
 		}
-		offer, err := parseOffer(r, restaurant)
+		offerPOST, err := parseOffer(r, restaurant)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to parse the offer", http.StatusBadRequest)
 		}
-		if changed, err := imageChanged(currentOffer.Image, offer.Image, imageStorage); err != nil {
-			return err
-		} else if changed {
-			imageChecksum, err := parseAndStoreImage(offer.Image, imageStorage)
-			if err != nil {
-				return router.NewHandlerError(err, "Failed to store the image", http.StatusInternalServerError)
-			}
-			offer.Image = imageChecksum
-		} else {
-			offer.Image = currentOffer.Image
+		// If the image_data field isn't set, the image field of offer also doesn't get set and
+		// therefore the update won't affect the stored image. This in turn means, that currently
+		// there's no way to update the offer to remove an image.
+		offer, err := model.MapOfferPOSTToOffer(offerPOST, getImageDataToChecksumMapper(imageStorage))
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to map the offer to the internal representation", http.StatusInternalServerError)
 		}
 		if restaurant.FacebookPageID != "" {
 			if currentOffer.FBPostID != "" {
@@ -166,8 +159,8 @@ func capitalizeString(s string) string {
 	return string(unicode.ToUpper(r)) + s[n:]
 }
 
-func parseOffer(r *http.Request, restaurant *model.Restaurant) (*model.Offer, error) {
-	var offer model.Offer
+func parseOffer(r *http.Request, restaurant *model.Restaurant) (*model.OfferPOST, error) {
+	var offer model.OfferPOST
 	err := json.NewDecoder(r.Body).Decode(&offer)
 	if err != nil {
 		return nil, err
@@ -182,6 +175,15 @@ func parseOffer(r *http.Request, restaurant *model.Restaurant) (*model.Offer, er
 	return &offer, nil
 }
 
+func getImageDataToChecksumMapper(imageStorage storage.Images) func(string) (string, error) {
+	return func(imageData string) (string, error) {
+		if imageData == "" {
+			return "", nil
+		}
+		return parseAndStoreImage(imageData, imageStorage)
+	}
+}
+
 func parseAndStoreImage(imageDataURL string, imageStorage storage.Images) (string, error) {
 	imageChecksum, err := imageStorage.ChecksumDataURL(imageDataURL)
 	if err != nil {
@@ -191,15 +193,4 @@ func parseAndStoreImage(imageDataURL string, imageStorage storage.Images) (strin
 		return "", err
 	}
 	return imageChecksum, nil
-}
-
-func imageChanged(currentImage, putImage string, imageStorage storage.Images) (bool, *router.HandlerError) {
-	if currentImage == "" {
-		return putImage != "", nil
-	}
-	currentImagePath, err := imageStorage.PathForLarge(currentImage)
-	if err != nil {
-		return false, router.NewHandlerError(err, "Failed to find the current image for this offer", http.StatusInternalServerError)
-	}
-	return putImage != currentImagePath, nil
 }

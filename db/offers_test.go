@@ -19,12 +19,14 @@ var _ = Describe("Offers", func() {
 
 	var anOffer = func() *model.Offer {
 		return &model.Offer{
-			// The location is needed because otherwise the index will complain
-			Restaurant: model.OfferRestaurant{
-				Location: model.Location{
-					Type: "Point",
-					// Somewhere distant so these entries wouldn't affect $near tests
-					Coordinates: []float64{89, 89},
+			CommonOfferFields: model.CommonOfferFields{
+				Restaurant: model.OfferRestaurant{
+					// The location is needed because otherwise the index will complain
+					Location: model.Location{
+						Type: "Point",
+						// Somewhere distant so these entries wouldn't affect $near tests
+						Coordinates: []float64{89, 89},
+					},
 				},
 			},
 		}

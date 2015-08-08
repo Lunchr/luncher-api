@@ -26,58 +26,64 @@ func createMocks() *Mocks {
 		userID:       userID,
 		offers: []*model.Offer{
 			&model.Offer{
-				Restaurant: model.OfferRestaurant{
-					Name:   "Asian Chef",
-					Region: "Tartu",
-					Location: model.Location{
-						Type:        "Point",
-						Coordinates: []float64{26.72, 58.37},
+				CommonOfferFields: model.CommonOfferFields{
+					Restaurant: model.OfferRestaurant{
+						Name:   "Asian Chef",
+						Region: "Tartu",
+						Location: model.Location{
+							Type:        "Point",
+							Coordinates: []float64{26.72, 58.37},
+						},
+						Phone: "+372 5678 910",
 					},
-					Phone: "+372 5678 910",
+					Title:       "Sweet & Sour Chicken",
+					Ingredients: []string{"Kana", "aedviljad", "tsillikaste"},
+					FromTime:    parseTime("2014-11-10T09:00:00.000Z"),
+					ToTime:      parseTime("2014-11-10T11:00:00.000Z"),
+					Price:       3.4,
+					Tags:        []string{"lind"},
 				},
-				Title:       "Sweet & Sour Chicken",
-				Ingredients: []string{"Kana", "aedviljad", "tsillikaste"},
-				FromTime:    parseTime("2014-11-10T09:00:00.000Z"),
-				ToTime:      parseTime("2014-11-10T11:00:00.000Z"),
-				Price:       3.4,
-				Tags:        []string{"lind"},
-				Image:       "08446744073709551615",
+				ImageChecksum: "08446744073709551615",
 			},
 			&model.Offer{
-				Restaurant: model.OfferRestaurant{
-					Name:   "Bulgarian Dude",
-					Region: "Tallinn",
-					Location: model.Location{
-						Type:        "Point",
-						Coordinates: []float64{24.74, 59.42},
+				CommonOfferFields: model.CommonOfferFields{
+					Restaurant: model.OfferRestaurant{
+						Name:   "Bulgarian Dude",
+						Region: "Tallinn",
+						Location: model.Location{
+							Type:        "Point",
+							Coordinates: []float64{24.74, 59.42},
+						},
+						Phone: "+372 5678 910",
 					},
-					Phone: "+372 5678 910",
+					Title:       "Sweet & Sour Pork",
+					Ingredients: []string{"Seafilee", "aedviljad", "mahushapu kaste"},
+					FromTime:    parseTime("2014-11-10T09:00:00.000Z"),
+					ToTime:      parseTime("2014-11-10T12:00:00.000Z"),
+					Price:       3.3,
+					Tags:        []string{"lind"},
 				},
-				Title:       "Sweet & Sour Pork",
-				Ingredients: []string{"Seafilee", "aedviljad", "mahushapu kaste"},
-				FromTime:    parseTime("2014-11-10T09:00:00.000Z"),
-				ToTime:      parseTime("2014-11-10T12:00:00.000Z"),
-				Price:       3.3,
-				Tags:        []string{"lind"},
-				Image:       "07446744073709551615",
+				ImageChecksum: "07446744073709551615",
 			},
 			&model.Offer{
-				Restaurant: model.OfferRestaurant{
-					Name:   "Caesarian Kitchen",
-					Region: "Tartu",
-					Location: model.Location{
-						Type:        "Point",
-						Coordinates: []float64{26.73, 58.36},
+				CommonOfferFields: model.CommonOfferFields{
+					Restaurant: model.OfferRestaurant{
+						Name:   "Caesarian Kitchen",
+						Region: "Tartu",
+						Location: model.Location{
+							Type:        "Point",
+							Coordinates: []float64{26.73, 58.36},
+						},
+						Phone: "+372 5678 910",
 					},
-					Phone: "+372 5678 910",
+					Title:       "Sweet & Sour Duck",
+					Ingredients: []string{"Pardifilee", "aedviljad", "magushapu kaste"},
+					FromTime:    parseTime("2014-11-12T09:00:00.000Z"),
+					ToTime:      parseTime("2014-11-12T11:00:00.000Z"),
+					Price:       3.6,
+					Tags:        []string{"lind"},
 				},
-				Title:       "Sweet & Sour Duck",
-				Ingredients: []string{"Pardifilee", "aedviljad", "magushapu kaste"},
-				FromTime:    parseTime("2014-11-12T09:00:00.000Z"),
-				ToTime:      parseTime("2014-11-12T11:00:00.000Z"),
-				Price:       3.6,
-				Tags:        []string{"lind"},
-				Image:       "06446744073709551615",
+				ImageChecksum: "06446744073709551615",
 			},
 		},
 		tags: []*model.Tag{

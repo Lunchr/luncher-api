@@ -3,7 +3,6 @@ package handler_test
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -71,7 +70,7 @@ var _ = Describe("OffersHandler", func() {
 					"price":       123.58,
 					"from_time":   "2014-11-11T09:00:00.000Z",
 					"to_time":     "2014-11-11T11:00:00.000Z",
-					"image":       "image data url",
+					"image_data":  "image data url",
 				}
 				authenticator = &mockAuthenticator{
 					api: &mockAPI{
@@ -119,6 +118,7 @@ var _ = Describe("OffersHandler", func() {
 				json.Unmarshal(responseRecorder.Body.Bytes(), &offer)
 				Expect(offer.ID).To(Equal(objectID))
 				Expect(offer.FBPostID).To(Equal("postid"))
+				Expect(offer.ImageChecksum).To(Equal("image checksum"))
 			})
 		})
 	})
@@ -194,13 +194,18 @@ var _ = Describe("OffersHandler", func() {
 					"price":       123.58,
 					"from_time":   "2014-11-11T09:00:00.000Z",
 					"to_time":     "2014-11-11T11:00:00.000Z",
-					"image":       "images/a large image path",
+					"image": map[string]interface{}{
+						"large":     "images/a large image path",
+						"thumbnail": "images/a thumbnail path",
+					},
 				}
 				currentOffer := &model.Offer{
-					ID:       objectID,
-					Title:    "an offer title",
-					FBPostID: "fb post id",
-					Image:    "image checksum",
+					CommonOfferFields: model.CommonOfferFields{
+						ID:       objectID2,
+						Title:    "an offer title",
+						FBPostID: "fb post id",
+					},
+					ImageChecksum: "image checksum",
 				}
 				offersCollection = &mockOffers{
 					mockOffer:        currentOffer,
@@ -232,13 +237,15 @@ var _ = Describe("OffersHandler", func() {
 					"price":       123.58,
 					"from_time":   "2014-11-11T09:00:00.000Z",
 					"to_time":     "2014-11-11T11:00:00.000Z",
-					"image":       "image data url",
+					"image_data":  "image data url",
 				}
 				currentOffer := &model.Offer{
-					ID:       objectID,
-					Title:    "an offer title",
-					FBPostID: "fb post id",
-					Image:    "image checksum",
+					CommonOfferFields: model.CommonOfferFields{
+						ID:       objectID,
+						Title:    "an offer title",
+						FBPostID: "fb post id",
+					},
+					ImageChecksum: "image checksum",
 				}
 				offersCollection = &mockOffers{
 					mockOffer: currentOffer,
@@ -289,6 +296,7 @@ var _ = Describe("OffersHandler", func() {
 				json.Unmarshal(responseRecorder.Body.Bytes(), &offer)
 				Expect(offer.ID).To(Equal(objectID))
 				Expect(offer.FBPostID).To(Equal("postid"))
+				Expect(offer.ImageChecksum).To(Equal("image checksum"))
 			})
 		})
 	})
@@ -355,10 +363,12 @@ var _ = Describe("OffersHandler", func() {
 				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
 				requestMethod = "DELETE"
 				currentOffer := &model.Offer{
-					ID:       objectID,
-					Title:    "an offer title",
-					FBPostID: "fb post id",
-					Image:    "image checksum",
+					CommonOfferFields: model.CommonOfferFields{
+						ID:       objectID,
+						Title:    "an offer title",
+						FBPostID: "fb post id",
+					},
+					ImageChecksum: "image checksum",
 				}
 				offersCollection = &mockOffers{
 					mockOffer: currentOffer,
@@ -389,13 +399,13 @@ var _ = Describe("OffersHandler", func() {
 				defer close(done)
 				err := handler(responseRecorder, request, params)
 				Expect(err).To(BeNil())
-				fmt.Println(responseRecorder)
 			})
 		})
 	})
 })
 
 var objectID = bson.NewObjectId()
+var objectID2 = bson.NewObjectId()
 
 type mockUsers struct {
 	db.Users
@@ -446,14 +456,13 @@ func (m mockOffers) Insert(offers ...*model.Offer) ([]*model.Offer, error) {
 	Expect(offer.Restaurant.Phone).To(Equal("+372 5678 910"))
 	Expect(offer.FromTime).To(Equal(time.Date(2014, 11, 11, 9, 0, 0, 0, time.UTC)))
 	Expect(offer.ToTime).To(Equal(time.Date(2014, 11, 11, 11, 0, 0, 0, time.UTC)))
-	Expect(offer.Image).To(Equal("image checksum"))
+	Expect(offer.ImageChecksum).To(Equal("image checksum"))
 
 	offers[0].ID = objectID
 	return offers, nil
 }
 
 func (m mockOffers) UpdateID(id bson.ObjectId, offer *model.Offer) error {
-	Expect(id).To(Equal(objectID))
 	Expect(offer.FBPostID).To(Equal("postid"))
 	Expect(offer.Title).To(Equal("thetitle"))
 	Expect(offer.Ingredients).To(HaveLen(3))
@@ -472,7 +481,13 @@ func (m mockOffers) UpdateID(id bson.ObjectId, offer *model.Offer) error {
 	Expect(offer.Restaurant.Phone).To(Equal("+372 5678 910"))
 	Expect(offer.FromTime).To(Equal(time.Date(2014, 11, 11, 9, 0, 0, 0, time.UTC)))
 	Expect(offer.ToTime).To(Equal(time.Date(2014, 11, 11, 11, 0, 0, 0, time.UTC)))
-	Expect(offer.Image).To(Equal("image checksum"))
+	if id == objectID {
+		Expect(offer.ImageChecksum).To(Equal("image checksum"))
+	} else if id == objectID2 {
+		Expect(offer.ImageChecksum).To(Equal(""))
+	} else {
+		Fail("Unexpected id")
+	}
 	return nil
 }
 
@@ -568,7 +583,13 @@ func (m mockImageStorage) StoreDataURL(dataURL string) error {
 	return nil
 }
 
-func (m mockImageStorage) PathForLarge(checksum string) (string, error) {
+func (m mockImageStorage) PathsFor(checksum string) (*model.OfferImagePaths, error) {
+	if checksum == "" {
+		return nil, nil
+	}
 	Expect(checksum).To(Equal("image checksum"))
-	return "images/a large image path", nil
+	return &model.OfferImagePaths{
+		Large:     "images/a large image path",
+		Thumbnail: "images/thumbnail",
+	}, nil
 }

@@ -344,13 +344,13 @@ var _ = Describe("RestaurantsHandlers", func() {
 			It("should include the offers in the response", func(done Done) {
 				defer close(done)
 				handler(responseRecorder, request)
-				var result []*model.Offer
+				var result []*model.OfferJSON
 				json.Unmarshal(responseRecorder.Body.Bytes(), &result)
 				Expect(result).To(HaveLen(2))
 				Expect(result[0].Title).To(Equal("a"))
 				Expect(result[1].Title).To(Equal("b"))
-				Expect(result[0].Image).To(Equal("images/a large image path"))
-				Expect(result[1].Image).To(Equal(""))
+				Expect(result[0].Image.Large).To(Equal("images/a large image path"))
+				Expect(result[1].Image).To(BeNil())
 			})
 		})
 	})
@@ -373,11 +373,15 @@ func (c mockOffers) GetForRestaurant(restaurant string, startTime time.Time) ([]
 	Expect(startTime.Sub(time.Now())).To(BeNumerically("~", 0, time.Second))
 	return []*model.Offer{
 		&model.Offer{
-			Title: "a",
-			Image: "image checksum",
+			CommonOfferFields: model.CommonOfferFields{
+				Title: "a",
+			},
+			ImageChecksum: "image checksum",
 		},
 		&model.Offer{
-			Title: "b",
+			CommonOfferFields: model.CommonOfferFields{
+				Title: "b",
+			},
 		},
 	}, nil
 }
