@@ -41,8 +41,8 @@ type (
 
 	// OfferImagePaths holds paths to the various sizes of the offer's image
 	OfferImagePaths struct {
-		Large     string `json:"large"     bson:"large"`
-		Thumbnail string `json:"thumbnail" bson:"thumbnail"`
+		Large     string `json:"large"`
+		Thumbnail string `json:"thumbnail"`
 	}
 
 	// OfferRestaurant holds the information about the restaurant that gets included
@@ -59,21 +59,21 @@ type (
 	// This struct can be used to respond to queries about nearby offers.
 	OfferRestaurantWithDistance struct {
 		OfferRestaurant
-		Distance float64 `json:"distance" bson:"distance"`
+		Distance float64 `json:"distance"`
 	}
 
 	// OfferWithDistance wraps an offer and adds a distance field to the included
 	// restaurant struct. This struct can be used to respond to queries about nearby offers.
 	OfferWithDistance struct {
 		Offer
-		Restaurant OfferRestaurantWithDistance `json:"restaurant" bson:"restaurant"`
+		Restaurant OfferRestaurantWithDistance `json:"restaurant"`
 	}
 
 	// OfferWithDistance wraps an offer's JSON representation and adds a distance field to the included
 	// restaurant struct. This struct can be used to respond to queries about nearby offers.
 	OfferWithDistanceJSON struct {
 		OfferJSON
-		Restaurant OfferRestaurantWithDistance `json:"restaurant" bson:"restaurant"`
+		Restaurant OfferRestaurantWithDistance `json:"restaurant"`
 	}
 )
 
