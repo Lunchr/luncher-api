@@ -54,7 +54,11 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 			return router.NewHandlerError(err, "Failed to store the offer in the DB", http.StatusInternalServerError)
 		}
 
-		return writeJSON(w, offers[0])
+		offerJSON, handlerError := mapOfferToJSON(offers[0], imageStorage)
+		if handlerError != nil {
+			return handlerError
+		}
+		return writeJSON(w, offerJSON)
 	}
 	return checkLogin(sessionManager, usersCollection, handler)
 }
@@ -103,7 +107,11 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 		}
 		offer.ID = currentOffer.ID
 
-		return writeJSON(w, offer)
+		offerJSON, handlerError := mapOfferToJSON(offer, imageStorage)
+		if handlerError != nil {
+			return handlerError
+		}
+		return writeJSON(w, offerJSON)
 	}
 
 	return checkLoginWithParams(sessionManager, usersCollection, forOffer(offersCollection, handler))

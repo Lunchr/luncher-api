@@ -23,6 +23,8 @@ type (
 
 	// Offer provides the mapping to the offers as represented in the DB
 	Offer struct {
+		// The bson marshaller (unlike the json one) doesn't automatically inline
+		// embedded fields, so the inline tag has to be specified.
 		CommonOfferFields `bson:",inline"`
 		ImageChecksum     string `bson:"image_checksum,omitempty"`
 	}

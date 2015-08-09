@@ -114,11 +114,11 @@ var _ = Describe("OffersHandler", func() {
 			It("should include the offer with the new ID", func(done Done) {
 				defer close(done)
 				handler(responseRecorder, request)
-				var offer *model.Offer
+				var offer *model.OfferJSON
 				json.Unmarshal(responseRecorder.Body.Bytes(), &offer)
 				Expect(offer.ID).To(Equal(objectID))
 				Expect(offer.FBPostID).To(Equal("postid"))
-				Expect(offer.ImageChecksum).To(Equal("image checksum"))
+				Expect(offer.Image.Large).To(Equal("images/a large image path"))
 			})
 		})
 	})
@@ -292,11 +292,11 @@ var _ = Describe("OffersHandler", func() {
 			It("should include the updated offer in the response", func(done Done) {
 				defer close(done)
 				handler(responseRecorder, request, params)
-				var offer *model.Offer
+				var offer *model.OfferJSON
 				json.Unmarshal(responseRecorder.Body.Bytes(), &offer)
 				Expect(offer.ID).To(Equal(objectID))
 				Expect(offer.FBPostID).To(Equal("postid"))
-				Expect(offer.ImageChecksum).To(Equal("image checksum"))
+				Expect(offer.Image.Large).To(Equal("images/a large image path"))
 			})
 		})
 	})
