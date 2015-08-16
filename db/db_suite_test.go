@@ -10,13 +10,14 @@ import (
 )
 
 var (
-	dbClient              *db.Client
-	offersCollection      db.Offers
-	tagsCollection        db.Tags
-	regionsCollection     db.Regions
-	restaurantsCollection db.Restaurants
-	usersCollection       db.Users
-	mocks                 *Mocks
+	dbClient                  *db.Client
+	offersCollection          db.Offers
+	offerGroupPostsCollection db.OfferGroupPosts
+	tagsCollection            db.Tags
+	regionsCollection         db.Regions
+	restaurantsCollection     db.Restaurants
+	usersCollection           db.Users
+	mocks                     *Mocks
 )
 
 func TestDb(t *testing.T) {
@@ -58,6 +59,7 @@ func createClient() {
 
 func initCollections() {
 	initOffersCollection()
+	initOfferGroupPostsCollection()
 	initTagsCollection()
 	initRegionsCollection()
 	initRestaurantsCollection()
@@ -70,6 +72,10 @@ func initOffersCollection() {
 	Expect(err).NotTo(HaveOccurred())
 	_, err = insertOffers()
 	Expect(err).NotTo(HaveOccurred())
+}
+
+func initOfferGroupPostsCollection() {
+	offerGroupPostsCollection = db.NewOfferGroupPosts(dbClient)
 }
 
 func initTagsCollection() {
