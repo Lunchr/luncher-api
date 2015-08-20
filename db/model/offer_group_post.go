@@ -13,16 +13,16 @@ type (
 		ID              bson.ObjectId   `json:"_id,omitempty"        bson:"_id,omitempty"`
 		RestaurantID    bson.ObjectId   `json:"restaurant_id"        bson:"restaurant_id"`
 		MessageTemplate string          `json:"message_template"     bson:"message_template"`
-		Date            dateWithoutTime `json:"date"                 bson:"date"`
+		Date            DateWithoutTime `json:"date"                 bson:"date"`
 		FBPostID        string          `json:"fb_post_id,omitempty" bson:"fb_post_id,omitempty"`
 	}
 
-	dateWithoutTime string
+	DateWithoutTime string
 )
 
 const dateWithoutTimeLayout = "2006-01-02"
 
-func DateWithoutTime(t time.Time) dateWithoutTime {
+func DateFromTime(t time.Time) DateWithoutTime {
 	dateString := t.Format(dateWithoutTimeLayout)
-	return dateWithoutTime(dateString)
+	return DateWithoutTime(dateString)
 }

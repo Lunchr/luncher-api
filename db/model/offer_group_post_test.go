@@ -13,7 +13,7 @@ var _ = Describe("OfferGroupPost", func() {
 	Describe("DateWithoutTime", func() {
 		It("returns the date in the correct layout", func() {
 			t := time.Date(2011, time.January, 2, 0, 0, 0, 1, time.UTC)
-			result := model.DateWithoutTime(t)
+			result := model.DateFromTime(t)
 			Expect(string(result)).To(Equal("2011-01-02"))
 		})
 
@@ -21,7 +21,7 @@ var _ = Describe("OfferGroupPost", func() {
 			location, err := time.LoadLocation("Europe/Tallinn")
 			Expect(err).NotTo(HaveOccurred())
 			t := time.Date(2011, time.January, 2, 0, 0, 0, 1, location)
-			result := model.DateWithoutTime(t)
+			result := model.DateFromTime(t)
 			Expect(string(result)).To(Equal("2011-01-02"))
 		})
 	})
