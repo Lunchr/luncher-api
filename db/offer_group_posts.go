@@ -8,6 +8,8 @@ import (
 
 type OfferGroupPosts interface {
 	Insert(...*model.OfferGroupPost) ([]*model.OfferGroupPost, error)
+	UpdateByID(bson.ObjectId, *model.OfferGroupPost) error
+	GetByID(bson.ObjectId) (*model.OfferGroupPost, error)
 }
 
 type offerGroupPostCollection struct {
@@ -30,4 +32,14 @@ func (c offerGroupPostCollection) Insert(posts ...*model.OfferGroupPost) ([]*mod
 		docs[i] = post
 	}
 	return posts, c.Collection.Insert(docs...)
+}
+
+func (c offerGroupPostCollection) UpdateByID(id bson.ObjectId, post *model.OfferGroupPost) error {
+	return c.Collection.UpdateId(id, bson.M{"$set": post})
+}
+
+func (c offerGroupPostCollection) GetByID(id bson.ObjectId) (*model.OfferGroupPost, error) {
+	var post model.OfferGroupPost
+	err := c.FindId(id).One(&post)
+	return &post, err
 }

@@ -8,15 +8,14 @@ import (
 )
 
 var _ = Describe("OfferGroupPosts", func() {
+	var aPost = func() *model.OfferGroupPost {
+		return &model.OfferGroupPost{
+			RestaurantID: bson.NewObjectId(),
+		}
+	}
 
 	Describe("Insert", func() {
 		RebuildDBAfterEach()
-
-		var aPost = func() *model.OfferGroupPost {
-			return &model.OfferGroupPost{
-				RestaurantID: bson.NewObjectId(),
-			}
-		}
 
 		It("should return the posts with new IDs", func() {
 			posts, err := offerGroupPostsCollection.Insert(aPost(), aPost())
@@ -35,6 +34,35 @@ var _ = Describe("OfferGroupPosts", func() {
 			Expect(posts).To(HaveLen(2))
 			Expect(posts[0].ID).To(Equal(id))
 			Expect(posts[1].ID).NotTo(Equal(id))
+		})
+	})
+
+	Describe("UpdateByID", func() {
+		RebuildDBAfterEach()
+		It("should fail for a non-existent ID", func() {
+			err := offerGroupPostsCollection.UpdateByID(bson.NewObjectId(), aPost())
+			Expect(err).To(HaveOccurred())
+		})
+
+		Context("with an post with known ID inserted", func() {
+			var id bson.ObjectId
+			BeforeEach(func() {
+				id = bson.NewObjectId()
+				post := aPost()
+				post.ID = id
+				_, err := offerGroupPostsCollection.Insert(post)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should update the post in DB", func() {
+				post := aPost()
+				post.MessageTemplate = "an updated message"
+				err := offerGroupPostsCollection.UpdateByID(id, post)
+				Expect(err).NotTo(HaveOccurred())
+				result, err := offerGroupPostsCollection.GetByID(id)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.MessageTemplate).To(Equal("an updated message"))
+			})
 		})
 	})
 })
