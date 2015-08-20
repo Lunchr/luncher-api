@@ -26,3 +26,8 @@ func DateFromTime(t time.Time) DateWithoutTime {
 	dateString := t.Format(dateWithoutTimeLayout)
 	return DateWithoutTime(dateString)
 }
+
+func (d DateWithoutTime) IsValid() bool {
+	_, err := time.Parse(dateWithoutTimeLayout, string(d))
+	return err == nil
+}
