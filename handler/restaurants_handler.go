@@ -111,6 +111,10 @@ func parseRestaurant(r *http.Request) (*model.Restaurant, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Add default values for configurable fields
+	if restaurant.DefaultGroupPostMessageTemplate == "" {
+		restaurant.DefaultGroupPostMessageTemplate = "Tänased päevapakkumised on:"
+	}
 	// XXX please look away, this is a hack
 	if strings.Contains(strings.ToLower(restaurant.Address), "tartu") {
 		restaurant.Region = "Tartu"
