@@ -27,14 +27,10 @@ func Restaurants(restaurantsCollection db.Restaurants) router.Handler {
 // Restaurant returns a router.Handler that returns the restaurant information for the
 // restaurant linked to the currently logged in user
 func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users) router.Handler {
-	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
-		restaurant, err := c.GetID(user.RestaurantIDs[0])
-		if err != nil {
-			return router.NewHandlerError(err, "Failed to find the restaurant connected to this user", http.StatusInternalServerError)
-		}
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
 		return writeJSON(w, restaurant)
 	}
-	return checkLogin(sessionManager, users, handler)
+	return forRestaurant(sessionManager, users, c, handler)
 }
 
 // Restaurant returns a router.Handler that returns the restaurant information for the
@@ -64,11 +60,7 @@ func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.
 // RestaurantOffers returns all upcoming offers for the restaurant linked to the
 // currently logged in user
 func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, offers db.Offers, imageStorage storage.Images) router.Handler {
-	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
-		restaurant, err := restaurants.GetID(user.RestaurantIDs[0])
-		if err != nil {
-			return router.NewHandlerError(err, "Failed to find the restaurant connected to this user", http.StatusInternalServerError)
-		}
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
 		offers, err := offers.GetForRestaurant(restaurant.Name, time.Now())
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to find upcoming offers for this restaurant", http.StatusInternalServerError)
@@ -79,7 +71,20 @@ func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager
 		}
 		return writeJSON(w, offerJSONs)
 	}
-	return checkLogin(sessionManager, users, handler)
+	return forRestaurant(sessionManager, users, restaurants, handler)
+}
+
+type HandlerWithRestaurant func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError
+
+func forRestaurant(sessionManager session.Manager, users db.Users, restaurants db.Restaurants, handler HandlerWithRestaurant) router.Handler {
+	handlerWithUser := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
+		restaurant, err := restaurants.GetID(user.RestaurantIDs[0])
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to find the restaurant connected to this user", http.StatusInternalServerError)
+		}
+		return handler(w, r, user, restaurant)
+	}
+	return checkLogin(sessionManager, users, handlerWithUser)
 }
 
 func parseRestaurant(r *http.Request) (*model.Restaurant, error) {
