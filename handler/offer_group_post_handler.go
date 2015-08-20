@@ -3,6 +3,8 @@ package handler
 import (
 	"net/http"
 
+	"gopkg.in/mgo.v2"
+
 	"github.com/Lunchr/luncher-api/db"
 	"github.com/Lunchr/luncher-api/db/model"
 	"github.com/Lunchr/luncher-api/router"
@@ -15,7 +17,9 @@ func OfferGroupPost(c db.OfferGroupPosts, sessionManager session.Manager, users 
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant,
 		date model.DateWithoutTime) *router.HandlerError {
 		post, err := c.GetByDate(date, restaurant.ID)
-		if err != nil {
+		if err == mgo.ErrNotFound {
+			return router.NewHandlerError(err, "Offer group post not found", http.StatusNotFound)
+		} else if err != nil {
 			return router.NewHandlerError(err, "An error occured while trying to fetch a offer group post", http.StatusInternalServerError)
 		}
 		return writeJSON(w, post)

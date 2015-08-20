@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/mock"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -113,6 +114,19 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 				It("should fail", func() {
 					err := handler(responseRecorder, request, params)
 					Expect(err).NotTo(BeNil())
+				})
+			})
+
+			Context("with db returning a NotFound error", func() {
+				BeforeEach(func() {
+					mockPostsCollection.On("GetByDate", model.DateWithoutTime("2015-04-10"), restaurantID).Return(nil,
+						mgo.ErrNotFound)
+				})
+
+				It("should fail with 404", func() {
+					err := handler(responseRecorder, request, params)
+					Expect(err).NotTo(BeNil())
+					Expect(err.Code).To(Equal(404))
 				})
 			})
 		})
