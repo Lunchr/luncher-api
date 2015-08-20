@@ -12,7 +12,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// OfferGroupPost handles GET requests to /restaurant/post/:date. It returns all current day's offers for the region.
+// OfferGroupPost handles GET requests to /restaurant/posts/:date. It returns all current day's offers for the region.
 func OfferGroupPost(c db.OfferGroupPosts, sessionManager session.Manager, users db.Users, restaurants db.Restaurants) router.HandlerWithParams {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant,
 		date model.DateWithoutTime) *router.HandlerError {

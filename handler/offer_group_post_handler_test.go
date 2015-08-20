@@ -19,7 +19,7 @@ import (
 )
 
 var _ = Describe("OfferGroupPostHandlers", func() {
-	Describe("GET /restaurant/post/:date", func() {
+	Describe("GET /restaurant/posts/:date", func() {
 		var (
 			sessionManager        session.Manager
 			postsCollection       db.OfferGroupPosts
