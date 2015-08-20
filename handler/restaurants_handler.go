@@ -11,6 +11,7 @@ import (
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
 	"github.com/Lunchr/luncher-api/storage"
+	"github.com/julienschmidt/httprouter"
 )
 
 // Restaurants returns a list of all restaurants
@@ -74,9 +75,11 @@ func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager
 	return forRestaurant(sessionManager, users, restaurants, handler)
 }
 
-type HandlerWithRestaurant func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError
+type HandlerWithRestaurant func(w http.ResponseWriter, r *http.Request, user *model.User,
+	restaurant *model.Restaurant) *router.HandlerError
 
-func forRestaurant(sessionManager session.Manager, users db.Users, restaurants db.Restaurants, handler HandlerWithRestaurant) router.Handler {
+func forRestaurant(sessionManager session.Manager, users db.Users, restaurants db.Restaurants,
+	handler HandlerWithRestaurant) router.Handler {
 	handlerWithUser := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
 		restaurant, err := restaurants.GetID(user.RestaurantIDs[0])
 		if err != nil {
@@ -85,6 +88,21 @@ func forRestaurant(sessionManager session.Manager, users db.Users, restaurants d
 		return handler(w, r, user, restaurant)
 	}
 	return checkLogin(sessionManager, users, handlerWithUser)
+}
+
+type HandlerWithParamsWithRestaurant func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User,
+	restaurant *model.Restaurant) *router.HandlerError
+
+func forRestaurantWithParams(sessionManager session.Manager, users db.Users, restaurants db.Restaurants,
+	handler HandlerWithParamsWithRestaurant) router.HandlerWithParams {
+	handlerWithUser := func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *router.HandlerError {
+		restaurant, err := restaurants.GetID(user.RestaurantIDs[0])
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to find the restaurant connected to this user", http.StatusInternalServerError)
+		}
+		return handler(w, r, ps, user, restaurant)
+	}
+	return checkLoginWithParams(sessionManager, users, handlerWithUser)
 }
 
 func parseRestaurant(r *http.Request) (*model.Restaurant, error) {

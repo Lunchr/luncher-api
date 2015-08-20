@@ -30,6 +30,7 @@ func main() {
 	tagsCollection := db.NewTags(dbClient)
 	regionsCollection := db.NewRegions(dbClient)
 	restaurantsCollection := db.NewRestaurants(dbClient)
+	offerGroupPostsCollection := db.NewOfferGroupPosts(dbClient)
 
 	sessionManager := session.NewManager()
 	mainConfig, err := NewConfig()
@@ -59,6 +60,7 @@ func main() {
 	r.GET("/restaurant", handler.Restaurant(restaurantsCollection, sessionManager, usersCollection))
 	r.POST("/restaurants", handler.PostRestaurants(restaurantsCollection, sessionManager, usersCollection))
 	r.GET("/restaurant/offers", handler.RestaurantOffers(restaurantsCollection, sessionManager, usersCollection, offersCollection, imageStorage))
+	r.GETWithParams("/restaurant/post/:date", handler.OfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection, restaurantsCollection))
 	r.GET("/logout", handler.Logout(sessionManager, usersCollection))
 	r.GET("/login/facebook", handler.RedirectToFBForLogin(sessionManager, facebookLoginAuthenticator))
 	r.GET("/login/facebook/redirected", handler.RedirectedFromFBForLogin(sessionManager, facebookLoginAuthenticator, usersCollection, restaurantsCollection))
