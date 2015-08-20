@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"gopkg.in/mgo.v2"
@@ -27,6 +28,22 @@ func OfferGroupPost(c db.OfferGroupPosts, sessionManager session.Manager, users 
 	return forDate(sessionManager, users, restaurants, handler)
 }
 
+// PostOfferGroupPost handles POST requests to /restaurant/posts. It stores the info in the DB and updates the post in FB.
+func PostOfferGroupPost(c db.OfferGroupPosts, sessionManager session.Manager, users db.Users, restaurants db.Restaurants) router.Handler {
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
+		post, handlerErr := parseOfferGroupPost(r, restaurant)
+		if handlerErr != nil {
+			return handlerErr
+		}
+		insertedPosts, err := c.Insert(post)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to store the post in the DB", http.StatusInternalServerError)
+		}
+		return writeJSON(w, insertedPosts[0])
+	}
+	return forRestaurant(sessionManager, users, restaurants, handler)
+}
+
 type HandlerWithRestaurantAndDate func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant,
 	date model.DateWithoutTime) *router.HandlerError
 
@@ -44,4 +61,27 @@ func forDate(sessionManager session.Manager, users db.Users, restaurants db.Rest
 		return handler(w, r, user, restaurant, date)
 	}
 	return forRestaurantWithParams(sessionManager, users, restaurants, handlerWithRestaurant)
+}
+
+func parseOfferGroupPost(r *http.Request, restaurant *model.Restaurant) (*model.OfferGroupPost, *router.HandlerError) {
+	var post struct {
+		MessageTemplate string `json:"message_template"`
+		Date            string `json:"date"`
+	}
+	err := json.NewDecoder(r.Body).Decode(&post)
+	if err != nil {
+		return nil, router.NewHandlerError(err, "Failed to parse the post", http.StatusBadRequest)
+	}
+	date := model.DateWithoutTime(post.Date)
+	if date == "" {
+		return nil, router.NewStringHandlerError("Date not specified!", "Please specify a date", http.StatusBadRequest)
+	}
+	if !date.IsValid() {
+		return nil, router.NewSimpleHandlerError("Invalid date specified", http.StatusBadRequest)
+	}
+	return &model.OfferGroupPost{
+		MessageTemplate: post.MessageTemplate,
+		Date:            date,
+		RestaurantID:    restaurant.ID,
+	}, nil
 }
