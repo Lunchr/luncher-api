@@ -41,14 +41,12 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to map the offer to the internal representation", http.StatusInternalServerError)
 		}
-		if restaurant.FacebookPageID != "" {
-			message := formFBOfferMessage(*offer)
-			post, err := api.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, message)
-			if err != nil {
-				return router.NewHandlerError(err, "Failed to post the offer to Facebook", http.StatusBadGateway)
-			}
-			offer.FBPostID = post.ID
+		fbPostID, handlerErr := postOfferToFB(*offer, user, restaurant, api)
+		if handlerErr != nil {
+			return handlerErr
 		}
+		offer.FBPostID = fbPostID
+
 		offers, err := offersCollection.Insert(offer)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to store the offer in the DB", http.StatusInternalServerError)
@@ -94,12 +92,11 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 					return router.NewHandlerError(err, "Failed to delete the current post from Facebook", http.StatusBadGateway)
 				}
 			}
-			message := formFBOfferMessage(*offer)
-			post, err := api.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, message)
-			if err != nil {
-				return router.NewHandlerError(err, "Failed to post the offer to Facebook", http.StatusBadGateway)
+			fbPostID, handlerErr := postOfferToFB(*offer, user, restaurant, api)
+			if handlerErr != nil {
+				return handlerErr
 			}
-			offer.FBPostID = post.ID
+			offer.FBPostID = fbPostID
 		}
 		err = offersCollection.UpdateID(currentOffer.ID, offer)
 		if err != nil {
@@ -151,6 +148,19 @@ func forOffer(offersCollection db.Offers, handler HandlerWithUserAndOffer) Handl
 		}
 		return handler(w, r, user, offer)
 	}
+}
+
+// postOfferToFB forms a post, sends it to FB and returns the post's FB ID
+func postOfferToFB(offer model.Offer, user *model.User, restaurant *model.Restaurant, api facebook.API) (string, *router.HandlerError) {
+	if restaurant.FacebookPageID == "" {
+		return "", nil
+	}
+	message := formFBOfferMessage(offer)
+	post, err := api.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, message)
+	if err != nil {
+		return "", router.NewHandlerError(err, "Failed to post the offer to Facebook", http.StatusBadGateway)
+	}
+	return post.ID, nil
 }
 
 func formFBOfferMessage(o model.Offer) string {
