@@ -101,7 +101,7 @@ func initUsersCollection() {
 
 func createTestDbConf() (dbConfig *db.Config) {
 	dbConfig = &db.Config{
-		DbURL:  "mongodb://localhost/test",
+		DbURL:  "127.0.0.1",
 		DbName: "test",
 	}
 	return
