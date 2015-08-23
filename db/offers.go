@@ -14,6 +14,7 @@ type Offers interface {
 	GetForRegion(region string, startTime, endTime time.Time) ([]*model.Offer, error)
 	GetNear(loc geo.Location, startTime, endTime time.Time) ([]*model.OfferWithDistance, error)
 	GetForRestaurant(restaurantName string, startTime time.Time) ([]*model.Offer, error)
+	GetForRestaurantWithinTimeBounds(restaurantName string, startTime, endTime time.Time) ([]*model.Offer, error)
 	UpdateID(bson.ObjectId, *model.Offer) error
 	GetID(bson.ObjectId) (*model.Offer, error)
 	RemoveID(bson.ObjectId) error
@@ -73,6 +74,20 @@ func (c offersCollection) GetForRegion(region string, startTime, endTime time.Ti
 func (c offersCollection) GetForRestaurant(restaurantName string, startTime time.Time) ([]*model.Offer, error) {
 	var offers []*model.Offer
 	err := c.Find(bson.M{
+		"to_time": bson.M{
+			"$gte": startTime,
+		},
+		"restaurant.name": restaurantName,
+	}).All(&offers)
+	return offers, err
+}
+
+func (c offersCollection) GetForRestaurantWithinTimeBounds(restaurantName string, startTime, endTime time.Time) ([]*model.Offer, error) {
+	var offers []*model.Offer
+	err := c.Find(bson.M{
+		"from_time": bson.M{
+			"$lte": endTime,
+		},
 		"to_time": bson.M{
 			"$gte": startTime,
 		},
