@@ -43,5 +43,33 @@ var _ = Describe("OfferGroupPost", func() {
 				Expect(date.IsValid()).To(BeFalse())
 			})
 		})
+
+		Describe("TimeBounds", func() {
+			It("returns correct bounds for valid data", func() {
+				date := model.DateWithoutTime("2015-11-18")
+				startTime, endTime, err := date.TimeBounds(time.UTC)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(startTime).To(Equal(time.Date(2015, 11, 18, 0, 0, 0, 0, time.UTC)))
+				Expect(endTime).To(Equal(time.Date(2015, 11, 19, 0, 0, 0, 0, time.UTC)))
+			})
+
+			It("behaves well in different timezones", func() {
+				location, err := time.LoadLocation("America/New_York")
+				Expect(err).NotTo(HaveOccurred())
+				date := model.DateWithoutTime("2015-11-18")
+
+				startTime, endTime, err := date.TimeBounds(location)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(startTime).To(Equal(time.Date(2015, 11, 18, 0, 0, 0, 0, location)))
+				Expect(endTime).To(Equal(time.Date(2015, 11, 19, 0, 0, 0, 0, location)))
+			})
+
+			It("fails for invalid dates", func() {
+				date := model.DateWithoutTime("2015-71-18")
+				_, _, err := date.TimeBounds(time.UTC)
+				Expect(err).To(HaveOccurred())
+			})
+		})
 	})
 })

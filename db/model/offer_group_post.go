@@ -32,3 +32,12 @@ func (d DateWithoutTime) IsValid() bool {
 	_, err := time.Parse(dateWithoutTimeLayout, string(d))
 	return err == nil
 }
+
+func (d DateWithoutTime) TimeBounds(location *time.Location) (time.Time, time.Time, error) {
+	startTime, err := time.ParseInLocation(dateWithoutTimeLayout, string(d), location)
+	if err != nil {
+		return time.Time{}, time.Time{}, err
+	}
+	endTime := startTime.AddDate(0, 0, 1)
+	return startTime, endTime, nil
+}
