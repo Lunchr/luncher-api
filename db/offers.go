@@ -13,8 +13,8 @@ type Offers interface {
 	Insert(...*model.Offer) ([]*model.Offer, error)
 	GetForRegion(region string, startTime, endTime time.Time) ([]*model.Offer, error)
 	GetNear(loc geo.Location, startTime, endTime time.Time) ([]*model.OfferWithDistance, error)
-	GetForRestaurant(restaurantName string, startTime time.Time) ([]*model.Offer, error)
-	GetForRestaurantWithinTimeBounds(restaurantName string, startTime, endTime time.Time) ([]*model.Offer, error)
+	GetForRestaurant(restaurantID bson.ObjectId, startTime time.Time) ([]*model.Offer, error)
+	GetForRestaurantWithinTimeBounds(restaurantID bson.ObjectId, startTime, endTime time.Time) ([]*model.Offer, error)
 	UpdateID(bson.ObjectId, *model.Offer) error
 	GetID(bson.ObjectId) (*model.Offer, error)
 	RemoveID(bson.ObjectId) error
@@ -71,18 +71,18 @@ func (c offersCollection) GetForRegion(region string, startTime, endTime time.Ti
 	return offers, err
 }
 
-func (c offersCollection) GetForRestaurant(restaurantName string, startTime time.Time) ([]*model.Offer, error) {
+func (c offersCollection) GetForRestaurant(restaurantID bson.ObjectId, startTime time.Time) ([]*model.Offer, error) {
 	var offers []*model.Offer
 	err := c.Find(bson.M{
 		"to_time": bson.M{
 			"$gte": startTime,
 		},
-		"restaurant.name": restaurantName,
+		"restaurant.id": restaurantID,
 	}).All(&offers)
 	return offers, err
 }
 
-func (c offersCollection) GetForRestaurantWithinTimeBounds(restaurantName string, startTime, endTime time.Time) ([]*model.Offer, error) {
+func (c offersCollection) GetForRestaurantWithinTimeBounds(restaurantID bson.ObjectId, startTime, endTime time.Time) ([]*model.Offer, error) {
 	var offers []*model.Offer
 	err := c.Find(bson.M{
 		"from_time": bson.M{
@@ -91,7 +91,7 @@ func (c offersCollection) GetForRestaurantWithinTimeBounds(restaurantName string
 		"to_time": bson.M{
 			"$gte": startTime,
 		},
-		"restaurant.name": restaurantName,
+		"restaurant.id": restaurantID,
 	}).All(&offers)
 	return offers, err
 }

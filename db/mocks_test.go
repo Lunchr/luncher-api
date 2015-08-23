@@ -28,6 +28,7 @@ func createMocks() *Mocks {
 			&model.Offer{
 				CommonOfferFields: model.CommonOfferFields{
 					Restaurant: model.OfferRestaurant{
+						ID:     restaurantID,
 						Name:   "Asian Chef",
 						Region: "Tartu",
 						Location: model.Location{
