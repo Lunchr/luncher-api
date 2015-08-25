@@ -18,7 +18,6 @@ type (
 		Ingredients []string        `json:"ingredients"          bson:"ingredients"`
 		Price       float64         `json:"price"                bson:"price"`
 		Tags        []string        `json:"tags"                 bson:"tags"`
-		FBPostID    string          `json:"fb_post_id,omitempty" bson:"fb_post_id,omitempty"`
 	}
 
 	// Offer provides the mapping to the offers as represented in the DB
