@@ -2,9 +2,7 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -155,7 +153,7 @@ func postOfferToFB(offer model.Offer, user *model.User, restaurant *model.Restau
 	if restaurant.FacebookPageID == "" {
 		return "", nil
 	}
-	message := formFBOfferMessage(offer)
+	message := formFBOfferMessage(&offer)
 	post, err := api.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, message)
 	if err != nil {
 		return "", router.NewHandlerError(err, "Failed to post the offer to Facebook", http.StatusBadGateway)
@@ -163,11 +161,6 @@ func postOfferToFB(offer model.Offer, user *model.User, restaurant *model.Restau
 	return post.ID, nil
 }
 
-func formFBOfferMessage(o model.Offer) string {
-	ingredients := strings.Join(o.Ingredients, ", ")
-	capitalizedIngredients := capitalizeString(ingredients)
-	return fmt.Sprintf("%s - %s", o.Title, capitalizedIngredients)
-}
 
 func capitalizeString(s string) string {
 	if s == "" {

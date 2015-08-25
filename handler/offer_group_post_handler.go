@@ -2,7 +2,10 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
+	"time"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -11,6 +14,7 @@ import (
 	"github.com/Lunchr/luncher-api/db/model"
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
+	"github.com/deiwin/facebook"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -30,7 +34,8 @@ func OfferGroupPost(c db.OfferGroupPosts, sessionManager session.Manager, users 
 }
 
 // PostOfferGroupPost handles POST requests to /restaurant/posts. It stores the info in the DB and updates the post in FB.
-func PostOfferGroupPost(c db.OfferGroupPosts, sessionManager session.Manager, users db.Users, restaurants db.Restaurants) router.Handler {
+func PostOfferGroupPost(c db.OfferGroupPosts, sessionManager session.Manager, users db.Users, restaurants db.Restaurants,
+	offers db.Offers, regions db.Regions, fbAuth facebook.Authenticator) router.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
 		post, handlerErr := parseOfferGroupPost(r, restaurant)
 		if handlerErr != nil {
@@ -40,13 +45,18 @@ func PostOfferGroupPost(c db.OfferGroupPosts, sessionManager session.Manager, us
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to store the post in the DB", http.StatusInternalServerError)
 		}
-		return writeJSON(w, insertedPosts[0])
+		insertedPost := insertedPosts[0]
+		if handlerErr = updateGroupPost(insertedPost, user, restaurant, offers, regions, c, fbAuth); handlerErr != nil {
+			return handlerErr
+		}
+		return writeJSON(w, insertedPost)
 	}
 	return forRestaurant(sessionManager, users, restaurants, handler)
 }
 
 // PutOfferGroupPost handles PUT requests to /restaurant/posts/:date. It stores the info in the DB and updates the post in FB.
-func PutOfferGroupPost(c db.OfferGroupPosts, sessionManager session.Manager, users db.Users, restaurants db.Restaurants) router.HandlerWithParams {
+func PutOfferGroupPost(c db.OfferGroupPosts, sessionManager session.Manager, users db.Users, restaurants db.Restaurants,
+	offers db.Offers, regions db.Regions, fbAuth facebook.Authenticator) router.HandlerWithParams {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant,
 		date model.DateWithoutTime) *router.HandlerError {
 		post, handlerErr := parseOfferGroupPost(r, restaurant)
@@ -107,4 +117,89 @@ func parseOfferGroupPost(r *http.Request, restaurant *model.Restaurant) (*model.
 		Date:            date,
 		RestaurantID:    restaurant.ID,
 	}, nil
+}
+
+func updateGroupPostForDate(date model.DateWithoutTime, user *model.User, restaurant *model.Restaurant, offers db.Offers,
+	regions db.Regions, groupPosts db.OfferGroupPosts, fbAuth facebook.Authenticator) *router.HandlerError {
+	post, err := groupPosts.GetByDate(date, restaurant.ID)
+	if err == mgo.ErrNotFound {
+		postToInsert := &model.OfferGroupPost{
+			RestaurantID:    restaurant.ID,
+			Date:            date,
+			MessageTemplate: restaurant.DefaultGroupPostMessageTemplate,
+		}
+		insertedPosts, err := groupPosts.Insert(postToInsert)
+		if err != nil {
+			router.NewHandlerError(err, "Failed to create a group post with restaurant defaults", http.StatusInternalServerError)
+		}
+		post = insertedPosts[0]
+	} else if err != nil {
+		return router.NewHandlerError(err, "Failed to fetch a group post for that date", http.StatusInternalServerError)
+	}
+	return updateGroupPost(post, user, restaurant, offers, regions, groupPosts, fbAuth)
+}
+
+func updateGroupPost(post *model.OfferGroupPost, user *model.User, restaurant *model.Restaurant, offers db.Offers,
+	regions db.Regions, groupPosts db.OfferGroupPosts, fbAuth facebook.Authenticator) *router.HandlerError {
+	if restaurant.FacebookPageID == "" {
+		return nil
+	}
+	fbAPI := fbAuth.APIConnection(&user.Session.FacebookUserToken)
+	offersForDate, handlerErr := getOffersForDate(post.Date, restaurant, offers, regions)
+	if handlerErr != nil {
+		return handlerErr
+	} else if len(offersForDate) == 0 {
+		return nil
+	}
+	message := formFBMessage(post, offersForDate)
+	// Remove the current post from FB, if it's already there
+	if post.FBPostID != "" {
+		err := fbAPI.PostDelete(user.Session.FacebookPageToken, post.FBPostID)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to delete the current post from Facebook", http.StatusBadGateway)
+		}
+	}
+	// Add the new version
+	fbPost, err := fbAPI.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, message)
+	if err != nil {
+		return router.NewHandlerError(err, "Failed to post the offer to Facebook", http.StatusBadGateway)
+	}
+	post.FBPostID = fbPost.ID
+	if err = groupPosts.UpdateByID(post.ID, post); err != nil {
+		return router.NewHandlerError(err, "Failed to update a group post in the DB", http.StatusInternalServerError)
+	}
+	return nil
+}
+
+func formFBMessage(post *model.OfferGroupPost, offers []*model.Offer) string {
+	offerMessages := make([]string, len(offers))
+	for i, offer := range offers {
+		offerMessages[i] = formFBOfferMessage(offer)
+	}
+	offersMessage := strings.Join(offerMessages, "\n")
+	return fmt.Sprintf("%s\n\n%s", post.MessageTemplate, offersMessage)
+}
+
+func formFBOfferMessage(o *model.Offer) string {
+	return fmt.Sprintf("%s - %.2f€", o.Title, o.Price)
+}
+
+func getOffersForDate(date model.DateWithoutTime, restaurant *model.Restaurant, offers db.Offers, regions db.Regions) ([]*model.Offer, *router.HandlerError) {
+	region, err := regions.GetName(restaurant.Region)
+	if err != nil {
+		return nil, router.NewHandlerError(err, "Failed to find the restaurant's region", http.StatusInternalServerError)
+	}
+	location, err := time.LoadLocation(region.Location)
+	if err != nil {
+		return nil, router.NewHandlerError(err, "Failed to load region's location", http.StatusInternalServerError)
+	}
+	startTime, endTime, err := date.TimeBounds(location)
+	if err != nil {
+		return nil, router.NewHandlerError(err, "Failed to parse a date", http.StatusInternalServerError)
+	}
+	offersForDate, err := offers.GetForRestaurantWithinTimeBounds(restaurant.ID, startTime, endTime)
+	if err != nil {
+		return nil, router.NewHandlerError(err, "Failed to find offers for this date", http.StatusInternalServerError)
+	}
+	return offersForDate, nil
 }

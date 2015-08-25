@@ -61,8 +61,10 @@ func main() {
 	r.POST("/restaurants", handler.PostRestaurants(restaurantsCollection, sessionManager, usersCollection))
 	r.GET("/restaurant/offers", handler.RestaurantOffers(restaurantsCollection, sessionManager, usersCollection, offersCollection, imageStorage))
 	r.GETWithParams("/restaurant/posts/:date", handler.OfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection, restaurantsCollection))
-	r.POST("/restaurant/posts", handler.PostOfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection, restaurantsCollection))
-	r.PUT("/restaurant/posts/:date", handler.PutOfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection, restaurantsCollection))
+	r.POST("/restaurant/posts", handler.PostOfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection,
+		restaurantsCollection, offersCollection, regionsCollection, facebookLoginAuthenticator))
+	r.PUT("/restaurant/posts/:date", handler.PutOfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection,
+		restaurantsCollection, offersCollection, regionsCollection, facebookLoginAuthenticator))
 	r.GET("/logout", handler.Logout(sessionManager, usersCollection))
 	r.GET("/login/facebook", handler.RedirectToFBForLogin(sessionManager, facebookLoginAuthenticator))
 	r.GET("/login/facebook/redirected", handler.RedirectedFromFBForLogin(sessionManager, facebookLoginAuthenticator, usersCollection, restaurantsCollection))
