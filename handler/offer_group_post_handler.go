@@ -145,13 +145,6 @@ func updateGroupPost(post *model.OfferGroupPost, user *model.User, restaurant *m
 		return nil
 	}
 	fbAPI := fbAuth.APIConnection(&user.Session.FacebookUserToken)
-	offersForDate, handlerErr := getOffersForDate(post.Date, restaurant, offers, regions)
-	if handlerErr != nil {
-		return handlerErr
-	} else if len(offersForDate) == 0 {
-		return nil
-	}
-	message := formFBMessage(post, offersForDate)
 	// Remove the current post from FB, if it's already there
 	if post.FBPostID != "" {
 		err := fbAPI.PostDelete(user.Session.FacebookPageToken, post.FBPostID)
@@ -159,6 +152,13 @@ func updateGroupPost(post *model.OfferGroupPost, user *model.User, restaurant *m
 			return router.NewHandlerError(err, "Failed to delete the current post from Facebook", http.StatusBadGateway)
 		}
 	}
+	offersForDate, handlerErr := getOffersForDate(post.Date, restaurant, offers, regions)
+	if handlerErr != nil {
+		return handlerErr
+	} else if len(offersForDate) == 0 {
+		return nil
+	}
+	message := formFBMessage(post, offersForDate)
 	// Add the new version
 	fbPost, err := fbAPI.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, message)
 	if err != nil {
