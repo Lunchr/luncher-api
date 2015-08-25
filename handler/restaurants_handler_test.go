@@ -243,53 +243,71 @@ var _ = Describe("RestaurantsHandlers", func() {
 
 	Describe("GET /restaurant", func() {
 		var (
-			sessionManager            session.Manager
-			mockRestaurantsCollection db.Restaurants
-			mockUsersCollection       db.Users
-			handler                   router.Handler
+			sessionManager        session.Manager
+			restaurantsCollection db.Restaurants
+			usersCollection       db.Users
+			handler               router.Handler
 		)
 
-		BeforeEach(func() {
-			mockRestaurantsCollection = &mockRestaurants{}
-		})
-
 		JustBeforeEach(func() {
-			handler = Restaurant(mockRestaurantsCollection, sessionManager, mockUsersCollection)
+			handler = Restaurant(restaurantsCollection, sessionManager, usersCollection)
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
 			return handler(responseRecorder, request)
 		}, func(mgr session.Manager, users db.Users) {
 			sessionManager = mgr
-			mockUsersCollection = users
+			usersCollection = users
 		})
 
 		Context("with user logged in", func() {
+			var (
+				mockSessionManager        *mocks.Manager
+				mockRestaurantsCollection *mocks.Restaurants
+				mockUsersCollection       *mocks.Users
+				restaurantID              bson.ObjectId
+			)
+
 			BeforeEach(func() {
-				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
-				mockUsersCollection = mockUsers{}
+				mockSessionManager = new(mocks.Manager)
+				sessionManager = mockSessionManager
+				mockRestaurantsCollection = new(mocks.Restaurants)
+				restaurantsCollection = mockRestaurantsCollection
+				mockUsersCollection = new(mocks.Users)
+				usersCollection = mockUsersCollection
+
+				restaurantID = bson.NewObjectId()
+				restaurant := &model.Restaurant{
+					ID:   restaurantID,
+					Name: "restname",
+				}
+				user := &model.User{
+					RestaurantIDs: []bson.ObjectId{restaurant.ID},
+				}
+
+				mockSessionManager.On("Get", mock.Anything).Return("session", nil)
+				mockUsersCollection.On("GetSessionID", "session").Return(user, nil)
+				mockRestaurantsCollection.On("GetID", restaurantID).Return(restaurant, nil)
 			})
 
-			It("should succeed", func(done Done) {
-				defer close(done)
+			It("should succeed", func() {
 				err := handler(responseRecorder, request)
 				Expect(err).To(BeNil())
 			})
 
-			It("should return json", func(done Done) {
-				defer close(done)
+			It("should return json", func() {
 				handler(responseRecorder, request)
 				contentTypes := responseRecorder.HeaderMap["Content-Type"]
 				Expect(contentTypes).To(HaveLen(1))
 				Expect(contentTypes[0]).To(Equal("application/json"))
 			})
 
-			It("should include the updated offer in the response", func(done Done) {
-				defer close(done)
+			It("should include the restaurant data in the response", func() {
 				handler(responseRecorder, request)
 				var restaurant *model.Restaurant
 				json.Unmarshal(responseRecorder.Body.Bytes(), &restaurant)
-				Expect(restaurant.Name).To(Equal("Asian Chef"))
+				Expect(restaurant.ID).To(Equal(restaurantID))
+				Expect(restaurant.Name).To(Equal("restname"))
 			})
 		})
 	})
