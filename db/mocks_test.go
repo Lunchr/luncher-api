@@ -49,6 +49,7 @@ func createMocks() *Mocks {
 			&model.Offer{
 				CommonOfferFields: model.CommonOfferFields{
 					Restaurant: model.OfferRestaurant{
+						ID:     bson.NewObjectId(),
 						Name:   "Bulgarian Dude",
 						Region: "Tallinn",
 						Location: model.Location{
@@ -69,6 +70,7 @@ func createMocks() *Mocks {
 			&model.Offer{
 				CommonOfferFields: model.CommonOfferFields{
 					Restaurant: model.OfferRestaurant{
+						ID:     bson.NewObjectId(),
 						Name:   "Caesarian Kitchen",
 						Region: "Tartu",
 						Location: model.Location{

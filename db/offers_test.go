@@ -21,6 +21,7 @@ var _ = Describe("Offers", func() {
 		return &model.Offer{
 			CommonOfferFields: model.CommonOfferFields{
 				Restaurant: model.OfferRestaurant{
+					ID: bson.NewObjectId(),
 					// The location is needed because otherwise the index will complain
 					Location: model.Location{
 						Type: "Point",
