@@ -62,7 +62,7 @@ func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.
 // currently logged in user
 func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, offers db.Offers, imageStorage storage.Images) router.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
-		offers, err := offers.GetForRestaurant(restaurant.Name, time.Now())
+		offers, err := offers.GetForRestaurant(restaurant.ID, time.Now())
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to find upcoming offers for this restaurant", http.StatusInternalServerError)
 		}

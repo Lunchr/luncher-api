@@ -386,8 +386,8 @@ func (mock mockRestaurants) Get() (restaurants []*model.Restaurant, err error) {
 	return
 }
 
-func (c mockOffers) GetForRestaurant(restaurant string, startTime time.Time) ([]*model.Offer, error) {
-	Expect(restaurant).To(Equal("Asian Chef"))
+func (c mockOffers) GetForRestaurant(restaurantID bson.ObjectId, startTime time.Time) ([]*model.Offer, error) {
+	Expect(restaurantID).To(Equal(bson.ObjectId("12letrrestid")))
 	Expect(startTime.Sub(time.Now())).To(BeNumerically("~", 0, time.Second))
 	return []*model.Offer{
 		&model.Offer{

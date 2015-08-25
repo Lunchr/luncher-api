@@ -90,31 +90,27 @@ var _ = Describe("OffersHandler", func() {
 					}
 				})
 
-				It("should fail", func(done Done) {
-					defer close(done)
+				It("should fail", func() {
 					err := handler(responseRecorder, request)
 					Expect(err.Code).To(Equal(http.StatusBadGateway))
 				})
 			})
 
-			It("should succeed", func(done Done) {
-				defer close(done)
+			It("should succeed", func() {
 				err := handler(responseRecorder, request)
 				Expect(err).To(BeNil())
 			})
 
-			It("should return json", func(done Done) {
-				defer close(done)
+			It("should return json", func() {
 				handler(responseRecorder, request)
 				contentTypes := responseRecorder.HeaderMap["Content-Type"]
 				Expect(contentTypes).To(HaveLen(1))
 				Expect(contentTypes[0]).To(Equal("application/json"))
 			})
 
-			It("should include the offer with the new ID", func(done Done) {
-				defer close(done)
+			It("should include the offer with the new ID", func() {
 				handler(responseRecorder, request)
-				var offer *model.OfferJSON
+				var offer model.OfferJSON
 				json.Unmarshal(responseRecorder.Body.Bytes(), &offer)
 				Expect(offer.ID).To(Equal(objectID))
 				Expect(offer.FBPostID).To(Equal("postid"))
@@ -417,7 +413,7 @@ func (m mockUsers) GetSessionID(session string) (*model.User, error) {
 	}
 	user := &model.User{
 		ID:            objectID,
-		RestaurantIDs: []bson.ObjectId{"restid"},
+		RestaurantIDs: []bson.ObjectId{"12letrrestid"},
 		Session: &model.UserSession{
 			FacebookUserToken: oauth2.Token{
 				AccessToken: "usertoken",
@@ -448,6 +444,7 @@ func (m mockOffers) Insert(offers ...*model.Offer) ([]*model.Offer, error) {
 	Expect(offer.Tags).To(ContainElement("tag1"))
 	Expect(offer.Tags).To(ContainElement("tag2"))
 	Expect(offer.Price).To(BeNumerically("~", 123.58))
+	Expect(offer.Restaurant.ID).To(Equal(bson.ObjectId("12letrrestid")))
 	Expect(offer.Restaurant.Name).To(Equal("Asian Chef"))
 	Expect(offer.Restaurant.Region).To(Equal("Tartu"))
 	Expect(offer.Restaurant.Address).To(Equal("an-address"))
@@ -473,6 +470,7 @@ func (m mockOffers) UpdateID(id bson.ObjectId, offer *model.Offer) error {
 	Expect(offer.Tags).To(ContainElement("tag1"))
 	Expect(offer.Tags).To(ContainElement("tag2"))
 	Expect(offer.Price).To(BeNumerically("~", 123.58))
+	Expect(offer.Restaurant.ID).To(Equal(bson.ObjectId("12letrrestid")))
 	Expect(offer.Restaurant.Name).To(Equal("Asian Chef"))
 	Expect(offer.Restaurant.Region).To(Equal("Tartu"))
 	Expect(offer.Restaurant.Address).To(Equal("an-address"))
@@ -505,8 +503,9 @@ func (m mockOffers) GetID(id bson.ObjectId) (*model.Offer, error) {
 }
 
 func (m mockRestaurants) GetID(id bson.ObjectId) (*model.Restaurant, error) {
-	Expect(id).To(Equal(bson.ObjectId("restid")))
+	Expect(id).To(Equal(bson.ObjectId("12letrrestid")))
 	restaurant := &model.Restaurant{
+		ID:             id,
 		FacebookPageID: "pageid",
 		Name:           "Asian Chef",
 		Region:         "Tartu",
