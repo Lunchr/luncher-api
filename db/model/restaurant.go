@@ -18,6 +18,8 @@ type (
 		Email          string        `json:"email,omitempty"            bson:"email,omitempty"`
 		Website        string        `json:"website,omitempty"          bson:"website,omitempty"`
 		FacebookPageID string        `json:"facebook_page_id,omitempty" bson:"facebook_page_id,omitempty"`
+
+		DefaultGroupPostMessageTemplate string `json:"default_group_post_message_template" bson:"default_group_post_message_template"`
 	}
 
 	// Location is a (limited) representation of a GeoJSON object

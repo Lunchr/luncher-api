@@ -21,6 +21,7 @@ var _ = Describe("Offers", func() {
 		return &model.Offer{
 			CommonOfferFields: model.CommonOfferFields{
 				Restaurant: model.OfferRestaurant{
+					ID: bson.NewObjectId(),
 					// The location is needed because otherwise the index will complain
 					Location: model.Location{
 						Type: "Point",
@@ -141,6 +142,7 @@ var _ = Describe("Offers", func() {
 				}
 			}
 		)
+
 		Describe("time range", func() {
 			BeforeEach(func(done Done) {
 				defer close(done)
@@ -368,14 +370,14 @@ var _ = Describe("Offers", func() {
 	Describe("GetForRestaurant", func() {
 		var (
 			startTime      time.Time
-			restaurant     string
+			restaurantID   bson.ObjectId
 			offerStartTime = time.Date(2014, 11, 10, 9, 0, 0, 0, time.UTC)
 			offerEndTime   = time.Date(2014, 11, 10, 11, 0, 0, 0, time.UTC)
 		)
 
 		Context("with an existing restaurant", func() {
 			BeforeEach(func() {
-				restaurant = "Asian Chef"
+				restaurantID = mocks.restaurantID
 			})
 
 			Context("with time right before an offer", func() {
@@ -384,7 +386,7 @@ var _ = Describe("Offers", func() {
 				})
 
 				It("should include the offer", func() {
-					offers, err := offersCollection.GetForRestaurant(restaurant, startTime)
+					offers, err := offersCollection.GetForRestaurant(restaurantID, startTime)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(offers).To(HaveLen(1))
 					Expect(offers).To(ContainOfferMock(0))
@@ -397,7 +399,7 @@ var _ = Describe("Offers", func() {
 				})
 
 				It("should include the offer", func() {
-					offers, err := offersCollection.GetForRestaurant(restaurant, startTime)
+					offers, err := offersCollection.GetForRestaurant(restaurantID, startTime)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(offers).To(HaveLen(1))
 					Expect(offers).To(ContainOfferMock(0))
@@ -409,7 +411,7 @@ var _ = Describe("Offers", func() {
 				})
 
 				It("should NOT include the offer", func() {
-					offers, err := offersCollection.GetForRestaurant(restaurant, startTime)
+					offers, err := offersCollection.GetForRestaurant(restaurantID, startTime)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(offers).To(HaveLen(0))
 				})
@@ -418,12 +420,46 @@ var _ = Describe("Offers", func() {
 
 		Context("with a non-existing restaurant", func() {
 			BeforeEach(func() {
-				restaurant = "something random"
+				restaurantID = bson.ObjectId("somethingrnd")
 				startTime = offerStartTime.Add(-24 * 10 * time.Hour)
 			})
 
 			It("should NOT include the offer", func() {
-				offers, err := offersCollection.GetForRestaurant(restaurant, startTime)
+				offers, err := offersCollection.GetForRestaurant(restaurantID, startTime)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(offers).To(HaveLen(0))
+			})
+		})
+	})
+
+	Describe("GetForRestaurantWithinTimeBounds", func() {
+		var (
+			startTime      time.Time
+			endTime        time.Time
+			restaurantID   bson.ObjectId
+			offerStartTime = time.Date(2014, 11, 10, 9, 0, 0, 0, time.UTC)
+			offerEndTime   = time.Date(2014, 11, 10, 11, 0, 0, 0, time.UTC)
+		)
+
+		Context("with an existing restaurant", func() {
+			BeforeEach(func() {
+				restaurantID = mocks.restaurantID
+			})
+
+			ItHandlesStartAndEndTime(func(startTime, endTime time.Time) ([]*model.Offer, error) {
+				return offersCollection.GetForRestaurantWithinTimeBounds(restaurantID, startTime, endTime)
+			})
+		})
+
+		Context("with a non-existing restaurant", func() {
+			BeforeEach(func() {
+				restaurantID = bson.ObjectId("somethingrnd")
+				startTime = offerStartTime.Add(-24 * 10 * time.Hour)
+				endTime = offerEndTime.Add(10 * time.Hour)
+			})
+
+			It("should NOT include the offer", func() {
+				offers, err := offersCollection.GetForRestaurantWithinTimeBounds(restaurantID, startTime, endTime)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(offers).To(HaveLen(0))
 			})

@@ -18,7 +18,6 @@ type (
 		Ingredients []string        `json:"ingredients"          bson:"ingredients"`
 		Price       float64         `json:"price"                bson:"price"`
 		Tags        []string        `json:"tags"                 bson:"tags"`
-		FBPostID    string          `json:"fb_post_id,omitempty" bson:"fb_post_id,omitempty"`
 	}
 
 	// Offer provides the mapping to the offers as represented in the DB
@@ -50,11 +49,12 @@ type (
 	// OfferRestaurant holds the information about the restaurant that gets included
 	// in every offer
 	OfferRestaurant struct {
-		Name     string   `json:"name"     bson:"name"`
-		Region   string   `json:"region"   bson:"region"`
-		Address  string   `json:"address"  bson:"address"`
-		Location Location `json:"location" bson:"location"`
-		Phone    string   `json:"phone"    bson:"phone"`
+		ID       bson.ObjectId `json:"id"       bson:"id"`
+		Name     string        `json:"name"     bson:"name"`
+		Region   string        `json:"region"   bson:"region"`
+		Address  string        `json:"address"  bson:"address"`
+		Location Location      `json:"location" bson:"location"`
+		Phone    string        `json:"phone"    bson:"phone"`
 	}
 
 	// OfferRestaurantWithDistance wraps an OfferRestaurant and adds a distance field.

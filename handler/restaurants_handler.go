@@ -11,6 +11,7 @@ import (
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
 	"github.com/Lunchr/luncher-api/storage"
+	"github.com/julienschmidt/httprouter"
 )
 
 // Restaurants returns a list of all restaurants
@@ -27,14 +28,10 @@ func Restaurants(restaurantsCollection db.Restaurants) router.Handler {
 // Restaurant returns a router.Handler that returns the restaurant information for the
 // restaurant linked to the currently logged in user
 func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users) router.Handler {
-	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
-		restaurant, err := c.GetID(user.RestaurantIDs[0])
-		if err != nil {
-			return router.NewHandlerError(err, "Failed to find the restaurant connected to this user", http.StatusInternalServerError)
-		}
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
 		return writeJSON(w, restaurant)
 	}
-	return checkLogin(sessionManager, users, handler)
+	return forRestaurant(sessionManager, users, c, handler)
 }
 
 // Restaurant returns a router.Handler that returns the restaurant information for the
@@ -53,7 +50,7 @@ func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.
 		user.RestaurantIDs = append(user.RestaurantIDs, insertedRestaurant.ID)
 		err = users.Update(user.FacebookUserID, user)
 		if err != nil {
-			// TODO: revert the restaurant insertion we just did?
+			// TODO: revert the restaurant insertion we just did? Look into mgo's txn package
 			return router.NewHandlerError(err, "Failed to store the restaurant in the DB", http.StatusInternalServerError)
 		}
 		return writeJSON(w, insertedRestaurant)
@@ -64,12 +61,8 @@ func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.
 // RestaurantOffers returns all upcoming offers for the restaurant linked to the
 // currently logged in user
 func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, offers db.Offers, imageStorage storage.Images) router.Handler {
-	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
-		restaurant, err := restaurants.GetID(user.RestaurantIDs[0])
-		if err != nil {
-			return router.NewHandlerError(err, "Failed to find the restaurant connected to this user", http.StatusInternalServerError)
-		}
-		offers, err := offers.GetForRestaurant(restaurant.Name, time.Now())
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
+		offers, err := offers.GetForRestaurant(restaurant.ID, time.Now())
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to find upcoming offers for this restaurant", http.StatusInternalServerError)
 		}
@@ -79,7 +72,37 @@ func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager
 		}
 		return writeJSON(w, offerJSONs)
 	}
-	return checkLogin(sessionManager, users, handler)
+	return forRestaurant(sessionManager, users, restaurants, handler)
+}
+
+type HandlerWithRestaurant func(w http.ResponseWriter, r *http.Request, user *model.User,
+	restaurant *model.Restaurant) *router.HandlerError
+
+func forRestaurant(sessionManager session.Manager, users db.Users, restaurants db.Restaurants,
+	handler HandlerWithRestaurant) router.Handler {
+	handlerWithUser := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
+		restaurant, err := restaurants.GetID(user.RestaurantIDs[0])
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to find the restaurant connected to this user", http.StatusInternalServerError)
+		}
+		return handler(w, r, user, restaurant)
+	}
+	return checkLogin(sessionManager, users, handlerWithUser)
+}
+
+type HandlerWithParamsWithRestaurant func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User,
+	restaurant *model.Restaurant) *router.HandlerError
+
+func forRestaurantWithParams(sessionManager session.Manager, users db.Users, restaurants db.Restaurants,
+	handler HandlerWithParamsWithRestaurant) router.HandlerWithParams {
+	handlerWithUser := func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *router.HandlerError {
+		restaurant, err := restaurants.GetID(user.RestaurantIDs[0])
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to find the restaurant connected to this user", http.StatusInternalServerError)
+		}
+		return handler(w, r, ps, user, restaurant)
+	}
+	return checkLoginWithParams(sessionManager, users, handlerWithUser)
 }
 
 func parseRestaurant(r *http.Request) (*model.Restaurant, error) {
@@ -87,6 +110,10 @@ func parseRestaurant(r *http.Request) (*model.Restaurant, error) {
 	err := json.NewDecoder(r.Body).Decode(&restaurant)
 	if err != nil {
 		return nil, err
+	}
+	// Add default values for configurable fields
+	if restaurant.DefaultGroupPostMessageTemplate == "" {
+		restaurant.DefaultGroupPostMessageTemplate = "Tänased päevapakkumised on:"
 	}
 	// XXX please look away, this is a hack
 	if strings.Contains(strings.ToLower(restaurant.Address), "tartu") {

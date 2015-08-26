@@ -10,13 +10,14 @@ import (
 )
 
 var (
-	dbClient              *db.Client
-	offersCollection      db.Offers
-	tagsCollection        db.Tags
-	regionsCollection     db.Regions
-	restaurantsCollection db.Restaurants
-	usersCollection       db.Users
-	mocks                 *Mocks
+	dbClient                  *db.Client
+	offersCollection          db.Offers
+	offerGroupPostsCollection db.OfferGroupPosts
+	tagsCollection            db.Tags
+	regionsCollection         db.Regions
+	restaurantsCollection     db.Restaurants
+	usersCollection           db.Users
+	mocks                     *Mocks
 )
 
 func TestDb(t *testing.T) {
@@ -24,8 +25,7 @@ func TestDb(t *testing.T) {
 	RunSpecs(t, "Db Suite")
 }
 
-var _ = BeforeSuite(func(done Done) {
-	defer close(done)
+var _ = BeforeSuite(func() {
 	mocks = createMocks()
 	createClient()
 	wipeDb()
@@ -35,14 +35,12 @@ var _ = BeforeSuite(func(done Done) {
 // RebuildDBAfterEach can be used on tests or test blocks that mess up the data
 // in the DB. Most commonly inserts and updates
 var RebuildDBAfterEach = func() {
-	AfterEach(func(done Done) {
-		defer close(done)
+	AfterEach(func() {
 		wipeDb()
 		initCollections()
 	})
 }
-var _ = AfterSuite(func(done Done) {
-	defer close(done)
+var _ = AfterSuite(func() {
 	wipeDb()
 	dbClient.Disconnect()
 })
@@ -58,6 +56,7 @@ func createClient() {
 
 func initCollections() {
 	initOffersCollection()
+	initOfferGroupPostsCollection()
 	initTagsCollection()
 	initRegionsCollection()
 	initRestaurantsCollection()
@@ -70,6 +69,10 @@ func initOffersCollection() {
 	Expect(err).NotTo(HaveOccurred())
 	_, err = insertOffers()
 	Expect(err).NotTo(HaveOccurred())
+}
+
+func initOfferGroupPostsCollection() {
+	offerGroupPostsCollection = db.NewOfferGroupPosts(dbClient)
 }
 
 func initTagsCollection() {
@@ -98,7 +101,7 @@ func initUsersCollection() {
 
 func createTestDbConf() (dbConfig *db.Config) {
 	dbConfig = &db.Config{
-		DbURL:  "mongodb://localhost/test",
+		DbURL:  "127.0.0.1",
 		DbName: "test",
 	}
 	return
