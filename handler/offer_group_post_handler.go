@@ -181,6 +181,7 @@ func formFBMessage(post *model.OfferGroupPost, offers []*model.Offer) string {
 }
 
 func formFBOfferMessage(o *model.Offer) string {
+	// TODO get rid of the hard-coded €
 	return fmt.Sprintf("%s - %.2f€", o.Title, o.Price)
 }
 
