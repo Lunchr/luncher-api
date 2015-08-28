@@ -11,8 +11,8 @@ import (
 	"github.com/Lunchr/luncher-api/db/model"
 	"github.com/Lunchr/luncher-api/geo"
 	. "github.com/Lunchr/luncher-api/handler"
+	"github.com/Lunchr/luncher-api/handler/mocks"
 	"github.com/Lunchr/luncher-api/router"
-	"github.com/Lunchr/luncher-api/storage"
 	"github.com/julienschmidt/httprouter"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -22,12 +22,17 @@ var _ = Describe("RegionOffersHandler", func() {
 
 	var (
 		offersCollection db.Offers
-		imageStorage     storage.Images
+		imageStorage     *mocks.Images
 	)
 
 	BeforeEach(func() {
 		offersCollection = &mockOffers{}
-		imageStorage = mockImageStorage{}
+		imageStorage = new(mocks.Images)
+		imageStorage.On("PathsFor", "image checksum").Return(&model.OfferImagePaths{
+			Large:     "images/a large image path",
+			Thumbnail: "images/thumbnail",
+		}, nil)
+		imageStorage.On("PathsFor", "").Return(nil, nil)
 	})
 
 	Describe("ProximalOffers", func() {

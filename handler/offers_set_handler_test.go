@@ -12,7 +12,6 @@ import (
 	"github.com/Lunchr/luncher-api/handler/mocks"
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
-	"github.com/Lunchr/luncher-api/storage"
 	"github.com/deiwin/facebook"
 	"github.com/julienschmidt/httprouter"
 	"golang.org/x/oauth2"
@@ -26,10 +25,19 @@ var _ = Describe("OffersHandler", func() {
 
 	var (
 		offersCollection db.Offers
+		imageStorage     *mocks.Images
 	)
 
 	BeforeEach(func() {
 		offersCollection = &mockOffers{}
+		imageStorage = new(mocks.Images)
+		imageStorage.On("ChecksumDataURL", "image data url").Return("image checksum", nil)
+		imageStorage.On("HasChecksum", "image checksum").Return(false, nil)
+		imageStorage.On("StoreDataURL", "image data url").Return(nil)
+		imageStorage.On("PathsFor", "image checksum").Return(&model.OfferImagePaths{
+			Large:     "images/a large image path",
+			Thumbnail: "images/thumbnail",
+		}, nil)
 	})
 
 	Describe("PostOffers", func() {
@@ -39,7 +47,6 @@ var _ = Describe("OffersHandler", func() {
 			handler               router.Handler
 			authenticator         facebook.Authenticator
 			sessionManager        session.Manager
-			imageStorage          storage.Images
 			regionsCollection     db.Regions
 			postsCollection       *mocks.OfferGroupPosts
 		)
@@ -83,7 +90,6 @@ var _ = Describe("OffersHandler", func() {
 						message: "thetitle - Ingredient1, ingredient2, ingredient3",
 					},
 				}
-				imageStorage = mockImageStorage{}
 			})
 
 			It("should succeed", func() {
@@ -115,7 +121,6 @@ var _ = Describe("OffersHandler", func() {
 			handler               router.HandlerWithParams
 			authenticator         facebook.Authenticator
 			sessionManager        session.Manager
-			imageStorage          storage.Images
 			regionsCollection     db.Regions
 			postsCollection       *mocks.OfferGroupPosts
 			params                httprouter.Params
@@ -205,7 +210,7 @@ var _ = Describe("OffersHandler", func() {
 						message: "thetitle - Ingredient1, ingredient2, ingredient3",
 					},
 				}
-				imageStorage = mockImageStorage{}
+				imageStorage.On("PathsFor", "").Return(&model.OfferImagePaths{}, nil)
 			})
 
 			It("should succeed", func(done Done) {
@@ -243,7 +248,6 @@ var _ = Describe("OffersHandler", func() {
 						message: "thetitle - Ingredient1, ingredient2, ingredient3",
 					},
 				}
-				imageStorage = mockImageStorage{}
 			})
 
 			It("should succeed", func(done Done) {
@@ -512,29 +516,4 @@ func (m mockRegions) GetName(name string) (*model.Region, error) {
 		Location: "Europe/Tallinn",
 	}
 	return region, nil
-}
-
-type mockImageStorage struct {
-	storage.Images
-}
-
-func (m mockImageStorage) ChecksumDataURL(dataURL string) (string, error) {
-	Expect(dataURL).To(Equal("image data url"))
-	return "image checksum", nil
-}
-
-func (m mockImageStorage) StoreDataURL(dataURL string) error {
-	Expect(dataURL).To(Equal("image data url"))
-	return nil
-}
-
-func (m mockImageStorage) PathsFor(checksum string) (*model.OfferImagePaths, error) {
-	if checksum == "" {
-		return nil, nil
-	}
-	Expect(checksum).To(Equal("image checksum"))
-	return &model.OfferImagePaths{
-		Large:     "images/a large image path",
-		Thumbnail: "images/thumbnail",
-	}, nil
 }

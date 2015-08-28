@@ -14,7 +14,6 @@ import (
 	"github.com/Lunchr/luncher-api/handler/mocks"
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
-	"github.com/Lunchr/luncher-api/storage"
 	"github.com/stretchr/testify/mock"
 
 	. "github.com/onsi/ginkgo"
@@ -319,12 +318,17 @@ var _ = Describe("RestaurantsHandlers", func() {
 			mockUsersCollection       db.Users
 			handler                   router.Handler
 			mockOffersCollection      db.Offers
-			imageStorage              storage.Images
+			imageStorage              *mocks.Images
 		)
 
 		BeforeEach(func() {
 			mockRestaurantsCollection = &mockRestaurants{}
-			imageStorage = &mockImageStorage{}
+			imageStorage = new(mocks.Images)
+			imageStorage.On("PathsFor", "image checksum").Return(&model.OfferImagePaths{
+				Large:     "images/a large image path",
+				Thumbnail: "images/thumbnail",
+			}, nil)
+			imageStorage.On("PathsFor", "").Return(nil, nil)
 		})
 
 		JustBeforeEach(func() {
