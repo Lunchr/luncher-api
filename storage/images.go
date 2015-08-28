@@ -14,10 +14,12 @@ type Images interface {
 	ChecksumDataURL(string) (string, error)
 	StoreDataURL(string) error
 	PathsFor(checksum string) (*model.OfferImagePaths, error)
+	HasChecksum(checksum string) (bool, error)
 }
 
 type images struct {
 	imstor.Storage
+	sizeStrings []string
 }
 
 const (
@@ -40,13 +42,18 @@ func NewImages() Images {
 			Height: 60,
 		},
 	}
+	sizeStrings := make([]string, len(sizes))
+	for i, size := range sizes {
+		sizeStrings[i] = size.Name
+	}
 	formats := []imstor.Format{
 		imstor.PNG2JPEG,
 		imstor.JPEGFormat,
 	}
 	conf := imstor.NewConfig(sizes, formats)
 	return images{
-		imstor.New(conf),
+		Storage:     imstor.New(conf),
+		sizeStrings: sizeStrings,
 	}
 }
 
@@ -68,6 +75,10 @@ func (i images) PathsFor(checksum string) (*model.OfferImagePaths, error) {
 		Large:     largePath,
 		Thumbnail: thumbnailPath,
 	}, nil
+}
+
+func (i images) HasChecksum(checksum string) (bool, error) {
+	return i.HasSizesForChecksum(checksum, i.sizeStrings)
 }
 
 func (i images) pathForThumbnail(checksum string) (string, error) {
