@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"gopkg.in/mgo.v2/bson"
 )
@@ -14,12 +15,24 @@ const RegistrationAccessTokenCollectionName = "tags"
 
 type (
 	RegistrationAccessToken struct {
-		ID    bson.ObjectId `json:"_id,omitempty" bson:"_id,omitempty"`
-		Token Token         `json:"token"         bson:"token"`
+		ID        bson.ObjectId `json:"_id,omitempty" bson:"_id,omitempty"`
+		CreatedAt time.Time     `json:"created_at"    bson:"created_at"`
+		Token     Token         `json:"token"         bson:"token"`
 	}
 
 	Token [16]byte
 )
+
+func NewRegistrationAccessToken() (*RegistrationAccessToken, error) {
+	token, err := NewToken()
+	if err != nil {
+		return nil, err
+	}
+	return &RegistrationAccessToken{
+		CreatedAt: time.Now(),
+		Token:     token,
+	}, nil
+}
 
 func NewToken() (Token, error) {
 	var t [16]byte
