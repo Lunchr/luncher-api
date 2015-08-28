@@ -192,6 +192,12 @@ func parseAndStoreImage(imageDataURL string, imageStorage storage.Images) (strin
 	if err != nil {
 		return "", err
 	}
+	alreadyStored, err := imageStorage.HasChecksum(imageChecksum)
+	if err != nil {
+		return "", err
+	} else if alreadyStored {
+		return imageChecksum, nil
+	}
 	if err = imageStorage.StoreDataURL(imageDataURL); err != nil {
 		return "", err
 	}

@@ -14,6 +14,7 @@ import (
 	"github.com/Lunchr/luncher-api/session"
 	"github.com/deiwin/facebook"
 	"github.com/julienschmidt/httprouter"
+	"github.com/stretchr/testify/mock"
 	"golang.org/x/oauth2"
 	"gopkg.in/mgo.v2/bson"
 
@@ -110,6 +111,33 @@ var _ = Describe("OffersHandler", func() {
 				json.Unmarshal(responseRecorder.Body.Bytes(), &offer)
 				Expect(offer.ID).To(Equal(objectID))
 				Expect(offer.Image.Large).To(Equal("images/a large image path"))
+			})
+
+			Context("with the image having already been stored once", func() {
+				BeforeEach(func() {
+					imageStorage.ExpectedCalls = make([]mock.Call, 0)
+					imageStorage.On("ChecksumDataURL", "image data url").Return("image checksum", nil)
+					imageStorage.On("HasChecksum", "image checksum").Return(true, nil)
+					imageStorage.On("StoreDataURL", "image data url").Return(errors.New("already stored"))
+					imageStorage.On("PathsFor", "image checksum").Return(&model.OfferImagePaths{
+						Large:     "images/a large image path",
+						Thumbnail: "images/thumbnail",
+					}, nil)
+				})
+
+				It("succeeds", func() {
+					err := handler(responseRecorder, request)
+					Expect(err).To(BeNil())
+				})
+
+				It("includes the image paths in the response", func() {
+					handler(responseRecorder, request)
+					var offer model.OfferJSON
+					json.Unmarshal(responseRecorder.Body.Bytes(), &offer)
+					Expect(offer.ID).To(Equal(objectID))
+					Expect(offer.Image.Large).To(Equal("images/a large image path"))
+					Expect(offer.Image.Thumbnail).To(Equal("images/thumbnail"))
+				})
 			})
 		})
 	})
@@ -271,6 +299,33 @@ var _ = Describe("OffersHandler", func() {
 				json.Unmarshal(responseRecorder.Body.Bytes(), &offer)
 				Expect(offer.ID).To(Equal(objectID))
 				Expect(offer.Image.Large).To(Equal("images/a large image path"))
+			})
+
+			Context("with the image having already been stored once", func() {
+				BeforeEach(func() {
+					imageStorage.ExpectedCalls = make([]mock.Call, 0)
+					imageStorage.On("ChecksumDataURL", "image data url").Return("image checksum", nil)
+					imageStorage.On("HasChecksum", "image checksum").Return(true, nil)
+					imageStorage.On("StoreDataURL", "image data url").Return(errors.New("already stored"))
+					imageStorage.On("PathsFor", "image checksum").Return(&model.OfferImagePaths{
+						Large:     "images/a large image path",
+						Thumbnail: "images/thumbnail",
+					}, nil)
+				})
+
+				It("succeeds", func() {
+					err := handler(responseRecorder, request, params)
+					Expect(err).To(BeNil())
+				})
+
+				It("includes the image paths in the response", func() {
+					handler(responseRecorder, request, params)
+					var offer model.OfferJSON
+					json.Unmarshal(responseRecorder.Body.Bytes(), &offer)
+					Expect(offer.ID).To(Equal(objectID))
+					Expect(offer.Image.Large).To(Equal("images/a large image path"))
+					Expect(offer.Image.Thumbnail).To(Equal("images/thumbnail"))
+				})
 			})
 		})
 	})
