@@ -11,7 +11,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-const RegistrationAccessTokenCollectionName = "tags"
+const RegistrationAccessTokenCollectionName = "registration_access_tokens"
 
 type (
 	RegistrationAccessToken struct {
