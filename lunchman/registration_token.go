@@ -22,5 +22,5 @@ func (r RegistrationToken) CreateAndAdd() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	fmt.Printf("Token %s successfully created and added!\n")
+	fmt.Printf("Token %s successfully created and added!\n", token.Token.String())
 }
