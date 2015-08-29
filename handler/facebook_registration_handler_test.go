@@ -93,15 +93,14 @@ var _ = Describe("Facebook registration handler", func() {
 				accessTokens.On("Exists", token).Return(true, nil)
 			})
 
-			It("redirects", func() {
+			It("responds with the redirect URL", func() {
 				err := handler(responseRecorder, request)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(responseRecorder.Code).To(Equal(http.StatusSeeOther))
-			})
-
-			It("redirects to mocked URL", func() {
-				handler(responseRecorder, request)
-				ExpectLocationToBeMockedURL(responseRecorder, testURL)
+				contentTypes := responseRecorder.HeaderMap["Content-Type"]
+				Expect(contentTypes).To(HaveLen(1))
+				Expect(contentTypes[0]).To(Equal("text/plain"))
+				Expect(responseRecorder.Code).To(Equal(http.StatusOK))
+				Expect(responseRecorder.Body.String()).To(Equal(testURL))
 			})
 		})
 	})

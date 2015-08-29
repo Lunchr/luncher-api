@@ -18,3 +18,10 @@ func writeJSON(w http.ResponseWriter, v interface{}) *HandlerError {
 	w.Write(data)
 	return nil
 }
+
+func writeString(w http.ResponseWriter, s string) *HandlerError {
+	w.Header().Set("Content-Length", strconv.Itoa(len(s)))
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte(s))
+	return nil
+}

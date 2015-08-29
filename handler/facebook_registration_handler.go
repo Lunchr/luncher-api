@@ -38,8 +38,7 @@ func RedirectToFBForRegistration(sessionManager session.Manager, auther facebook
 		}
 		session := sessionManager.GetOrInit(w, r)
 		redirectURL := auther.AuthURL(session)
-		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
-		return nil
+		return writeString(w, redirectURL)
 	}
 }
 
