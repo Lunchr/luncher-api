@@ -7,20 +7,21 @@ import (
 	"os"
 	"strings"
 
-	"github.com/deiwin/interact"
 	"github.com/Lunchr/luncher-api/db"
 	"github.com/Lunchr/luncher-api/geo"
+	"github.com/deiwin/interact"
 	"gopkg.in/alecthomas/kingpin.v1"
 	"gopkg.in/mgo.v2/bson"
 )
 
 var (
-	lunchman      = kingpin.New("lunchman", "An administrative tool to manage your luncher instance")
-	add           = lunchman.Command("add", "Add a new value to the DB")
-	addRegion     = add.Command("region", "Add a region")
-	addRestaurant = add.Command("restaurant", "Add a restarant")
-	addUser       = add.Command("user", "Add a user")
-	addTag        = add.Command("tag", "Add a tag")
+	lunchman             = kingpin.New("lunchman", "An administrative tool to manage your luncher instance")
+	add                  = lunchman.Command("add", "Add a new value to the DB")
+	addRegion            = add.Command("region", "Add a region")
+	addRestaurant        = add.Command("restaurant", "Add a restarant")
+	addUser              = add.Command("user", "Add a user")
+	addTag               = add.Command("tag", "Add a tag")
+	addRegistrationToken = add.Command("token", "Create and add a new registration access token")
 
 	list            = lunchman.Command("list", "List the current values in DB")
 	listRegions     = list.Command("regions", "List all regions")
@@ -92,6 +93,9 @@ func main() {
 	case addTag.FullCommand():
 		tag := initTag(actor, dbClient)
 		tag.Add()
+	case addRegistrationToken.FullCommand():
+		token := initRegistrationToken(dbClient)
+		token.CreateAndAdd()
 
 	case listRegions.FullCommand():
 		region := initRegion(actor, dbClient)
@@ -156,6 +160,15 @@ func initUser(actor interact.Actor, dbClient *db.Client) User {
 func initTag(actor interact.Actor, dbClient *db.Client) Tag {
 	tagsCollection := db.NewTags(dbClient)
 	return Tag{actor, tagsCollection}
+}
+
+func initRegistrationToken(dbClient *db.Client) RegistrationToken {
+	collection, err := db.NewRegistrationAccessTokens(dbClient)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	return RegistrationToken{collection}
 }
 
 func confirmDBInsertion(actor interact.Actor, o interface{}) {
