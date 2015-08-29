@@ -3,6 +3,7 @@ package handler_test
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 
 	"github.com/Lunchr/luncher-api/db"
 	"github.com/Lunchr/luncher-api/db/model"
@@ -34,8 +35,7 @@ var _ = Describe("Facebook registration handler", func() {
 	Describe("Login", func() {
 		var (
 			accessTokens *mocks.RegistrationAccessTokens
-			handler      router.HandlerWithParams
-			params       httprouter.Params
+			handler      router.Handler
 		)
 
 		BeforeEach(func() {
@@ -49,21 +49,20 @@ var _ = Describe("Facebook registration handler", func() {
 
 		Context("without an access token", func() {
 			It("fails with StatusUnauthorized", func() {
-				err := handler(responseRecorder, request, params)
+				err := handler(responseRecorder, request)
 				Expect(err.Code).To(Equal(http.StatusUnauthorized))
 			})
 		})
 
 		Context("with a rubbish token", func() {
 			BeforeEach(func() {
-				params = httprouter.Params{httprouter.Param{
-					Key:   "token",
-					Value: "rubbish",
-				}}
+				requestQuery = url.Values{
+					"token": {"rubbish"},
+				}
 			})
 
 			It("fails with StatusBadRequest", func() {
-				err := handler(responseRecorder, request, params)
+				err := handler(responseRecorder, request)
 				Expect(err.Code).To(Equal(http.StatusBadRequest))
 			})
 		})
@@ -72,15 +71,14 @@ var _ = Describe("Facebook registration handler", func() {
 			BeforeEach(func() {
 				token, err := model.NewToken()
 				Expect(err).NotTo(HaveOccurred())
-				params = httprouter.Params{httprouter.Param{
-					Key:   "token",
-					Value: token.String(),
-				}}
+				requestQuery = url.Values{
+					"token": {token.String()},
+				}
 				accessTokens.On("Exists", token).Return(false, nil)
 			})
 
 			It("fails with StatusForbidden", func() {
-				err := handler(responseRecorder, request, params)
+				err := handler(responseRecorder, request)
 				Expect(err.Code).To(Equal(http.StatusForbidden))
 			})
 		})
@@ -89,21 +87,20 @@ var _ = Describe("Facebook registration handler", func() {
 			BeforeEach(func() {
 				token, err := model.NewToken()
 				Expect(err).NotTo(HaveOccurred())
-				params = httprouter.Params{httprouter.Param{
-					Key:   "token",
-					Value: token.String(),
-				}}
+				requestQuery = url.Values{
+					"token": {token.String()},
+				}
 				accessTokens.On("Exists", token).Return(true, nil)
 			})
 
 			It("redirects", func() {
-				err := handler(responseRecorder, request, params)
+				err := handler(responseRecorder, request)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(responseRecorder.Code).To(Equal(http.StatusSeeOther))
 			})
 
 			It("redirects to mocked URL", func() {
-				handler(responseRecorder, request, params)
+				handler(responseRecorder, request)
 				ExpectLocationToBeMockedURL(responseRecorder, testURL)
 			})
 		})

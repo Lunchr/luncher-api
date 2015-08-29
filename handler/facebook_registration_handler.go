@@ -20,9 +20,9 @@ import (
 // RedirectToFBForRegistration returns a handler that redirects the user to Facebook to log in
 // so they could be registered in our system
 func RedirectToFBForRegistration(sessionManager session.Manager, auther facebook.Authenticator,
-	tokens db.RegistrationAccessTokens) router.HandlerWithParams {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) *router.HandlerError {
-		tokenString := ps.ByName("token")
+	tokens db.RegistrationAccessTokens) router.Handler {
+	return func(w http.ResponseWriter, r *http.Request) *router.HandlerError {
+		tokenString := r.FormValue("token")
 		if tokenString == "" {
 			return router.NewSimpleHandlerError("Please provide an access token", http.StatusUnauthorized)
 		}

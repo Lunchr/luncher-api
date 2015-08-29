@@ -75,7 +75,7 @@ func main() {
 	r.GET("/logout", handler.Logout(sessionManager, usersCollection))
 	r.GET("/login/facebook", handler.RedirectToFBForLogin(sessionManager, facebookLoginAuthenticator))
 	r.GET("/login/facebook/redirected", handler.RedirectedFromFBForLogin(sessionManager, facebookLoginAuthenticator, usersCollection, restaurantsCollection))
-	r.GETWithParams("/register/facebook/:token", handler.RedirectToFBForRegistration(sessionManager, facebookRegistrationAuthenticator, registrationTokensCollection))
+	r.GET("/register/facebook", handler.RedirectToFBForRegistration(sessionManager, facebookRegistrationAuthenticator, registrationTokensCollection))
 	r.GET("/register/facebook/redirected", handler.RedirectedFromFBForRegistration(sessionManager, facebookRegistrationAuthenticator, usersCollection))
 	r.GET("/register/facebook/pages", handler.ListPagesManagedByUser(sessionManager, facebookRegistrationAuthenticator, usersCollection))
 	r.GETWithParams("/register/facebook/pages/:id", handler.Page(sessionManager, facebookRegistrationAuthenticator, usersCollection))
