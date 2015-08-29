@@ -5,11 +5,12 @@ import (
 	"net/http"
 
 	"github.com/Lunchr/luncher-api/db"
+	"github.com/Lunchr/luncher-api/db/model"
 	. "github.com/Lunchr/luncher-api/handler"
 	"github.com/Lunchr/luncher-api/handler/mocks"
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
-	"github.com/deiwin/facebook/model"
+	fbModel "github.com/deiwin/facebook/model"
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/mock"
 
@@ -31,22 +32,80 @@ var _ = Describe("Facebook registration handler", func() {
 	})
 
 	Describe("Login", func() {
+		var (
+			accessTokens *mocks.RegistrationAccessTokens
+			handler      router.HandlerWithParams
+			params       httprouter.Params
+		)
+
 		BeforeEach(func() {
+			accessTokens = new(mocks.RegistrationAccessTokens)
 			auther.On("AuthURL", "session").Return(testURL)
 		})
 
 		JustBeforeEach(func() {
-			handler = RedirectToFBForRegistration(sessionManager, auther)
+			handler = RedirectToFBForRegistration(sessionManager, auther, accessTokens)
 		})
 
-		It("should redirect", func() {
-			handler(responseRecorder, request)
-			Expect(responseRecorder.Code).To(Equal(http.StatusSeeOther))
+		Context("without an access token", func() {
+			It("fails with StatusUnauthorized", func() {
+				err := handler(responseRecorder, request, params)
+				Expect(err.Code).To(Equal(http.StatusUnauthorized))
+			})
 		})
 
-		It("should redirect to mocked URL", func() {
-			handler(responseRecorder, request)
-			ExpectLocationToBeMockedURL(responseRecorder, testURL)
+		Context("with a rubbish token", func() {
+			BeforeEach(func() {
+				params = httprouter.Params{httprouter.Param{
+					Key:   "token",
+					Value: "rubbish",
+				}}
+			})
+
+			It("fails with StatusBadRequest", func() {
+				err := handler(responseRecorder, request, params)
+				Expect(err.Code).To(Equal(http.StatusBadRequest))
+			})
+		})
+
+		Context("with a made up or expired token", func() {
+			BeforeEach(func() {
+				token, err := model.NewToken()
+				Expect(err).NotTo(HaveOccurred())
+				params = httprouter.Params{httprouter.Param{
+					Key:   "token",
+					Value: token.String(),
+				}}
+				accessTokens.On("Exists", token).Return(false, nil)
+			})
+
+			It("fails with StatusForbidden", func() {
+				err := handler(responseRecorder, request, params)
+				Expect(err.Code).To(Equal(http.StatusForbidden))
+			})
+		})
+
+		Context("with a valid access token", func() {
+			BeforeEach(func() {
+				token, err := model.NewToken()
+				Expect(err).NotTo(HaveOccurred())
+				params = httprouter.Params{httprouter.Param{
+					Key:   "token",
+					Value: token.String(),
+				}}
+				accessTokens.On("Exists", token).Return(true, nil)
+			})
+
+			It("redirects", func() {
+				err := handler(responseRecorder, request, params)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(responseRecorder.Code).To(Equal(http.StatusSeeOther))
+			})
+
+			It("redirects to mocked URL", func() {
+				handler(responseRecorder, request, params)
+				ExpectLocationToBeMockedURL(responseRecorder, testURL)
+			})
 		})
 	})
 
@@ -71,13 +130,13 @@ var _ = Describe("Facebook registration handler", func() {
 				usersCollection = mockUsers{}
 				api = new(mocks.API)
 				auther.On("APIConnection", mock.AnythingOfType("*oauth2.Token")).Return(api)
-				api.On("Accounts").Return(&model.Accounts{
-					Data: []model.Page{
-						model.Page{
+				api.On("Accounts").Return(&fbModel.Accounts{
+					Data: []fbModel.Page{
+						fbModel.Page{
 							ID:   "id1",
 							Name: "name1",
 						},
-						model.Page{
+						fbModel.Page{
 							ID:   "id2",
 							Name: "name2",
 						},
@@ -140,10 +199,10 @@ var _ = Describe("Facebook registration handler", func() {
 				usersCollection = mockUsers{}
 				api = new(mocks.API)
 				auther.On("APIConnection", mock.AnythingOfType("*oauth2.Token")).Return(api)
-				api.On("Page", "a_page_id").Return(&model.Page{
+				api.On("Page", "a_page_id").Return(&fbModel.Page{
 					ID:   "id1",
 					Name: "name1",
-					Location: model.Location{
+					Location: fbModel.Location{
 						Street:  "a_street 10",
 						City:    "a_city",
 						Country: "a_country",
