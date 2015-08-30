@@ -1,6 +1,8 @@
 package facebook_test
 
 import (
+	"errors"
+	"net/http"
 	"time"
 
 	"github.com/Lunchr/luncher-api/db/model"
@@ -151,9 +153,51 @@ var _ = Describe("Post", func() {
 						fbAuth.AssertExpectations(GinkgoT())
 					})
 
-					It("should succeed", func() {
+					It("succeeds", func() {
 						err := facebookPost.Update(date, user, restaurant)
 						Expect(err).To(BeNil())
+					})
+				})
+
+				Context("with a previous associated FB post", func() {
+					var fbPostID string
+
+					BeforeEach(func() {
+						fbPostID = "fb post ID"
+						offerGroupPost.FBPostID = fbPostID
+					})
+					Context("with post deletion failing", func() {
+						var err error
+
+						BeforeEach(func() {
+							err = errors.New("something went wrong")
+							fbAPI.On("PostDelete", facebookPageToken, fbPostID).Return(err)
+						})
+
+						It("fails with the given error", func() {
+							handlerErr := facebookPost.Update(date, user, restaurant)
+							Expect(handlerErr).NotTo(BeNil())
+							Expect(handlerErr.Err).To(Equal(err))
+							Expect(handlerErr.Code).To(Equal(http.StatusBadGateway))
+						})
+					})
+
+					Context("with post deletion succeeding", func() {
+						BeforeEach(func() {
+							fbAPI.On("PostDelete", facebookPageToken, fbPostID).Return(nil)
+						})
+
+						AfterEach(func() {
+							groupPosts.AssertExpectations(GinkgoT())
+							offersCollection.AssertExpectations(GinkgoT())
+							regions.AssertExpectations(GinkgoT())
+							fbAuth.AssertExpectations(GinkgoT())
+						})
+
+						It("deletes old post and creates a new one", func() {
+							err := facebookPost.Update(date, user, restaurant)
+							Expect(err).To(BeNil())
+						})
 					})
 				})
 			})
