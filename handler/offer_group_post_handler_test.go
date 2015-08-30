@@ -288,6 +288,7 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 								Location: "UTC",
 							}
 							mockRegionsCollection.On("GetName", regionName).Return(region, nil)
+
 							startTime := time.Date(2115, 04, 18, 0, 0, 0, 0, time.UTC)
 							endTime := time.Date(2115, 04, 19, 0, 0, 0, 0, time.UTC)
 							offers := []*model.Offer{
@@ -434,9 +435,16 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 
 				Context("with DB update succeeding", func() {
 					BeforeEach(func() {
+						date := model.DateWithoutTime("2015-04-10")
+						mockPostsCollection.On("GetByDate", date, restaurantID).Return(&model.OfferGroupPost{
+							ID:              id,
+							Date:            date,
+							MessageTemplate: "messagetemplate",
+						}, nil)
+
 						mockPostsCollection.On("UpdateByID", id, &model.OfferGroupPost{
 							ID:              id,
-							Date:            "2015-04-10",
+							Date:            date,
 							RestaurantID:    restaurantID,
 							MessageTemplate: "a message template",
 						}).Return(nil)
