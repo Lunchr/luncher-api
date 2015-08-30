@@ -253,8 +253,9 @@ var _ = Describe("OffersHandler", func() {
 				}
 				currentOffer := &model.Offer{
 					CommonOfferFields: model.CommonOfferFields{
-						ID:    objectID2,
-						Title: "an offer title",
+						ID:       objectID2,
+						Title:    "an offer title",
+						FromTime: time.Date(2014, 11, 11, 9, 0, 0, 0, time.UTC),
 					},
 					ImageChecksum: "image checksum",
 				}
@@ -291,8 +292,9 @@ var _ = Describe("OffersHandler", func() {
 				}
 				currentOffer := &model.Offer{
 					CommonOfferFields: model.CommonOfferFields{
-						ID:    objectID,
-						Title: "an offer title",
+						ID:       objectID,
+						Title:    "an offer title",
+						FromTime: time.Date(2014, 11, 11, 9, 0, 0, 0, time.UTC),
 					},
 					ImageChecksum: "image checksum",
 				}
@@ -355,7 +357,10 @@ var _ = Describe("OffersHandler", func() {
 
 			Describe("updating group post", func() {
 				var (
-					fbPostID             string
+					restaurantID         bson.ObjectId
+					fbPageToken          string
+					fbPageID             string
+					fbAPI                *mocks.API
 					mockOffersCollection *mocks.Offers
 					mockUsersCollection  *mocks.Users
 					mockFBAuth           *mocks.Authenticator
@@ -377,9 +382,9 @@ var _ = Describe("OffersHandler", func() {
 					authenticator = mockFBAuth
 					postsCollection = new(mocks.OfferGroupPosts)
 
-					fbPageID := "fbpageid"
+					fbPageID = "fbpageid"
 					regionName := "Tartu"
-					restaurantID := bson.ObjectId("12letrrestid")
+					restaurantID = bson.ObjectId("12letrrestid")
 					restaurant := &model.Restaurant{
 						ID:             restaurantID,
 						FacebookPageID: fbPageID,
@@ -393,7 +398,7 @@ var _ = Describe("OffersHandler", func() {
 						Phone: "+372 5678 910",
 					}
 					fbUserToken := &oauth2.Token{}
-					fbPageToken := "afbpagetoken"
+					fbPageToken = "afbpagetoken"
 					user := &model.User{
 						RestaurantIDs: []bson.ObjectId{restaurant.ID},
 						Session: &model.UserSession{
@@ -435,7 +440,7 @@ var _ = Describe("OffersHandler", func() {
 						"to_time":     "2014-11-11T11:00:00.000Z",
 					}
 
-					fbAPI := new(mocks.API)
+					fbAPI = new(mocks.API)
 					mockFBAuth.On("APIConnection", fbUserToken).Return(fbAPI)
 					region := &model.Region{
 						Location: "UTC",
@@ -458,7 +463,7 @@ var _ = Describe("OffersHandler", func() {
 						},
 					}
 					mockOffersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return(offers, nil)
-					fbPostID = "fbpostid"
+					fbPostID := "fbpostid"
 					fbAPI.On("PagePublish", fbPageToken, fbPageID, "messagetemplate\n\natitle - 5.67€\nbtitle - 4.67€").Return(&fbmodel.Post{
 						ID: fbPostID,
 					}, nil)
@@ -474,6 +479,59 @@ var _ = Describe("OffersHandler", func() {
 				It("succeeds", func() {
 					err := handler(responseRecorder, request, params)
 					Expect(err).NotTo(HaveOccurred())
+				})
+
+				Context("with offer date changed", func() {
+					BeforeEach(func() {
+						requestData = map[string]interface{}{
+							"title":       "thetitle",
+							"ingredients": []string{"ingredient1", "ingredient2", "ingredient3"},
+							"tags":        []string{"tag1", "tag2"},
+							"price":       123.58,
+							"from_time":   "2014-11-15T09:00:00.000Z",
+							"to_time":     "2014-11-15T11:00:00.000Z",
+						}
+						date := model.DateWithoutTime("2014-11-15")
+						groupPostID := bson.NewObjectId()
+						postsCollection.On("GetByDate", date, restaurantID).Return(&model.OfferGroupPost{
+							ID:              groupPostID,
+							Date:            date,
+							MessageTemplate: "messagetemplate2",
+						}, nil)
+
+						startTime := time.Date(2014, 11, 15, 0, 0, 0, 0, time.UTC)
+						endTime := time.Date(2014, 11, 16, 0, 0, 0, 0, time.UTC)
+						offers := []*model.Offer{
+							&model.Offer{
+								CommonOfferFields: model.CommonOfferFields{
+									Title: "atitle2",
+									Price: 5.670000000000,
+								},
+							},
+							&model.Offer{
+								CommonOfferFields: model.CommonOfferFields{
+									Title: "btitle2",
+									Price: 4.670000000000,
+								},
+							},
+						}
+						mockOffersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return(offers, nil)
+						fbPostID := "fbpostid"
+						fbAPI.On("PagePublish", fbPageToken, fbPageID, "messagetemplate2\n\natitle2 - 5.67€\nbtitle2 - 4.67€").Return(&fbmodel.Post{
+							ID: fbPostID,
+						}, nil)
+						postsCollection.On("UpdateByID", groupPostID, &model.OfferGroupPost{
+							ID:              groupPostID,
+							Date:            date,
+							MessageTemplate: "messagetemplate2",
+							FBPostID:        fbPostID,
+						}).Return(nil)
+					})
+
+					It("succeeds updating the group posts for both the previous and new day", func() {
+						err := handler(responseRecorder, request, params)
+						Expect(err).NotTo(HaveOccurred())
+					})
 				})
 			})
 		})

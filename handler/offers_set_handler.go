@@ -88,6 +88,13 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 		if handlerErr != nil {
 			return handlerErr
 		}
+		previousDate := model.DateFromTime(currentOffer.FromTime)
+		if previousDate != date {
+			handlerErr = updateGroupPostForDate(previousDate, user, restaurant, offersCollection, regionsCollection, groupPostsCollection, fbAuth)
+			if handlerErr != nil {
+				return handlerErr
+			}
+		}
 
 		offerJSON, handlerError := mapOfferToJSON(offer, imageStorage)
 		if handlerError != nil {
