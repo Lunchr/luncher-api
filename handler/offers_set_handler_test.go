@@ -44,7 +44,7 @@ var _ = Describe("OffersHandler", func() {
 	Describe("PostOffers", func() {
 		var (
 			usersCollection       db.Users
-			restaurantsCollection db.Restaurants
+			restaurantsCollection *mocks.Restaurants
 			handler               router.Handler
 			authenticator         facebook.Authenticator
 			sessionManager        session.Manager
@@ -54,8 +54,22 @@ var _ = Describe("OffersHandler", func() {
 
 		BeforeEach(func() {
 			usersCollection = &mockUsers{}
-			restaurantsCollection = &mockRestaurants{}
+			restaurantsCollection = new(mocks.Restaurants)
 			authenticator = &mockAuthenticator{}
+
+			restaurantID := bson.ObjectId("12letrrestid")
+			restaurant := &model.Restaurant{
+				ID:      restaurantID,
+				Name:    "Asian Chef",
+				Region:  "Tartu",
+				Address: "an-address",
+				Location: model.Location{
+					Type:        "Point",
+					Coordinates: []float64{26.7, 58.4},
+				},
+				Phone: "+372 5678 910",
+			}
+			restaurantsCollection.On("GetID", restaurantID).Return(restaurant, nil).Once()
 		})
 
 		JustBeforeEach(func() {
@@ -145,7 +159,7 @@ var _ = Describe("OffersHandler", func() {
 	Describe("PutOffers", func() {
 		var (
 			usersCollection       db.Users
-			restaurantsCollection db.Restaurants
+			restaurantsCollection *mocks.Restaurants
 			handler               router.HandlerWithParams
 			authenticator         facebook.Authenticator
 			sessionManager        session.Manager
@@ -156,14 +170,29 @@ var _ = Describe("OffersHandler", func() {
 
 		BeforeEach(func() {
 			usersCollection = &mockUsers{}
-			restaurantsCollection = &mockRestaurants{}
+			restaurantsCollection = new(mocks.Restaurants)
 			authenticator = &mockAuthenticator{}
+
+			restaurantID := bson.ObjectId("12letrrestid")
 			params = httprouter.Params{httprouter.Param{
 				Key:   "id",
 				Value: objectID.Hex(),
 			}}
 			postsCollection = new(mocks.OfferGroupPosts)
-			postsCollection.On("GetByDate", model.DateWithoutTime("2014-11-11"), bson.ObjectId("12letrrestid")).Return(&model.OfferGroupPost{}, nil)
+			postsCollection.On("GetByDate", model.DateWithoutTime("2014-11-11"), restaurantID).Return(&model.OfferGroupPost{}, nil)
+
+			restaurant := &model.Restaurant{
+				ID:      restaurantID,
+				Name:    "Asian Chef",
+				Region:  "Tartu",
+				Address: "an-address",
+				Location: model.Location{
+					Type:        "Point",
+					Coordinates: []float64{26.7, 58.4},
+				},
+				Phone: "+372 5678 910",
+			}
+			restaurantsCollection.On("GetID", restaurantID).Return(restaurant, nil).Once()
 		})
 
 		JustBeforeEach(func() {
@@ -336,7 +365,7 @@ var _ = Describe("OffersHandler", func() {
 			handler               router.HandlerWithParams
 			authenticator         facebook.Authenticator
 			sessionManager        session.Manager
-			restaurantsCollection db.Restaurants
+			restaurantsCollection *mocks.Restaurants
 			regionsCollection     db.Regions
 			postsCollection       *mocks.OfferGroupPosts
 			params                httprouter.Params
@@ -344,14 +373,29 @@ var _ = Describe("OffersHandler", func() {
 
 		BeforeEach(func() {
 			usersCollection = &mockUsers{}
-			restaurantsCollection = &mockRestaurants{}
+			restaurantsCollection = new(mocks.Restaurants)
 			authenticator = &mockAuthenticator{}
+
+			restaurantID := bson.ObjectId("12letrrestid")
 			params = httprouter.Params{httprouter.Param{
 				Key:   "id",
 				Value: objectID.Hex(),
 			}}
 			postsCollection = new(mocks.OfferGroupPosts)
-			postsCollection.On("GetByDate", model.DateWithoutTime("2014-11-11"), bson.ObjectId("12letrrestid")).Return(&model.OfferGroupPost{}, nil)
+			postsCollection.On("GetByDate", model.DateWithoutTime("2014-11-11"), restaurantID).Return(&model.OfferGroupPost{}, nil)
+
+			restaurant := &model.Restaurant{
+				ID:      restaurantID,
+				Name:    "Asian Chef",
+				Region:  "Tartu",
+				Address: "an-address",
+				Location: model.Location{
+					Type:        "Point",
+					Coordinates: []float64{26.7, 58.4},
+				},
+				Phone: "+372 5678 910",
+			}
+			restaurantsCollection.On("GetID", restaurantID).Return(restaurant, nil).Once()
 		})
 
 		JustBeforeEach(func() {
