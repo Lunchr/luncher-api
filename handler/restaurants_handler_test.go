@@ -35,14 +35,12 @@ var _ = Describe("RestaurantsHandlers", func() {
 			handler = Restaurants(mockRestaurantsCollection)
 		})
 
-		It("should succeed", func(done Done) {
-			defer close(done)
+		It("should succeed", func() {
 			err := handler(responseRecorder, request)
 			Expect(err).To(BeNil())
 		})
 
-		It("should return json", func(done Done) {
-			defer close(done)
+		It("should return json", func() {
 			handler(responseRecorder, request)
 			contentTypes := responseRecorder.HeaderMap["Content-Type"]
 			Expect(contentTypes).To(HaveLen(1))
@@ -64,8 +62,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 				}
 			})
 
-			It("should write the returned data to responsewriter", func(done Done) {
-				defer close(done)
+			It("should write the returned data to responsewriter", func() {
 				handler(responseRecorder, request)
 				var result []*model.Restaurant
 				json.Unmarshal(responseRecorder.Body.Bytes(), &result)
@@ -87,8 +84,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 				}
 			})
 
-			It("should return error 500", func(done Done) {
-				defer close(done)
+			It("should return error 500", func() {
 				err := handler(responseRecorder, request)
 				Expect(err.Code).To(Equal(http.StatusInternalServerError))
 			})
@@ -167,22 +163,19 @@ var _ = Describe("RestaurantsHandlers", func() {
 					mockUsersCollection.On("Update", mock.AnythingOfType("string"), mock.AnythingOfType("*model.User")).Return(nil)
 				})
 
-				It("should succeed", func(done Done) {
-					defer close(done)
+				It("should succeed", func() {
 					err := handler(responseRecorder, request)
 					Expect(err).To(BeNil())
 				})
 
-				It("should return json", func(done Done) {
-					defer close(done)
+				It("should return json", func() {
 					handler(responseRecorder, request)
 					contentTypes := responseRecorder.HeaderMap["Content-Type"]
 					Expect(contentTypes).To(HaveLen(1))
 					Expect(contentTypes[0]).To(Equal("application/json"))
 				})
 
-				It("should include the restaurant with the new ID", func(done Done) {
-					defer close(done)
+				It("should include the restaurant with the new ID", func() {
 					handler(responseRecorder, request)
 					var restaurant *model.Restaurant
 					json.Unmarshal(responseRecorder.Body.Bytes(), &restaurant)
@@ -349,22 +342,19 @@ var _ = Describe("RestaurantsHandlers", func() {
 				mockOffersCollection = mockOffers{}
 			})
 
-			It("should succeed", func(done Done) {
-				defer close(done)
+			It("should succeed", func() {
 				err := handler(responseRecorder, request)
 				Expect(err).To(BeNil())
 			})
 
-			It("should return json", func(done Done) {
-				defer close(done)
+			It("should return json", func() {
 				handler(responseRecorder, request)
 				contentTypes := responseRecorder.HeaderMap["Content-Type"]
 				Expect(contentTypes).To(HaveLen(1))
 				Expect(contentTypes[0]).To(Equal("application/json"))
 			})
 
-			It("should include the offers in the response", func(done Done) {
-				defer close(done)
+			It("should include the offers in the response", func() {
 				handler(responseRecorder, request)
 				var result []*model.OfferJSON
 				json.Unmarshal(responseRecorder.Body.Bytes(), &result)
