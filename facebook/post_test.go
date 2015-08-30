@@ -32,7 +32,7 @@ var _ = Describe("Post", func() {
 	})
 
 	Describe("Update", func() {
-		var post *model.OfferGroupPost
+		var date model.DateWithoutTime
 
 		Context("for restaurants without an associated FB page", func() {
 			BeforeEach(func() {
@@ -42,7 +42,7 @@ var _ = Describe("Post", func() {
 			})
 
 			It("does nothing", func() {
-				err := facebookPost.Update(post, user, restaurant)
+				err := facebookPost.Update(date, user, restaurant)
 				Expect(err).NotTo(HaveOccurred())
 			})
 		})

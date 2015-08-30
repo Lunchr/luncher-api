@@ -15,8 +15,7 @@ import (
 )
 
 type Post interface {
-	UpdateForDate(model.DateWithoutTime, *model.User, *model.Restaurant) *router.HandlerError
-	Update(*model.OfferGroupPost, *model.User, *model.Restaurant) *router.HandlerError
+	Update(model.DateWithoutTime, *model.User, *model.Restaurant) *router.HandlerError
 }
 
 func NewPost(groupPosts db.OfferGroupPosts, offers db.Offers, regions db.Regions, fbAuth facebook.Authenticator) Post {
@@ -35,7 +34,10 @@ type facebookPost struct {
 	fbAuth     facebook.Authenticator
 }
 
-func (f *facebookPost) UpdateForDate(date model.DateWithoutTime, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
+func (f *facebookPost) Update(date model.DateWithoutTime, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
+	if restaurant.FacebookPageID == "" {
+		return nil
+	}
 	post, err := f.groupPosts.GetByDate(date, restaurant.ID)
 	if err == mgo.ErrNotFound {
 		postToInsert := &model.OfferGroupPost{
@@ -51,10 +53,10 @@ func (f *facebookPost) UpdateForDate(date model.DateWithoutTime, user *model.Use
 	} else if err != nil {
 		return router.NewHandlerError(err, "Failed to fetch a group post for that date", http.StatusInternalServerError)
 	}
-	return f.Update(post, user, restaurant)
+	return f.updatePost(post, user, restaurant)
 }
 
-func (f *facebookPost) Update(post *model.OfferGroupPost, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
+func (f *facebookPost) updatePost(post *model.OfferGroupPost, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
 	if restaurant.FacebookPageID == "" {
 		return nil
 	}
