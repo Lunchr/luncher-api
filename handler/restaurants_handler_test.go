@@ -312,6 +312,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 			handler                   router.Handler
 			mockOffersCollection      db.Offers
 			imageStorage              *mocks.Images
+			regionsCollection         *mocks.Regions
 		)
 
 		BeforeEach(func() {
@@ -325,7 +326,8 @@ var _ = Describe("RestaurantsHandlers", func() {
 		})
 
 		JustBeforeEach(func() {
-			handler = RestaurantOffers(mockRestaurantsCollection, sessionManager, mockUsersCollection, mockOffersCollection, imageStorage)
+			handler = RestaurantOffers(mockRestaurantsCollection, sessionManager, mockUsersCollection,
+				mockOffersCollection, imageStorage, regionsCollection)
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
@@ -340,6 +342,11 @@ var _ = Describe("RestaurantsHandlers", func() {
 				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
 				mockUsersCollection = mockUsers{}
 				mockOffersCollection = mockOffers{}
+				mockRestaurantsCollection = &mockRestaurants{}
+				regionsCollection = new(mocks.Regions)
+				regionsCollection.On("GetName", "Tartu").Return(&model.Region{
+					Location: "Europe/Tallinn",
+				}, nil)
 			})
 
 			It("should succeed", func() {
@@ -382,7 +389,11 @@ func (mock mockRestaurants) Get() (restaurants []*model.Restaurant, err error) {
 
 func (c mockOffers) GetForRestaurant(restaurantID bson.ObjectId, startTime time.Time) ([]*model.Offer, error) {
 	Expect(restaurantID).To(Equal(bson.ObjectId("12letrrestid")))
-	Expect(startTime.Sub(time.Now())).To(BeNumerically("~", 0, time.Second))
+	loc, err := time.LoadLocation("Europe/Tallinn")
+	Expect(err).NotTo(HaveOccurred())
+	now := time.Now()
+	thisMorning := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
+	Expect(startTime).To(Equal(thisMorning))
 	return []*model.Offer{
 		&model.Offer{
 			CommonOfferFields: model.CommonOfferFields{

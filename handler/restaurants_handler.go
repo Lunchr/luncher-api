@@ -60,9 +60,19 @@ func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.
 
 // RestaurantOffers returns all upcoming offers for the restaurant linked to the
 // currently logged in user
-func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, offers db.Offers, imageStorage storage.Images) router.Handler {
+func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, offers db.Offers,
+	imageStorage storage.Images, regions db.Regions) router.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
-		offers, err := offers.GetForRestaurant(restaurant.ID, time.Now())
+		region, err := regions.GetName(restaurant.Region)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to find the region for this restaurant", http.StatusInternalServerError)
+		}
+		timeLocation, err := time.LoadLocation(region.Location)
+		if err != nil {
+			return router.NewHandlerError(err, "The location of this region is misconfigured", http.StatusInternalServerError)
+		}
+		today, _ := getTodaysTimeRange(timeLocation)
+		offers, err := offers.GetForRestaurant(restaurant.ID, today)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to find upcoming offers for this restaurant", http.StatusInternalServerError)
 		}
