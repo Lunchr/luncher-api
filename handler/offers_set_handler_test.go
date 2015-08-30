@@ -13,7 +13,6 @@ import (
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
 	"github.com/deiwin/facebook"
-	fbmodel "github.com/deiwin/facebook/model"
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/oauth2"
@@ -47,16 +46,14 @@ var _ = Describe("OffersHandler", func() {
 			usersCollection       db.Users
 			restaurantsCollection *mocks.Restaurants
 			handler               router.Handler
-			authenticator         facebook.Authenticator
 			sessionManager        session.Manager
-			regionsCollection     db.Regions
-			postsCollection       *mocks.OfferGroupPosts
+			facebookPost          *mocks.Post
 		)
 
 		BeforeEach(func() {
 			usersCollection = &mockUsers{}
 			restaurantsCollection = new(mocks.Restaurants)
-			authenticator = &mockAuthenticator{}
+			facebookPost = new(mocks.Post)
 
 			restaurantID := bson.ObjectId("12letrrestid")
 			restaurant := &model.Restaurant{
@@ -71,11 +68,13 @@ var _ = Describe("OffersHandler", func() {
 				Phone: "+372 5678 910",
 			}
 			restaurantsCollection.On("GetID", restaurantID).Return(restaurant, nil).Once()
+			facebookPost = new(mocks.Post)
+			facebookPost.On("Update", model.DateWithoutTime("2014-11-11"), mock.AnythingOfType("*model.User"), restaurant).Return(nil)
 		})
 
 		JustBeforeEach(func() {
-			handler = PostOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, authenticator,
-				imageStorage, regionsCollection, postsCollection)
+			handler = PostOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager,
+				imageStorage, facebookPost)
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
@@ -87,9 +86,6 @@ var _ = Describe("OffersHandler", func() {
 
 		Context("with session set and a matching user in DB", func() {
 			BeforeEach(func() {
-				postsCollection = new(mocks.OfferGroupPosts)
-				postsCollection.On("GetByDate", model.DateWithoutTime("2014-11-11"), bson.ObjectId("12letrrestid")).Return(&model.OfferGroupPost{}, nil)
-
 				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
 				requestMethod = "POST"
 				requestData = map[string]interface{}{
@@ -100,11 +96,6 @@ var _ = Describe("OffersHandler", func() {
 					"from_time":   "2014-11-11T09:00:00.000Z",
 					"to_time":     "2014-11-11T11:00:00.000Z",
 					"image_data":  "image data url",
-				}
-				authenticator = &mockAuthenticator{
-					api: &mockAPI{
-						message: "thetitle - Ingredient1, ingredient2, ingredient3",
-					},
 				}
 			})
 
@@ -162,26 +153,20 @@ var _ = Describe("OffersHandler", func() {
 			usersCollection       db.Users
 			restaurantsCollection *mocks.Restaurants
 			handler               router.HandlerWithParams
-			authenticator         facebook.Authenticator
 			sessionManager        session.Manager
-			regionsCollection     *mocks.Regions
-			postsCollection       *mocks.OfferGroupPosts
+			facebookPost          *mocks.Post
 			params                httprouter.Params
 		)
 
 		BeforeEach(func() {
 			usersCollection = &mockUsers{}
 			restaurantsCollection = new(mocks.Restaurants)
-			regionsCollection = new(mocks.Regions)
-			authenticator = &mockAuthenticator{}
 
 			restaurantID := bson.ObjectId("12letrrestid")
 			params = httprouter.Params{httprouter.Param{
 				Key:   "id",
 				Value: objectID.Hex(),
 			}}
-			postsCollection = new(mocks.OfferGroupPosts)
-			postsCollection.On("GetByDate", model.DateWithoutTime("2014-11-11"), restaurantID).Return(&model.OfferGroupPost{}, nil)
 
 			restaurant := &model.Restaurant{
 				ID:      restaurantID,
@@ -195,11 +180,13 @@ var _ = Describe("OffersHandler", func() {
 				Phone: "+372 5678 910",
 			}
 			restaurantsCollection.On("GetID", restaurantID).Return(restaurant, nil).Once()
+			facebookPost = new(mocks.Post)
+			facebookPost.On("Update", model.DateWithoutTime("2014-11-11"), mock.AnythingOfType("*model.User"), restaurant).Return(nil)
 		})
 
 		JustBeforeEach(func() {
-			handler = PutOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager, authenticator,
-				imageStorage, regionsCollection, postsCollection)
+			handler = PutOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager,
+				imageStorage, facebookPost)
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
@@ -263,11 +250,6 @@ var _ = Describe("OffersHandler", func() {
 					mockOffer:        currentOffer,
 					imageIsUnchanged: true,
 				}
-				authenticator = &mockAuthenticator{
-					api: &mockAPI{
-						message: "thetitle - Ingredient1, ingredient2, ingredient3",
-					},
-				}
 				imageStorage.On("PathsFor", "").Return(&model.OfferImagePaths{}, nil)
 			})
 
@@ -300,11 +282,6 @@ var _ = Describe("OffersHandler", func() {
 				}
 				offersCollection = &mockOffers{
 					mockOffer: currentOffer,
-				}
-				authenticator = &mockAuthenticator{
-					api: &mockAPI{
-						message: "thetitle - Ingredient1, ingredient2, ingredient3",
-					},
 				}
 			})
 
@@ -356,124 +333,13 @@ var _ = Describe("OffersHandler", func() {
 			})
 
 			Describe("updating group post", func() {
-				var (
-					restaurantID         bson.ObjectId
-					fbPageToken          string
-					fbPageID             string
-					fbAPI                *mocks.API
-					mockOffersCollection *mocks.Offers
-					mockUsersCollection  *mocks.Users
-					mockFBAuth           *mocks.Authenticator
-				)
-
 				AfterEach(func() {
-					mockOffersCollection.AssertExpectations(GinkgoT())
-					postsCollection.AssertExpectations(GinkgoT())
-					restaurantsCollection.AssertExpectations(GinkgoT())
-					mockUsersCollection.AssertExpectations(GinkgoT())
+					facebookPost.AssertExpectations(GinkgoT())
 				})
 
 				BeforeEach(func() {
-					mockUsersCollection = new(mocks.Users)
-					usersCollection = mockUsersCollection
-					mockOffersCollection = new(mocks.Offers)
-					offersCollection = mockOffersCollection
-					mockFBAuth = new(mocks.Authenticator)
-					authenticator = mockFBAuth
-					postsCollection = new(mocks.OfferGroupPosts)
-
-					fbPageID = "fbpageid"
-					regionName := "Tartu"
-					restaurantID = bson.ObjectId("12letrrestid")
-					restaurant := &model.Restaurant{
-						ID:             restaurantID,
-						FacebookPageID: fbPageID,
-						Region:         regionName,
-						Name:           "Asian Chef",
-						Address:        "an-address",
-						Location: model.Location{
-							Type:        "Point",
-							Coordinates: []float64{26.7, 58.4},
-						},
-						Phone: "+372 5678 910",
-					}
-					fbUserToken := &oauth2.Token{}
-					fbPageToken = "afbpagetoken"
-					user := &model.User{
-						RestaurantIDs: []bson.ObjectId{restaurant.ID},
-						Session: &model.UserSession{
-							FacebookUserToken: *fbUserToken,
-							FacebookPageToken: fbPageToken,
-						},
-					}
-					restaurantsCollection.GetID(restaurantID) // Best way I could think of getting rid of the previous mock
-					restaurantsCollection.On("GetID", restaurantID).Return(restaurant, nil)
-					mockUsersCollection.On("GetSessionID", "correctSession").Return(user, nil)
-
-					date := model.DateWithoutTime("2014-11-11")
-					groupPostID := bson.NewObjectId()
-					postsCollection.On("GetByDate", date, restaurantID).Return(&model.OfferGroupPost{
-						ID:              groupPostID,
-						Date:            date,
-						MessageTemplate: "messagetemplate",
-					}, nil)
-
-					offerId := bson.NewObjectId()
-					params = httprouter.Params{httprouter.Param{
-						Key:   "id",
-						Value: offerId.Hex(),
-					}}
-					currentOffer := &model.Offer{
-						CommonOfferFields: model.CommonOfferFields{
-							ID:       offerId,
-							FromTime: time.Date(2014, 11, 11, 0, 0, 0, 0, time.UTC),
-						},
-					}
-					mockOffersCollection.On("GetID", offerId).Return(currentOffer, nil)
-					mockOffersCollection.On("UpdateID", offerId, mock.AnythingOfType("*model.Offer")).Return(nil)
-					requestData = map[string]interface{}{
-						"title":       "thetitle",
-						"ingredients": []string{"ingredient1", "ingredient2", "ingredient3"},
-						"tags":        []string{"tag1", "tag2"},
-						"price":       123.58,
-						"from_time":   "2014-11-11T09:00:00.000Z",
-						"to_time":     "2014-11-11T11:00:00.000Z",
-					}
-
-					fbAPI = new(mocks.API)
-					mockFBAuth.On("APIConnection", fbUserToken).Return(fbAPI)
-					region := &model.Region{
-						Location: "UTC",
-					}
-					regionsCollection.On("GetName", regionName).Return(region, nil)
-					startTime := time.Date(2014, 11, 11, 0, 0, 0, 0, time.UTC)
-					endTime := time.Date(2014, 11, 12, 0, 0, 0, 0, time.UTC)
-					offers := []*model.Offer{
-						&model.Offer{
-							CommonOfferFields: model.CommonOfferFields{
-								Title: "atitle",
-								Price: 5.670000000000,
-							},
-						},
-						&model.Offer{
-							CommonOfferFields: model.CommonOfferFields{
-								Title: "btitle",
-								Price: 4.670000000000,
-							},
-						},
-					}
-					mockOffersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return(offers, nil)
-					fbPostID := "fbpostid"
-					fbAPI.On("PagePublish", fbPageToken, fbPageID, "messagetemplate\n\natitle - 5.67€\nbtitle - 4.67€").Return(&fbmodel.Post{
-						ID: fbPostID,
-					}, nil)
-					postsCollection.On("UpdateByID", groupPostID, &model.OfferGroupPost{
-						ID:              groupPostID,
-						Date:            model.DateWithoutTime("2014-11-11"),
-						MessageTemplate: "messagetemplate",
-						FBPostID:        fbPostID,
-					}).Return(nil)
-					imageStorage.On("PathsFor", "").Return(&model.OfferImagePaths{}, nil)
+					facebookPost = new(mocks.Post)
+					facebookPost.On("Update", model.DateWithoutTime("2014-11-11"), mock.AnythingOfType("*model.User"), mock.AnythingOfType("*model.Restaurant")).Return(nil)
 				})
 
 				It("succeeds", func() {
@@ -490,42 +356,10 @@ var _ = Describe("OffersHandler", func() {
 							"price":       123.58,
 							"from_time":   "2014-11-15T09:00:00.000Z",
 							"to_time":     "2014-11-15T11:00:00.000Z",
+							"image_data":  "image data url",
 						}
 						date := model.DateWithoutTime("2014-11-15")
-						groupPostID := bson.NewObjectId()
-						postsCollection.On("GetByDate", date, restaurantID).Return(&model.OfferGroupPost{
-							ID:              groupPostID,
-							Date:            date,
-							MessageTemplate: "messagetemplate2",
-						}, nil)
-
-						startTime := time.Date(2014, 11, 15, 0, 0, 0, 0, time.UTC)
-						endTime := time.Date(2014, 11, 16, 0, 0, 0, 0, time.UTC)
-						offers := []*model.Offer{
-							&model.Offer{
-								CommonOfferFields: model.CommonOfferFields{
-									Title: "atitle2",
-									Price: 5.670000000000,
-								},
-							},
-							&model.Offer{
-								CommonOfferFields: model.CommonOfferFields{
-									Title: "btitle2",
-									Price: 4.670000000000,
-								},
-							},
-						}
-						mockOffersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return(offers, nil)
-						fbPostID := "fbpostid"
-						fbAPI.On("PagePublish", fbPageToken, fbPageID, "messagetemplate2\n\natitle2 - 5.67€\nbtitle2 - 4.67€").Return(&fbmodel.Post{
-							ID: fbPostID,
-						}, nil)
-						postsCollection.On("UpdateByID", groupPostID, &model.OfferGroupPost{
-							ID:              groupPostID,
-							Date:            date,
-							MessageTemplate: "messagetemplate2",
-							FBPostID:        fbPostID,
-						}).Return(nil)
+						facebookPost.On("Update", date, mock.AnythingOfType("*model.User"), mock.AnythingOfType("*model.Restaurant")).Return(nil)
 					})
 
 					It("succeeds updating the group posts for both the previous and new day", func() {
@@ -541,26 +375,21 @@ var _ = Describe("OffersHandler", func() {
 		var (
 			usersCollection       db.Users
 			handler               router.HandlerWithParams
-			authenticator         facebook.Authenticator
 			sessionManager        session.Manager
 			restaurantsCollection *mocks.Restaurants
-			regionsCollection     db.Regions
-			postsCollection       *mocks.OfferGroupPosts
+			facebookPost          *mocks.Post
 			params                httprouter.Params
 		)
 
 		BeforeEach(func() {
 			usersCollection = &mockUsers{}
 			restaurantsCollection = new(mocks.Restaurants)
-			authenticator = &mockAuthenticator{}
 
 			restaurantID := bson.ObjectId("12letrrestid")
 			params = httprouter.Params{httprouter.Param{
 				Key:   "id",
 				Value: objectID.Hex(),
 			}}
-			postsCollection = new(mocks.OfferGroupPosts)
-			postsCollection.On("GetByDate", model.DateWithoutTime("2014-11-11"), restaurantID).Return(&model.OfferGroupPost{}, nil)
 
 			restaurant := &model.Restaurant{
 				ID:      restaurantID,
@@ -574,11 +403,12 @@ var _ = Describe("OffersHandler", func() {
 				Phone: "+372 5678 910",
 			}
 			restaurantsCollection.On("GetID", restaurantID).Return(restaurant, nil).Once()
+			facebookPost = new(mocks.Post)
+			facebookPost.On("Update", model.DateWithoutTime("2014-11-11"), mock.AnythingOfType("*model.User"), restaurant).Return(nil)
 		})
 
 		JustBeforeEach(func() {
-			handler = DeleteOffers(offersCollection, usersCollection, sessionManager, authenticator, restaurantsCollection,
-				regionsCollection, postsCollection)
+			handler = DeleteOffers(offersCollection, usersCollection, sessionManager, restaurantsCollection, facebookPost)
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
@@ -628,9 +458,6 @@ var _ = Describe("OffersHandler", func() {
 				}
 				offersCollection = &mockOffers{
 					mockOffer: currentOffer,
-				}
-				authenticator = &mockAuthenticator{
-					api: &mockAPI{},
 				}
 			})
 
@@ -717,8 +544,6 @@ func (m mockOffers) UpdateID(id bson.ObjectId, offer *model.Offer) error {
 	Expect(offer.Restaurant.Location.Coordinates[0]).To(BeNumerically("~", 26.7))
 	Expect(offer.Restaurant.Location.Coordinates[1]).To(BeNumerically("~", 58.4))
 	Expect(offer.Restaurant.Phone).To(Equal("+372 5678 910"))
-	Expect(offer.FromTime).To(Equal(time.Date(2014, 11, 11, 9, 0, 0, 0, time.UTC)))
-	Expect(offer.ToTime).To(Equal(time.Date(2014, 11, 11, 11, 0, 0, 0, time.UTC)))
 	if id == objectID {
 		Expect(offer.ImageChecksum).To(Equal("image checksum"))
 	} else if id == objectID2 {

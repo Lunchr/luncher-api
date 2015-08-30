@@ -3,15 +3,13 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/Lunchr/luncher-api/db"
 	"github.com/Lunchr/luncher-api/db/model"
+	"github.com/Lunchr/luncher-api/facebook"
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
 	"github.com/Lunchr/luncher-api/storage"
-	"github.com/deiwin/facebook"
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -21,8 +19,7 @@ type HandlerWithUserAndOffer func(w http.ResponseWriter, r *http.Request, user *
 // PostOffers handles POST requests to /offers. It stores the offer in the DB and
 // sends it to Facebook to be posted on the page's wall at the requested time.
 func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants,
-	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage storage.Images,
-	regionsCollection db.Regions, groupPostsCollection db.OfferGroupPosts) router.Handler {
+	sessionManager session.Manager, imageStorage storage.Images, facebookPost facebook.Post) router.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
 		restaurant, err := restaurantsCollection.GetID(user.RestaurantIDs[0])
 		if err != nil {
@@ -42,7 +39,7 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 		}
 
 		date := model.DateFromTime(offer.FromTime)
-		handlerErr := updateGroupPostForDate(date, user, restaurant, offersCollection, regionsCollection, groupPostsCollection, fbAuth)
+		handlerErr := facebookPost.Update(date, user, restaurant)
 		if handlerErr != nil {
 			return handlerErr
 		}
@@ -59,8 +56,7 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 // PutOffers handles PUT requests to /offers. It updates the offer in the DB and
 // updates the related Facebook post.
 func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants,
-	sessionManager session.Manager, fbAuth facebook.Authenticator, imageStorage storage.Images,
-	regionsCollection db.Regions, groupPostsCollection db.OfferGroupPosts) router.HandlerWithParams {
+	sessionManager session.Manager, imageStorage storage.Images, facebookPost facebook.Post) router.HandlerWithParams {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, currentOffer *model.Offer) *router.HandlerError {
 		restaurant, err := restaurantsCollection.GetID(user.RestaurantIDs[0])
 		if err != nil {
@@ -84,13 +80,13 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 		offer.ID = currentOffer.ID
 
 		date := model.DateFromTime(offer.FromTime)
-		handlerErr := updateGroupPostForDate(date, user, restaurant, offersCollection, regionsCollection, groupPostsCollection, fbAuth)
+		handlerErr := facebookPost.Update(date, user, restaurant)
 		if handlerErr != nil {
 			return handlerErr
 		}
 		previousDate := model.DateFromTime(currentOffer.FromTime)
 		if previousDate != date {
-			handlerErr = updateGroupPostForDate(previousDate, user, restaurant, offersCollection, regionsCollection, groupPostsCollection, fbAuth)
+			handlerErr = facebookPost.Update(previousDate, user, restaurant)
 			if handlerErr != nil {
 				return handlerErr
 			}
@@ -109,8 +105,7 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 // DeleteOffers handles DELETE requests to /offers. It deletes the offer from the DB and
 // deletes the related Facebook post.
 func DeleteOffers(offersCollection db.Offers, usersCollection db.Users, sessionManager session.Manager,
-	fbAuth facebook.Authenticator, restaurantsCollection db.Restaurants, regionsCollection db.Regions,
-	groupPostsCollection db.OfferGroupPosts) router.HandlerWithParams {
+	restaurantsCollection db.Restaurants, facebookPost facebook.Post) router.HandlerWithParams {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, currentOffer *model.Offer) *router.HandlerError {
 		restaurant, err := restaurantsCollection.GetID(user.RestaurantIDs[0])
 		if err != nil {
@@ -121,7 +116,7 @@ func DeleteOffers(offersCollection db.Offers, usersCollection db.Users, sessionM
 		}
 
 		date := model.DateFromTime(currentOffer.FromTime)
-		handlerErr := updateGroupPostForDate(date, user, restaurant, offersCollection, regionsCollection, groupPostsCollection, fbAuth)
+		handlerErr := facebookPost.Update(date, user, restaurant)
 		if handlerErr != nil {
 			return handlerErr
 		}
@@ -145,27 +140,6 @@ func forOffer(offersCollection db.Offers, handler HandlerWithUserAndOffer) Handl
 		}
 		return handler(w, r, user, offer)
 	}
-}
-
-// postOfferToFB forms a post, sends it to FB and returns the post's FB ID
-func postOfferToFB(offer model.Offer, user *model.User, restaurant *model.Restaurant, api facebook.API) (string, *router.HandlerError) {
-	if restaurant.FacebookPageID == "" {
-		return "", nil
-	}
-	message := formFBOfferMessage(&offer)
-	post, err := api.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, message)
-	if err != nil {
-		return "", router.NewHandlerError(err, "Failed to post the offer to Facebook", http.StatusBadGateway)
-	}
-	return post.ID, nil
-}
-
-func capitalizeString(s string) string {
-	if s == "" {
-		return ""
-	}
-	r, n := utf8.DecodeRuneInString(s)
-	return string(unicode.ToUpper(r)) + s[n:]
 }
 
 func parseOffer(r *http.Request, restaurant *model.Restaurant) (*model.OfferPOST, error) {

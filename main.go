@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/Lunchr/luncher-api/db"
+	luncherFacebook "github.com/Lunchr/luncher-api/facebook"
 	"github.com/Lunchr/luncher-api/handler"
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
@@ -51,6 +52,8 @@ func main() {
 	facebookRegistrationConfig := facebook.NewConfig(registrationRedirectURL, scopes)
 	facebookRegistrationAuthenticator := facebook.NewAuthenticator(facebookRegistrationConfig)
 
+	facebookPost := luncherFacebook.NewPost(offerGroupPostsCollection, offersCollection, regionsCollection, facebookLoginAuthenticator)
+
 	imageStorage := storage.NewImages()
 
 	r := router.NewWithPrefix("/api/v1/")
@@ -58,20 +61,20 @@ func main() {
 	r.GETWithParams("/regions/:name/offers", handler.RegionOffers(offersCollection, regionsCollection, imageStorage))
 	r.GET("/offers", handler.ProximalOffers(offersCollection, imageStorage))
 	r.POST("/offers", handler.PostOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager,
-		facebookLoginAuthenticator, imageStorage, regionsCollection, offerGroupPostsCollection))
+		imageStorage, facebookPost))
 	r.PUT("/offers/:id", handler.PutOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager,
-		facebookLoginAuthenticator, imageStorage, regionsCollection, offerGroupPostsCollection))
-	r.DELETE("/offers/:id", handler.DeleteOffers(offersCollection, usersCollection, sessionManager, facebookLoginAuthenticator,
-		restaurantsCollection, regionsCollection, offerGroupPostsCollection))
+		imageStorage, facebookPost))
+	r.DELETE("/offers/:id", handler.DeleteOffers(offersCollection, usersCollection, sessionManager, restaurantsCollection,
+		facebookPost))
 	r.GET("/tags", handler.Tags(tagsCollection))
 	r.GET("/restaurant", handler.Restaurant(restaurantsCollection, sessionManager, usersCollection))
 	r.POST("/restaurants", handler.PostRestaurants(restaurantsCollection, sessionManager, usersCollection))
 	r.GET("/restaurant/offers", handler.RestaurantOffers(restaurantsCollection, sessionManager, usersCollection, offersCollection, imageStorage))
 	r.GETWithParams("/restaurant/posts/:date", handler.OfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection, restaurantsCollection))
 	r.POST("/restaurant/posts", handler.PostOfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection,
-		restaurantsCollection, offersCollection, regionsCollection, facebookLoginAuthenticator))
+		restaurantsCollection, facebookPost))
 	r.PUT("/restaurant/posts/:date", handler.PutOfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection,
-		restaurantsCollection, offersCollection, regionsCollection, facebookLoginAuthenticator))
+		restaurantsCollection, facebookPost))
 	r.GET("/logout", handler.Logout(sessionManager, usersCollection))
 	r.GET("/login/facebook", handler.RedirectToFBForLogin(sessionManager, facebookLoginAuthenticator))
 	r.GET("/login/facebook/redirected", handler.RedirectedFromFBForLogin(sessionManager, facebookLoginAuthenticator, usersCollection, restaurantsCollection))
