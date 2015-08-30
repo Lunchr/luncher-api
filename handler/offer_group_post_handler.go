@@ -70,6 +70,9 @@ func PutOfferGroupPost(c db.OfferGroupPosts, sessionManager session.Manager, use
 		if err != nil {
 			return router.NewSimpleHandlerError("Failed to insert the post to DB", http.StatusBadRequest)
 		}
+		if handlerErr = updateGroupPost(post, user, restaurant, offers, regions, c, fbAuth); handlerErr != nil {
+			return handlerErr
+		}
 		return writeJSON(w, post)
 	}
 	return forDate(sessionManager, users, restaurants, handler)
