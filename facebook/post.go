@@ -47,7 +47,7 @@ func (f *facebookPost) Update(date model.DateWithoutTime, user *model.User, rest
 		}
 		insertedPosts, err := f.groupPosts.Insert(postToInsert)
 		if err != nil {
-			router.NewHandlerError(err, "Failed to create a group post with restaurant defaults", http.StatusInternalServerError)
+			return router.NewHandlerError(err, "Failed to create a group post with restaurant defaults", http.StatusInternalServerError)
 		}
 		post = insertedPosts[0]
 	} else if err != nil {

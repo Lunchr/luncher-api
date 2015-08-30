@@ -10,6 +10,7 @@ import (
 	"github.com/Lunchr/luncher-api/facebook/mocks"
 	fbmodel "github.com/deiwin/facebook/model"
 	"golang.org/x/oauth2"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
 	. "github.com/onsi/ginkgo"
@@ -198,6 +199,39 @@ var _ = Describe("Post", func() {
 							err := facebookPost.Update(date, user, restaurant)
 							Expect(err).To(BeNil())
 						})
+					})
+				})
+			})
+
+			Context("without an existing offer group post", func() {
+				var defaultTemplate string
+
+				BeforeEach(func() {
+					defaultTemplate = "a default template message"
+					restaurant.DefaultGroupPostMessageTemplate = defaultTemplate
+					groupPosts.On("GetByDate", date, restaurantID).Return(nil, mgo.ErrNotFound)
+				})
+
+				Context("with insert failin", func() {
+					var err error
+					BeforeEach(func() {
+						err = errors.New("something went wrong")
+						groupPosts.On("Insert", []*model.OfferGroupPost{&model.OfferGroupPost{
+							RestaurantID:    restaurantID,
+							Date:            date,
+							MessageTemplate: defaultTemplate,
+						}}).Return(nil, err)
+					})
+
+					AfterEach(func() {
+						groupPosts.AssertExpectations(GinkgoT())
+					})
+
+					It("fails with the given error", func() {
+						handlerErr := facebookPost.Update(date, user, restaurant)
+						Expect(handlerErr).NotTo(BeNil())
+						Expect(handlerErr.Err).To(Equal(err))
+						Expect(handlerErr.Code).To(Equal(http.StatusInternalServerError))
 					})
 				})
 			})
