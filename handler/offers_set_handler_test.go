@@ -212,8 +212,7 @@ var _ = Describe("OffersHandler", func() {
 				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
 			})
 
-			It("should fail", func(done Done) {
-				defer close(done)
+			It("should fail", func() {
 				err := handler(responseRecorder, request, params)
 				Expect(err.Code).To(Equal(http.StatusNotFound))
 			})
@@ -228,8 +227,7 @@ var _ = Describe("OffersHandler", func() {
 				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
 			})
 
-			It("should fail", func(done Done) {
-				defer close(done)
+			It("should fail", func() {
 				err := handler(responseRecorder, request, params)
 				Expect(err.Code).To(Equal(http.StatusBadRequest))
 			})
@@ -270,8 +268,7 @@ var _ = Describe("OffersHandler", func() {
 				imageStorage.On("PathsFor", "").Return(&model.OfferImagePaths{}, nil)
 			})
 
-			It("should succeed", func(done Done) {
-				defer close(done)
+			It("should succeed", func() {
 				err := handler(responseRecorder, request, params)
 				Expect(err).To(BeNil())
 			})
@@ -307,22 +304,19 @@ var _ = Describe("OffersHandler", func() {
 				}
 			})
 
-			It("should succeed", func(done Done) {
-				defer close(done)
+			It("should succeed", func() {
 				err := handler(responseRecorder, request, params)
 				Expect(err).To(BeNil())
 			})
 
-			It("should return json", func(done Done) {
-				defer close(done)
+			It("should return json", func() {
 				handler(responseRecorder, request, params)
 				contentTypes := responseRecorder.HeaderMap["Content-Type"]
 				Expect(contentTypes).To(HaveLen(1))
 				Expect(contentTypes[0]).To(Equal("application/json"))
 			})
 
-			It("should include the updated offer in the response", func(done Done) {
-				defer close(done)
+			It("should include the updated offer in the response", func() {
 				handler(responseRecorder, request, params)
 				var offer *model.OfferJSON
 				json.Unmarshal(responseRecorder.Body.Bytes(), &offer)
@@ -415,8 +409,7 @@ var _ = Describe("OffersHandler", func() {
 				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
 			})
 
-			It("should fail", func(done Done) {
-				defer close(done)
+			It("should fail", func() {
 				err := handler(responseRecorder, request, params)
 				Expect(err.Code).To(Equal(http.StatusNotFound))
 			})
@@ -431,8 +424,7 @@ var _ = Describe("OffersHandler", func() {
 				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
 			})
 
-			It("should fail", func(done Done) {
-				defer close(done)
+			It("should fail", func() {
 				err := handler(responseRecorder, request, params)
 				Expect(err.Code).To(Equal(http.StatusBadRequest))
 			})
@@ -458,8 +450,7 @@ var _ = Describe("OffersHandler", func() {
 				}
 			})
 
-			It("should succeed", func(done Done) {
-				defer close(done)
+			It("should succeed", func() {
 				err := handler(responseRecorder, request, params)
 				Expect(err).To(BeNil())
 			})
