@@ -15,6 +15,11 @@ import (
 	fbmodel "github.com/deiwin/facebook/model"
 )
 
+const (
+	postUpdateDebounceDuration       = 5 * time.Minute
+	publishDurationBeforeOfferActive = 30 * time.Minute
+)
+
 type Post interface {
 	Update(model.DateWithoutTime, *model.User, *model.Restaurant) *router.HandlerError
 }
@@ -79,11 +84,12 @@ func (f *facebookPost) updatePost(post *model.OfferGroupPost, user *model.User, 
 }
 
 func (f *facebookPost) publishNewPost(post *model.OfferGroupPost, offersForDate []*model.Offer, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
-	fbAPI := f.fbAuth.APIConnection(&user.Session.FacebookUserToken)
-	fbPost := &fbmodel.Post{
-		Message:   formFBMessage(post, offersForDate),
-		Published: true,
+	fbPost, handlerErr := formFBPost(post, offersForDate)
+	if handlerErr != nil {
+		return handlerErr
 	}
+
+	fbAPI := f.fbAuth.APIConnection(&user.Session.FacebookUserToken)
 	fbPostResponse, err := fbAPI.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, fbPost)
 	if err != nil {
 		return router.NewHandlerError(err, "Failed to post the offer to Facebook", http.StatusBadGateway)
@@ -110,15 +116,42 @@ func (f *facebookPost) deleteExistingPost(post *model.OfferGroupPost, user *mode
 
 func (f *facebookPost) updateExistingPost(post *model.OfferGroupPost, offersForDate []*model.Offer, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
 	fbAPI := f.fbAuth.APIConnection(&user.Session.FacebookUserToken)
-	fbPost := &fbmodel.Post{
-		Message:   formFBMessage(post, offersForDate),
-		Published: true,
+	fbPost, handlerErr := formFBPostForUpdate(post, offersForDate, user, fbAPI)
+	if handlerErr != nil {
+		return handlerErr
 	}
+
 	err := fbAPI.PostUpdate(user.Session.FacebookPageToken, post.FBPostID, fbPost)
 	if err != nil {
 		return router.NewHandlerError(err, "Failed to post the offer to Facebook", http.StatusBadGateway)
 	}
 	return nil
+}
+
+func formFBPostForUpdate(post *model.OfferGroupPost, offersForDate []*model.Offer, user *model.User, fbAPI facebook.API) (*fbmodel.Post, *router.HandlerError) {
+	currentPost, err := fbAPI.Post(user.Session.FacebookPageToken, post.FBPostID)
+	if err != nil {
+		return nil, router.NewHandlerError(err, "Failed to retrieve the current post from FB", http.StatusBadGateway)
+	}
+	if currentPost.IsPublished {
+		return &fbmodel.Post{
+			Message:   formFBMessage(post, offersForDate),
+			Published: true,
+		}, nil
+	}
+	return formFBPost(post, offersForDate)
+}
+
+func formFBPost(post *model.OfferGroupPost, offersForDate []*model.Offer) (*fbmodel.Post, *router.HandlerError) {
+	publishTime, handlerErr := calculatePublishTime(offersForDate)
+	if handlerErr != nil {
+		return nil, handlerErr
+	}
+	return &fbmodel.Post{
+		Message:              formFBMessage(post, offersForDate),
+		ScheduledPublishTime: publishTime,
+		Published:            publishTime.Before(time.Now()),
+	}, nil
 }
 
 func formFBMessage(post *model.OfferGroupPost, offers []*model.Offer) string {
@@ -133,6 +166,30 @@ func formFBMessage(post *model.OfferGroupPost, offers []*model.Offer) string {
 func formFBOfferMessage(o *model.Offer) string {
 	// TODO get rid of the hard-coded €
 	return fmt.Sprintf("%s - %.2f€", o.Title, o.Price)
+}
+
+// calculatePublishTime returns a time either 5 minutes (the debounce period) from now or the earliest FromTime of an offer,
+// whichever is later.
+func calculatePublishTime(offers []*model.Offer) (time.Time, *router.HandlerError) {
+	if len(offers) == 0 {
+		return time.Time{}, router.NewSimpleHandlerError("Cannot calculate a publish time for 0 offers", http.StatusInternalServerError)
+	}
+	var earliestTime time.Time
+	for i, offer := range offers {
+		if i == 0 {
+			earliestTime = offer.FromTime
+			continue
+		}
+		if offer.FromTime.Before(earliestTime) {
+			earliestTime = offer.FromTime
+		}
+	}
+	earliestPublishTime := earliestTime.Add(-publishDurationBeforeOfferActive)
+	afterDebounceBuffer := time.Now().Add(postUpdateDebounceDuration)
+	if earliestPublishTime.Before(afterDebounceBuffer) {
+		return afterDebounceBuffer, nil
+	}
+	return earliestPublishTime, nil
 }
 
 func (f *facebookPost) getOffersForDate(date model.DateWithoutTime, restaurant *model.Restaurant) ([]*model.Offer, *router.HandlerError) {

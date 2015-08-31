@@ -9,6 +9,7 @@ import (
 	"github.com/Lunchr/luncher-api/facebook"
 	"github.com/Lunchr/luncher-api/facebook/mocks"
 	fbmodel "github.com/deiwin/facebook/model"
+	"github.com/stretchr/testify/mock"
 	"golang.org/x/oauth2"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -45,12 +46,15 @@ var _ = Describe("Post", func() {
 	Describe("Update", func() {
 		var date model.DateWithoutTime
 
+		BeforeEach(func() {
+			date = model.DateWithoutTime("2011-04-24")
+		})
+
 		Context("for restaurants without an associated FB page", func() {
 			BeforeEach(func() {
 				restaurant = &model.Restaurant{
 					FacebookPageID: "",
 				}
-				date = model.DateWithoutTime("2011-04-24")
 			})
 
 			It("does nothing", func() {
@@ -132,39 +136,121 @@ var _ = Describe("Post", func() {
 				Context("without a previous associated FB post", func() {
 					Context("with there being offers for that date", func() {
 						BeforeEach(func() {
-							offers := []*model.Offer{
-								&model.Offer{
-									CommonOfferFields: model.CommonOfferFields{
-										Title: "atitle",
-										Price: 5.670000000000,
-									},
-								},
-								&model.Offer{
-									CommonOfferFields: model.CommonOfferFields{
-										Title: "btitle",
-										Price: 4.670000000000,
-									},
-								},
-							}
-							offersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return(offers, nil)
 							fbAuth.On("APIConnection", facebookUserToken).Return(fbAPI)
-						})
-
-						It("posts to FB and updates FB post ID in DB", func() {
-							fbAPI.On("PagePublish", facebookPageToken, facebookPageID, &fbmodel.Post{
-								Message: messageTemplate + "\n\natitle - 5.67€\nbtitle - 4.67€",
-							}).Return(&fbmodel.Post{
-								ID: facebookPostID,
-							}, nil)
 							groupPosts.On("UpdateByID", id, &model.OfferGroupPost{
 								ID:              id,
 								Date:            date,
 								MessageTemplate: messageTemplate,
 								FBPostID:        facebookPostID,
 							}).Return(nil)
+						})
 
-							err := facebookPost.Update(date, user, restaurant)
-							Expect(err).To(BeNil())
+						Context("for far future offers", func() {
+							BeforeEach(func() {
+								offersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return([]*model.Offer{
+									&model.Offer{
+										CommonOfferFields: model.CommonOfferFields{
+											Title:    "atitle",
+											Price:    5.670000000000,
+											FromTime: time.Date(2115, 01, 02, 10, 0, 0, 0, time.UTC),
+										},
+									},
+									&model.Offer{
+										CommonOfferFields: model.CommonOfferFields{
+											Title:    "btitle",
+											Price:    4.670000000000,
+											FromTime: time.Date(2115, 01, 02, 9, 0, 0, 0, time.UTC),
+										},
+									},
+								}, nil)
+							})
+
+							It("should set the post to be published right before the earliest offer", func() {
+								fbAPI.On("PagePublish", facebookPageToken, facebookPageID, &fbmodel.Post{
+									Message:              messageTemplate + "\n\natitle - 5.67€\nbtitle - 4.67€",
+									Published:            false,
+									ScheduledPublishTime: time.Date(2115, 01, 02, 8, 30, 0, 0, time.UTC),
+								}).Return(&fbmodel.PostResponse{
+									Post: fbmodel.Post{
+										ID: facebookPostID,
+									},
+								}, nil)
+
+								err := facebookPost.Update(date, user, restaurant)
+								Expect(err).To(BeNil())
+							})
+						})
+
+						Context("for near future offers", func() {
+							BeforeEach(func() {
+								offersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return([]*model.Offer{
+									&model.Offer{
+										CommonOfferFields: model.CommonOfferFields{
+											Title:    "atitle",
+											Price:    5.670000000000,
+											FromTime: time.Now().Add(time.Minute),
+										},
+									},
+									&model.Offer{
+										CommonOfferFields: model.CommonOfferFields{
+											Title:    "btitle",
+											Price:    4.670000000000,
+											FromTime: time.Now().Add(time.Hour),
+										},
+									},
+								}, nil)
+							})
+
+							It("should leave some time to still modify the offer before going live", func() {
+								fbAPI.On("PagePublish", facebookPageToken, facebookPageID, mock.AnythingOfType("*model.Post")).Return(&fbmodel.PostResponse{
+									Post: fbmodel.Post{
+										ID: facebookPostID,
+									},
+								}, nil)
+
+								err := facebookPost.Update(date, user, restaurant)
+								Expect(err).To(BeNil())
+								post := fbAPI.Calls[0].Arguments.Get(2).(*fbmodel.Post)
+								Expect(post.Message).To(Equal(messageTemplate + "\n\natitle - 5.67€\nbtitle - 4.67€"))
+								Expect(post.Published).To(BeFalse())
+								Expect(post.ScheduledPublishTime.Sub(time.Now())).To(BeNumerically("~", 5*time.Minute, time.Second))
+							})
+						})
+
+						Context("for past offers", func() {
+							BeforeEach(func() {
+								offersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return([]*model.Offer{
+									&model.Offer{
+										CommonOfferFields: model.CommonOfferFields{
+											Title:    "atitle",
+											Price:    5.670000000000,
+											FromTime: time.Date(2005, 01, 02, 9, 0, 0, 0, time.UTC),
+										},
+									},
+									&model.Offer{
+										CommonOfferFields: model.CommonOfferFields{
+											Title:    "btitle",
+											Price:    4.670000000000,
+											FromTime: time.Date(2005, 01, 02, 9, 0, 0, 0, time.UTC),
+										},
+									},
+								}, nil)
+							})
+
+							It("should leave some time to still modify the offer before going live", func() {
+								fbAPI.On("PagePublish", facebookPageToken, facebookPageID, mock.AnythingOfType("*model.Post")).Return(&fbmodel.PostResponse{
+									Post: fbmodel.Post{
+										ID: facebookPostID,
+									},
+								}, nil)
+
+								err := facebookPost.Update(date, user, restaurant)
+								Expect(err).To(BeNil())
+								post := fbAPI.Calls[0].Arguments.Get(2).(*fbmodel.Post)
+								Expect(post.Message).To(Equal(messageTemplate + "\n\natitle - 5.67€\nbtitle - 4.67€"))
+								Expect(post.Published).To(BeFalse())
+								Expect(post.ScheduledPublishTime.Sub(time.Now())).To(BeNumerically("~", 5*time.Minute, time.Second))
+							})
 						})
 					})
 
@@ -187,31 +273,145 @@ var _ = Describe("Post", func() {
 
 					Context("with there being offers for that date", func() {
 						BeforeEach(func() {
-							offers := []*model.Offer{
-								&model.Offer{
-									CommonOfferFields: model.CommonOfferFields{
-										Title: "atitle",
-										Price: 5.670000000000,
-									},
-								},
-								&model.Offer{
-									CommonOfferFields: model.CommonOfferFields{
-										Title: "btitle",
-										Price: 4.670000000000,
-									},
-								},
-							}
-							offersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return(offers, nil)
 							fbAuth.On("APIConnection", facebookUserToken).Return(fbAPI)
 						})
 
-						It("updates the FB post", func() {
-							fbAPI.On("PostUpdate", facebookPageToken, facebookPostID, &fbmodel.Post{
-								Message: messageTemplate + "\n\natitle - 5.67€\nbtitle - 4.67€",
-							}).Return(nil)
+						Context("with existing post being published", func() {
+							BeforeEach(func() {
+								fbAPI.On("Post", facebookPageToken, facebookPostID).Return(&fbmodel.PostResponse{
+									IsPublished: true,
+								}, nil)
+								offersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return([]*model.Offer{
+									&model.Offer{
+										CommonOfferFields: model.CommonOfferFields{
+											Title:    "atitle",
+											Price:    5.670000000000,
+											FromTime: time.Date(2115, 01, 02, 10, 0, 0, 0, time.UTC),
+										},
+									},
+									&model.Offer{
+										CommonOfferFields: model.CommonOfferFields{
+											Title:    "btitle",
+											Price:    4.670000000000,
+											FromTime: time.Date(2115, 01, 02, 9, 0, 0, 0, time.UTC),
+										},
+									},
+								}, nil)
+							})
 
-							err := facebookPost.Update(date, user, restaurant)
-							Expect(err).To(BeNil())
+							It("should update the post as published", func() {
+								fbAPI.On("PostUpdate", facebookPageToken, facebookPostID, &fbmodel.Post{
+									Message:   messageTemplate + "\n\natitle - 5.67€\nbtitle - 4.67€",
+									Published: true,
+								}).Return(nil)
+
+								err := facebookPost.Update(date, user, restaurant)
+								Expect(err).To(BeNil())
+							})
+						})
+
+						Context("with existing post not being published", func() {
+							BeforeEach(func() {
+								fbAPI.On("Post", facebookPageToken, facebookPostID).Return(&fbmodel.PostResponse{
+									IsPublished: false,
+								}, nil)
+							})
+
+							Context("for far future offers", func() {
+								BeforeEach(func() {
+									offersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return([]*model.Offer{
+										&model.Offer{
+											CommonOfferFields: model.CommonOfferFields{
+												Title:    "atitle",
+												Price:    5.670000000000,
+												FromTime: time.Date(2115, 01, 02, 10, 0, 0, 0, time.UTC),
+											},
+										},
+										&model.Offer{
+											CommonOfferFields: model.CommonOfferFields{
+												Title:    "btitle",
+												Price:    4.670000000000,
+												FromTime: time.Date(2115, 01, 02, 9, 0, 0, 0, time.UTC),
+											},
+										},
+									}, nil)
+								})
+
+								It("should set the post to be published right before the earliest offer", func() {
+									fbAPI.On("PostUpdate", facebookPageToken, facebookPostID, &fbmodel.Post{
+										Message:              messageTemplate + "\n\natitle - 5.67€\nbtitle - 4.67€",
+										Published:            false,
+										ScheduledPublishTime: time.Date(2115, 01, 02, 8, 30, 0, 0, time.UTC),
+									}).Return(nil)
+
+									err := facebookPost.Update(date, user, restaurant)
+									Expect(err).To(BeNil())
+								})
+							})
+
+							Context("for near future offers", func() {
+								BeforeEach(func() {
+									offersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return([]*model.Offer{
+										&model.Offer{
+											CommonOfferFields: model.CommonOfferFields{
+												Title:    "atitle",
+												Price:    5.670000000000,
+												FromTime: time.Now().Add(time.Minute),
+											},
+										},
+										&model.Offer{
+											CommonOfferFields: model.CommonOfferFields{
+												Title:    "btitle",
+												Price:    4.670000000000,
+												FromTime: time.Now().Add(time.Hour),
+											},
+										},
+									}, nil)
+								})
+
+								It("should leave some time to still modify the offer before going live", func() {
+									fbAPI.On("PostUpdate", facebookPageToken, facebookPostID, mock.AnythingOfType("*model.Post")).Return(nil)
+
+									err := facebookPost.Update(date, user, restaurant)
+									Expect(err).To(BeNil())
+									post := fbAPI.Calls[1].Arguments.Get(2).(*fbmodel.Post)
+									Expect(post.Message).To(Equal(messageTemplate + "\n\natitle - 5.67€\nbtitle - 4.67€"))
+									Expect(post.Published).To(BeFalse())
+									Expect(post.ScheduledPublishTime.Sub(time.Now())).To(BeNumerically("~", 5*time.Minute, time.Second))
+								})
+							})
+
+							Context("for past offers", func() {
+								BeforeEach(func() {
+									offersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return([]*model.Offer{
+										&model.Offer{
+											CommonOfferFields: model.CommonOfferFields{
+												Title:    "atitle",
+												Price:    5.670000000000,
+												FromTime: time.Date(2005, 01, 02, 9, 0, 0, 0, time.UTC),
+											},
+										},
+										&model.Offer{
+											CommonOfferFields: model.CommonOfferFields{
+												Title:    "btitle",
+												Price:    4.670000000000,
+												FromTime: time.Date(2005, 01, 02, 9, 0, 0, 0, time.UTC),
+											},
+										},
+									}, nil)
+								})
+
+								It("should leave some time to still modify the offer before going live", func() {
+									fbAPI.On("PostUpdate", facebookPageToken, facebookPostID, mock.AnythingOfType("*model.Post")).Return(nil)
+
+									err := facebookPost.Update(date, user, restaurant)
+									Expect(err).To(BeNil())
+									post := fbAPI.Calls[1].Arguments.Get(2).(*fbmodel.Post)
+									Expect(post.Message).To(Equal(messageTemplate + "\n\natitle - 5.67€\nbtitle - 4.67€"))
+									Expect(post.Published).To(BeFalse())
+									Expect(post.ScheduledPublishTime.Sub(time.Now())).To(BeNumerically("~", 5*time.Minute, time.Second))
+								})
+							})
 						})
 					})
 
