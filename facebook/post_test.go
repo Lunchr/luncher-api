@@ -95,7 +95,6 @@ var _ = Describe("Post", func() {
 					},
 				}
 				fbAPI = new(mocks.API)
-				fbAuth.On("APIConnection", facebookUserToken).Return(fbAPI)
 			})
 
 			Context("with an existing OfferGroupPost", func() {
@@ -148,22 +147,22 @@ var _ = Describe("Post", func() {
 								},
 							}
 							offersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return(offers, nil)
+							fbAuth.On("APIConnection", facebookUserToken).Return(fbAPI)
+						})
 
+						It("posts to FB and updates FB post ID in DB", func() {
 							fbAPI.On("PagePublish", facebookPageToken, facebookPageID, &fbmodel.Post{
 								Message: messageTemplate + "\n\natitle - 5.67€\nbtitle - 4.67€",
 							}).Return(&fbmodel.Post{
 								ID: facebookPostID,
 							}, nil)
-
 							groupPosts.On("UpdateByID", id, &model.OfferGroupPost{
 								ID:              id,
 								Date:            date,
 								MessageTemplate: messageTemplate,
 								FBPostID:        facebookPostID,
 							}).Return(nil)
-						})
 
-						It("succeeds", func() {
 							err := facebookPost.Update(date, user, restaurant)
 							Expect(err).To(BeNil())
 						})
@@ -203,6 +202,7 @@ var _ = Describe("Post", func() {
 								},
 							}
 							offersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return(offers, nil)
+							fbAuth.On("APIConnection", facebookUserToken).Return(fbAPI)
 						})
 
 						It("updates the FB post", func() {
@@ -218,6 +218,7 @@ var _ = Describe("Post", func() {
 					Context("without there being offers for that date", func() {
 						BeforeEach(func() {
 							offersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return([]*model.Offer{}, nil)
+							fbAuth.On("APIConnection", facebookUserToken).Return(fbAPI)
 						})
 
 						Context("with post deletion failing", func() {
