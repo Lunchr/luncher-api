@@ -15,7 +15,7 @@ type (
 		Date         DateWithoutTime `json:"date"                 bson:"date"`
 
 		MessageTemplate string `json:"message_template"     bson:"message_template"`
-		FBPostID        string `json:"fb_post_id,omitempty" bson:"fb_post_id,omitempty"`
+		FBPostID        string `json:"fb_post_id,omitempty" bson:"fb_post_id"`
 	}
 
 	DateWithoutTime string
