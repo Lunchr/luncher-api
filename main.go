@@ -43,7 +43,7 @@ func main() {
 		panic(err)
 	}
 
-	scopes := []string{"manage_pages", "publish_pages"}
+	scopes := []string{"manage_pages", "publish_pages", "publish_actions"}
 	loginRedirectURL := mainConfig.Domain + "/api/v1/login/facebook/redirected"
 	facebookLoginConfig := facebook.NewConfig(loginRedirectURL, scopes)
 	facebookLoginAuthenticator := facebook.NewAuthenticator(facebookLoginConfig)
