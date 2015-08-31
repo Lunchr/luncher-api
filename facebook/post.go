@@ -12,6 +12,7 @@ import (
 	"github.com/Lunchr/luncher-api/db/model"
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/deiwin/facebook"
+	fbmodel "github.com/deiwin/facebook/model"
 )
 
 type Post interface {
@@ -74,17 +75,23 @@ func (f *facebookPost) updatePost(post *model.OfferGroupPost, user *model.User, 
 	} else if len(offersForDate) == 0 {
 		return nil
 	}
-	message := f.formFBMessage(post, offersForDate)
+	fbPost := f.formFBPost(post, offersForDate)
 	// Add the new version
-	fbPost, err := fbAPI.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, message)
+	fbPostResponse, err := fbAPI.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, fbPost)
 	if err != nil {
 		return router.NewHandlerError(err, "Failed to post the offer to Facebook", http.StatusBadGateway)
 	}
-	post.FBPostID = fbPost.ID
+	post.FBPostID = fbPostResponse.ID
 	if err = f.groupPosts.UpdateByID(post.ID, post); err != nil {
 		return router.NewHandlerError(err, "Failed to update a group post in the DB", http.StatusInternalServerError)
 	}
 	return nil
+}
+
+func (f *facebookPost) formFBPost(post *model.OfferGroupPost, offers []*model.Offer) *fbmodel.Post {
+	return &fbmodel.Post{
+		Message: f.formFBMessage(post, offers),
+	}
 }
 
 func (f *facebookPost) formFBMessage(post *model.OfferGroupPost, offers []*model.Offer) string {

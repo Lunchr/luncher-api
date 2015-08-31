@@ -134,8 +134,9 @@ var _ = Describe("Post", func() {
 					groupPosts.On("GetByDate", date, restaurantID).Return(offerGroupPost, nil)
 
 					facebookPostID = "fb post id"
-					fbAPI.On("PagePublish", facebookPageToken, facebookPageID,
-						messageTemplate+"\n\natitle - 5.67€\nbtitle - 4.67€").Return(&fbmodel.Post{
+					fbAPI.On("PagePublish", facebookPageToken, facebookPageID, &fbmodel.Post{
+						Message: messageTemplate + "\n\natitle - 5.67€\nbtitle - 4.67€",
+					}).Return(&fbmodel.Post{
 						ID: facebookPostID,
 					}, nil)
 					groupPosts.On("UpdateByID", id, &model.OfferGroupPost{
