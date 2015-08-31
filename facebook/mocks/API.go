@@ -71,15 +71,15 @@ func (_m *API) Page(pageID string) (*model.Page, error) {
 
 	return r0, r1
 }
-func (_m *API) PagePublish(pageAccessToken string, pageID string, post *model.Post) (*model.Post, error) {
+func (_m *API) PagePublish(pageAccessToken string, pageID string, post *model.Post) (*model.PostResponse, error) {
 	ret := _m.Called(pageAccessToken, pageID, post)
 
-	var r0 *model.Post
-	if rf, ok := ret.Get(0).(func(string, string, *model.Post) *model.Post); ok {
+	var r0 *model.PostResponse
+	if rf, ok := ret.Get(0).(func(string, string, *model.Post) *model.PostResponse); ok {
 		r0 = rf(pageAccessToken, pageID, post)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.Post)
+			r0 = ret.Get(0).(*model.PostResponse)
 		}
 	}
 
@@ -92,15 +92,15 @@ func (_m *API) PagePublish(pageAccessToken string, pageID string, post *model.Po
 
 	return r0, r1
 }
-func (_m *API) Post(pageAccessToken string, postID string) (*model.Post, error) {
+func (_m *API) Post(pageAccessToken string, postID string) (*model.PostResponse, error) {
 	ret := _m.Called(pageAccessToken, postID)
 
-	var r0 *model.Post
-	if rf, ok := ret.Get(0).(func(string, string) *model.Post); ok {
+	var r0 *model.PostResponse
+	if rf, ok := ret.Get(0).(func(string, string) *model.PostResponse); ok {
 		r0 = rf(pageAccessToken, postID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.Post)
+			r0 = ret.Get(0).(*model.PostResponse)
 		}
 	}
 
