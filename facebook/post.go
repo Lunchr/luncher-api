@@ -80,7 +80,10 @@ func (f *facebookPost) updatePost(post *model.OfferGroupPost, user *model.User, 
 
 func (f *facebookPost) publishNewPost(post *model.OfferGroupPost, offersForDate []*model.Offer, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
 	fbAPI := f.fbAuth.APIConnection(&user.Session.FacebookUserToken)
-	fbPost := f.formFBPost(post, offersForDate)
+	fbPost := &fbmodel.Post{
+		Message:   formFBMessage(post, offersForDate),
+		Published: true,
+	}
 	fbPostResponse, err := fbAPI.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, fbPost)
 	if err != nil {
 		return router.NewHandlerError(err, "Failed to post the offer to Facebook", http.StatusBadGateway)
@@ -107,7 +110,10 @@ func (f *facebookPost) deleteExistingPost(post *model.OfferGroupPost, user *mode
 
 func (f *facebookPost) updateExistingPost(post *model.OfferGroupPost, offersForDate []*model.Offer, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
 	fbAPI := f.fbAuth.APIConnection(&user.Session.FacebookUserToken)
-	fbPost := f.formFBPost(post, offersForDate)
+	fbPost := &fbmodel.Post{
+		Message:   formFBMessage(post, offersForDate),
+		Published: true,
+	}
 	err := fbAPI.PostUpdate(user.Session.FacebookPageToken, post.FBPostID, fbPost)
 	if err != nil {
 		return router.NewHandlerError(err, "Failed to post the offer to Facebook", http.StatusBadGateway)
@@ -115,22 +121,16 @@ func (f *facebookPost) updateExistingPost(post *model.OfferGroupPost, offersForD
 	return nil
 }
 
-func (f *facebookPost) formFBPost(post *model.OfferGroupPost, offers []*model.Offer) *fbmodel.Post {
-	return &fbmodel.Post{
-		Message: f.formFBMessage(post, offers),
-	}
-}
-
-func (f *facebookPost) formFBMessage(post *model.OfferGroupPost, offers []*model.Offer) string {
+func formFBMessage(post *model.OfferGroupPost, offers []*model.Offer) string {
 	offerMessages := make([]string, len(offers))
 	for i, offer := range offers {
-		offerMessages[i] = f.formFBOfferMessage(offer)
+		offerMessages[i] = formFBOfferMessage(offer)
 	}
 	offersMessage := strings.Join(offerMessages, "\n")
 	return fmt.Sprintf("%s\n\n%s", post.MessageTemplate, offersMessage)
 }
 
-func (f *facebookPost) formFBOfferMessage(o *model.Offer) string {
+func formFBOfferMessage(o *model.Offer) string {
 	// TODO get rid of the hard-coded €
 	return fmt.Sprintf("%s - %.2f€", o.Title, o.Price)
 }
