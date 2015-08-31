@@ -62,21 +62,34 @@ func (f *facebookPost) updatePost(post *model.OfferGroupPost, user *model.User, 
 		return nil
 	}
 	fbAPI := f.fbAuth.APIConnection(&user.Session.FacebookUserToken)
-	// Remove the current post from FB, if it's already there
-	if post.FBPostID != "" {
-		err := fbAPI.PostDelete(user.Session.FacebookPageToken, post.FBPostID)
-		if err != nil {
-			return router.NewHandlerError(err, "Failed to delete the current post from Facebook", http.StatusBadGateway)
-		}
-	}
+
 	offersForDate, handlerErr := f.getOffersForDate(post.Date, restaurant)
 	if handlerErr != nil {
 		return handlerErr
-	} else if len(offersForDate) == 0 {
+	}
+	if post.FBPostID != "" {
+		if len(offersForDate) == 0 {
+			err := fbAPI.PostDelete(user.Session.FacebookPageToken, post.FBPostID)
+			if err != nil {
+				return router.NewHandlerError(err, "Failed to delete the current post from Facebook", http.StatusBadGateway)
+			}
+			post.FBPostID = ""
+			if err = f.groupPosts.UpdateByID(post.ID, post); err != nil {
+				return router.NewHandlerError(err, "Failed to update a group post in the DB", http.StatusInternalServerError)
+			}
+			return nil
+		}
+		fbPost := f.formFBPost(post, offersForDate)
+		err := fbAPI.PostUpdate(user.Session.FacebookPageToken, post.FBPostID, fbPost)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to post the offer to Facebook", http.StatusBadGateway)
+		}
+		return nil
+	}
+	if len(offersForDate) == 0 {
 		return nil
 	}
 	fbPost := f.formFBPost(post, offersForDate)
-	// Add the new version
 	fbPostResponse, err := fbAPI.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, fbPost)
 	if err != nil {
 		return router.NewHandlerError(err, "Failed to post the offer to Facebook", http.StatusBadGateway)

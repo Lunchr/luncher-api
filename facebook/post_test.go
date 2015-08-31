@@ -83,24 +83,6 @@ var _ = Describe("Post", func() {
 				}
 				regions.On("GetName", regionName).Return(region, nil)
 
-				startTime := time.Date(2011, 04, 24, 0, 0, 0, 0, time.UTC)
-				endTime := time.Date(2011, 04, 25, 0, 0, 0, 0, time.UTC)
-				offers := []*model.Offer{
-					&model.Offer{
-						CommonOfferFields: model.CommonOfferFields{
-							Title: "atitle",
-							Price: 5.670000000000,
-						},
-					},
-					&model.Offer{
-						CommonOfferFields: model.CommonOfferFields{
-							Title: "btitle",
-							Price: 4.670000000000,
-						},
-					},
-				}
-				offersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return(offers, nil)
-
 				restaurant = &model.Restaurant{
 					ID:             restaurantID,
 					FacebookPageID: facebookPageID,
@@ -121,10 +103,13 @@ var _ = Describe("Post", func() {
 					messageTemplate string
 					offerGroupPost  *model.OfferGroupPost
 					facebookPostID  string
+					id              bson.ObjectId
+					startTime       time.Time
+					endTime         time.Time
 				)
 
 				BeforeEach(func() {
-					id := bson.NewObjectId()
+					id = bson.NewObjectId()
 					messageTemplate = "a message template"
 					offerGroupPost = &model.OfferGroupPost{
 						ID:              id,
@@ -134,71 +119,139 @@ var _ = Describe("Post", func() {
 					groupPosts.On("GetByDate", date, restaurantID).Return(offerGroupPost, nil)
 
 					facebookPostID = "fb post id"
-					fbAPI.On("PagePublish", facebookPageToken, facebookPageID, &fbmodel.Post{
-						Message: messageTemplate + "\n\natitle - 5.67€\nbtitle - 4.67€",
-					}).Return(&fbmodel.Post{
-						ID: facebookPostID,
-					}, nil)
-					groupPosts.On("UpdateByID", id, &model.OfferGroupPost{
-						ID:              id,
-						Date:            date,
-						MessageTemplate: messageTemplate,
-						FBPostID:        facebookPostID,
-					}).Return(nil)
+					startTime = time.Date(2011, 04, 24, 0, 0, 0, 0, time.UTC)
+					endTime = time.Date(2011, 04, 25, 0, 0, 0, 0, time.UTC)
+				})
+
+				AfterEach(func() {
+					groupPosts.AssertExpectations(GinkgoT())
+					offersCollection.AssertExpectations(GinkgoT())
+					regions.AssertExpectations(GinkgoT())
+					fbAuth.AssertExpectations(GinkgoT())
 				})
 
 				Context("without a previous associated FB post", func() {
-					AfterEach(func() {
-						groupPosts.AssertExpectations(GinkgoT())
-						offersCollection.AssertExpectations(GinkgoT())
-						regions.AssertExpectations(GinkgoT())
-						fbAuth.AssertExpectations(GinkgoT())
+					Context("with there being offers for that date", func() {
+						BeforeEach(func() {
+							offers := []*model.Offer{
+								&model.Offer{
+									CommonOfferFields: model.CommonOfferFields{
+										Title: "atitle",
+										Price: 5.670000000000,
+									},
+								},
+								&model.Offer{
+									CommonOfferFields: model.CommonOfferFields{
+										Title: "btitle",
+										Price: 4.670000000000,
+									},
+								},
+							}
+							offersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return(offers, nil)
+
+							fbAPI.On("PagePublish", facebookPageToken, facebookPageID, &fbmodel.Post{
+								Message: messageTemplate + "\n\natitle - 5.67€\nbtitle - 4.67€",
+							}).Return(&fbmodel.Post{
+								ID: facebookPostID,
+							}, nil)
+
+							groupPosts.On("UpdateByID", id, &model.OfferGroupPost{
+								ID:              id,
+								Date:            date,
+								MessageTemplate: messageTemplate,
+								FBPostID:        facebookPostID,
+							}).Return(nil)
+						})
+
+						It("succeeds", func() {
+							err := facebookPost.Update(date, user, restaurant)
+							Expect(err).To(BeNil())
+						})
 					})
 
-					It("succeeds", func() {
-						err := facebookPost.Update(date, user, restaurant)
-						Expect(err).To(BeNil())
+					Context("without there being offers for that date", func() {
+						BeforeEach(func() {
+							offersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return([]*model.Offer{}, nil)
+						})
+
+						It("succeeds", func() {
+							err := facebookPost.Update(date, user, restaurant)
+							Expect(err).To(BeNil())
+						})
 					})
 				})
 
 				Context("with a previous associated FB post", func() {
-					var fbPostID string
-
 					BeforeEach(func() {
-						fbPostID = "fb post ID"
-						offerGroupPost.FBPostID = fbPostID
-					})
-					Context("with post deletion failing", func() {
-						var err error
-
-						BeforeEach(func() {
-							err = errors.New("something went wrong")
-							fbAPI.On("PostDelete", facebookPageToken, fbPostID).Return(err)
-						})
-
-						It("fails with the given error", func() {
-							handlerErr := facebookPost.Update(date, user, restaurant)
-							Expect(handlerErr).NotTo(BeNil())
-							Expect(handlerErr.Err).To(Equal(err))
-							Expect(handlerErr.Code).To(Equal(http.StatusBadGateway))
-						})
+						offerGroupPost.FBPostID = facebookPostID
 					})
 
-					Context("with post deletion succeeding", func() {
+					Context("with there being offers for that date", func() {
 						BeforeEach(func() {
-							fbAPI.On("PostDelete", facebookPageToken, fbPostID).Return(nil)
+							offers := []*model.Offer{
+								&model.Offer{
+									CommonOfferFields: model.CommonOfferFields{
+										Title: "atitle",
+										Price: 5.670000000000,
+									},
+								},
+								&model.Offer{
+									CommonOfferFields: model.CommonOfferFields{
+										Title: "btitle",
+										Price: 4.670000000000,
+									},
+								},
+							}
+							offersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return(offers, nil)
 						})
 
-						AfterEach(func() {
-							groupPosts.AssertExpectations(GinkgoT())
-							offersCollection.AssertExpectations(GinkgoT())
-							regions.AssertExpectations(GinkgoT())
-							fbAuth.AssertExpectations(GinkgoT())
-						})
+						It("updates the FB post", func() {
+							fbAPI.On("PostUpdate", facebookPageToken, facebookPostID, &fbmodel.Post{
+								Message: messageTemplate + "\n\natitle - 5.67€\nbtitle - 4.67€",
+							}).Return(nil)
 
-						It("deletes old post and creates a new one", func() {
 							err := facebookPost.Update(date, user, restaurant)
 							Expect(err).To(BeNil())
+						})
+					})
+
+					Context("without there being offers for that date", func() {
+						BeforeEach(func() {
+							offersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return([]*model.Offer{}, nil)
+						})
+
+						Context("with post deletion failing", func() {
+							var err error
+
+							BeforeEach(func() {
+								err = errors.New("something went wrong")
+								fbAPI.On("PostDelete", facebookPageToken, facebookPostID).Return(err)
+							})
+
+							It("fails with the given error", func() {
+								handlerErr := facebookPost.Update(date, user, restaurant)
+								Expect(handlerErr).NotTo(BeNil())
+								Expect(handlerErr.Err).To(Equal(err))
+								Expect(handlerErr.Code).To(Equal(http.StatusBadGateway))
+							})
+						})
+
+						Context("with post deletion succeeding", func() {
+							BeforeEach(func() {
+								fbAPI.On("PostDelete", facebookPageToken, facebookPostID).Return(nil)
+							})
+
+							It("removes the post ID from memory", func() {
+								groupPosts.On("UpdateByID", id, &model.OfferGroupPost{
+									ID:              id,
+									Date:            date,
+									MessageTemplate: messageTemplate,
+									FBPostID:        "",
+								}).Return(nil)
+
+								err := facebookPost.Update(date, user, restaurant)
+								Expect(err).To(BeNil())
+							})
 						})
 					})
 				})
@@ -213,7 +266,7 @@ var _ = Describe("Post", func() {
 					groupPosts.On("GetByDate", date, restaurantID).Return(nil, mgo.ErrNotFound)
 				})
 
-				Context("with insert failin", func() {
+				Context("with insert failing", func() {
 					var err error
 					BeforeEach(func() {
 						err = errors.New("something went wrong")
