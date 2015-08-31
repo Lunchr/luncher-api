@@ -16,7 +16,12 @@ import (
 )
 
 const (
-	postUpdateDebounceDuration       = 5 * time.Minute
+	// postUpdateDebounceDuration is the period we leave for the users to modify a day's offers in before
+	// publishing the offers to Facebook. That is, the last modification time to today's offers + this time
+	// will be when the post goes live. NB: May not be less than 10 minutes, as per Facebook's documentation.
+	// That is, Facebook doesn't allow posts to be scheduled less than 10 minutes (or more than 6 months, but
+	// I don't think that will be an issue) from now.
+	postUpdateDebounceDuration       = 11 * time.Minute
 	publishDurationBeforeOfferActive = 30 * time.Minute
 )
 
@@ -92,7 +97,7 @@ func (f *facebookPost) publishNewPost(post *model.OfferGroupPost, offersForDate 
 	fbAPI := f.fbAuth.APIConnection(&user.Session.FacebookUserToken)
 	fbPostResponse, err := fbAPI.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, fbPost)
 	if err != nil {
-		return router.NewHandlerError(err, "Failed to post the offer to Facebook", http.StatusBadGateway)
+		return router.NewHandlerError(err, "Failed to post the offers to Facebook", http.StatusBadGateway)
 	}
 	post.FBPostID = fbPostResponse.ID
 	if err = f.groupPosts.UpdateByID(post.ID, post); err != nil {
@@ -123,7 +128,7 @@ func (f *facebookPost) updateExistingPost(post *model.OfferGroupPost, offersForD
 
 	err := fbAPI.PostUpdate(user.Session.FacebookPageToken, post.FBPostID, fbPost)
 	if err != nil {
-		return router.NewHandlerError(err, "Failed to post the offer to Facebook", http.StatusBadGateway)
+		return router.NewHandlerError(err, "Failed updating the offers in Facebook", http.StatusBadGateway)
 	}
 	return nil
 }
