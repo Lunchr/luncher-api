@@ -69,7 +69,7 @@ var _ = Describe("OfferGroupPosts", func() {
 	})
 
 	Describe("GetByDate", func() {
-		var date = model.DateFromTime(time.Date(2115, 04, 03, 0, 0, 0, 0, time.UTC))
+		var date = model.DateFromTime(time.Date(2115, 04, 03, 0, 0, 0, 0, time.UTC), time.UTC)
 		var restaurantID = bson.NewObjectId()
 		RebuildDBAfterEach()
 

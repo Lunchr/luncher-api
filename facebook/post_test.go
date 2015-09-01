@@ -171,9 +171,7 @@ var _ = Describe("Post", func() {
 									Published:            false,
 									ScheduledPublishTime: time.Date(2115, 01, 02, 8, 30, 0, 0, time.UTC),
 								}).Return(&fbmodel.PostResponse{
-									Post: fbmodel.Post{
-										ID: facebookPostID,
-									},
+									ID: facebookPostID,
 								}, nil)
 
 								err := facebookPost.Update(date, user, restaurant)
@@ -203,9 +201,7 @@ var _ = Describe("Post", func() {
 
 							It("should leave some time to still modify the offer before going live", func() {
 								fbAPI.On("PagePublish", facebookPageToken, facebookPageID, mock.AnythingOfType("*model.Post")).Return(&fbmodel.PostResponse{
-									Post: fbmodel.Post{
-										ID: facebookPostID,
-									},
+									ID: facebookPostID,
 								}, nil)
 
 								err := facebookPost.Update(date, user, restaurant)
@@ -239,9 +235,7 @@ var _ = Describe("Post", func() {
 
 							It("should leave some time to still modify the offer before going live", func() {
 								fbAPI.On("PagePublish", facebookPageToken, facebookPageID, mock.AnythingOfType("*model.Post")).Return(&fbmodel.PostResponse{
-									Post: fbmodel.Post{
-										ID: facebookPostID,
-									},
+									ID: facebookPostID,
 								}, nil)
 
 								err := facebookPost.Update(date, user, restaurant)
