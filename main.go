@@ -61,11 +61,11 @@ func main() {
 	r.GETWithParams("/regions/:name/offers", handler.RegionOffers(offersCollection, regionsCollection, imageStorage))
 	r.GET("/offers", handler.ProximalOffers(offersCollection, imageStorage))
 	r.POST("/offers", handler.PostOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager,
-		imageStorage, facebookPost))
+		imageStorage, facebookPost, regionsCollection))
 	r.PUT("/offers/:id", handler.PutOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager,
-		imageStorage, facebookPost))
+		imageStorage, facebookPost, regionsCollection))
 	r.DELETE("/offers/:id", handler.DeleteOffers(offersCollection, usersCollection, sessionManager, restaurantsCollection,
-		facebookPost))
+		facebookPost, regionsCollection))
 	r.GET("/tags", handler.Tags(tagsCollection))
 	r.GET("/restaurant", handler.Restaurant(restaurantsCollection, sessionManager, usersCollection))
 	r.POST("/restaurants", handler.PostRestaurants(restaurantsCollection, sessionManager, usersCollection))

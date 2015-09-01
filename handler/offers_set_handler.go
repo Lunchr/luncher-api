@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/Lunchr/luncher-api/db"
 	"github.com/Lunchr/luncher-api/db/model"
@@ -18,8 +19,8 @@ type HandlerWithUserAndOffer func(w http.ResponseWriter, r *http.Request, user *
 
 // PostOffers handles POST requests to /offers. It stores the offer in the DB and
 // sends it to Facebook to be posted on the page's wall at the requested time.
-func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants,
-	sessionManager session.Manager, imageStorage storage.Images, facebookPost facebook.Post) router.Handler {
+func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants, sessionManager session.Manager,
+	imageStorage storage.Images, facebookPost facebook.Post, regions db.Regions) router.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
 		restaurant, err := restaurantsCollection.GetID(user.RestaurantIDs[0])
 		if err != nil {
@@ -38,8 +39,12 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 			return router.NewHandlerError(err, "Failed to store the offer in the DB", http.StatusInternalServerError)
 		}
 
-		date := model.DateFromTime(offer.FromTime)
-		handlerErr := facebookPost.Update(date, user, restaurant)
+		location, handlerErr := getLocationForRestaurant(restaurant, regions)
+		if handlerErr != nil {
+			return handlerErr
+		}
+		date := model.DateFromTime(offer.FromTime, location)
+		handlerErr = facebookPost.Update(date, user, restaurant)
 		if handlerErr != nil {
 			return handlerErr
 		}
@@ -55,8 +60,8 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 
 // PutOffers handles PUT requests to /offers. It updates the offer in the DB and
 // updates the related Facebook post.
-func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants,
-	sessionManager session.Manager, imageStorage storage.Images, facebookPost facebook.Post) router.HandlerWithParams {
+func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants, sessionManager session.Manager,
+	imageStorage storage.Images, facebookPost facebook.Post, regions db.Regions) router.HandlerWithParams {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, currentOffer *model.Offer) *router.HandlerError {
 		restaurant, err := restaurantsCollection.GetID(user.RestaurantIDs[0])
 		if err != nil {
@@ -79,12 +84,16 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 		}
 		offer.ID = currentOffer.ID
 
-		date := model.DateFromTime(offer.FromTime)
-		handlerErr := facebookPost.Update(date, user, restaurant)
+		location, handlerErr := getLocationForRestaurant(restaurant, regions)
 		if handlerErr != nil {
 			return handlerErr
 		}
-		previousDate := model.DateFromTime(currentOffer.FromTime)
+		date := model.DateFromTime(offer.FromTime, location)
+		handlerErr = facebookPost.Update(date, user, restaurant)
+		if handlerErr != nil {
+			return handlerErr
+		}
+		previousDate := model.DateFromTime(currentOffer.FromTime, location)
 		if previousDate != date {
 			handlerErr = facebookPost.Update(previousDate, user, restaurant)
 			if handlerErr != nil {
@@ -104,8 +113,8 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 
 // DeleteOffers handles DELETE requests to /offers. It deletes the offer from the DB and
 // deletes the related Facebook post.
-func DeleteOffers(offersCollection db.Offers, usersCollection db.Users, sessionManager session.Manager,
-	restaurantsCollection db.Restaurants, facebookPost facebook.Post) router.HandlerWithParams {
+func DeleteOffers(offersCollection db.Offers, usersCollection db.Users, sessionManager session.Manager, restaurantsCollection db.Restaurants,
+	facebookPost facebook.Post, regions db.Regions) router.HandlerWithParams {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, currentOffer *model.Offer) *router.HandlerError {
 		restaurant, err := restaurantsCollection.GetID(user.RestaurantIDs[0])
 		if err != nil {
@@ -115,8 +124,12 @@ func DeleteOffers(offersCollection db.Offers, usersCollection db.Users, sessionM
 			return router.NewHandlerError(err, "Failed to delete the offer from DB", http.StatusInternalServerError)
 		}
 
-		date := model.DateFromTime(currentOffer.FromTime)
-		handlerErr := facebookPost.Update(date, user, restaurant)
+		location, handlerErr := getLocationForRestaurant(restaurant, regions)
+		if handlerErr != nil {
+			return handlerErr
+		}
+		date := model.DateFromTime(currentOffer.FromTime, location)
+		handlerErr = facebookPost.Update(date, user, restaurant)
 		if handlerErr != nil {
 			return handlerErr
 		}
@@ -183,4 +196,16 @@ func parseAndStoreImage(imageDataURL string, imageStorage storage.Images) (strin
 		return "", err
 	}
 	return imageChecksum, nil
+}
+
+func getLocationForRestaurant(restaurant *model.Restaurant, regions db.Regions) (*time.Location, *router.HandlerError) {
+	region, err := regions.GetName(restaurant.Region)
+	if err != nil {
+		return nil, router.NewHandlerError(err, "Failed to find the restaurant's region", http.StatusInternalServerError)
+	}
+	location, err := time.LoadLocation(region.Location)
+	if err != nil {
+		return nil, router.NewHandlerError(err, "Failed to load region's location", http.StatusInternalServerError)
+	}
+	return location, nil
 }

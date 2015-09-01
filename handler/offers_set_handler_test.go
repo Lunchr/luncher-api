@@ -25,8 +25,9 @@ import (
 var _ = Describe("OffersHandler", func() {
 
 	var (
-		offersCollection db.Offers
-		imageStorage     *mocks.Images
+		offersCollection  db.Offers
+		imageStorage      *mocks.Images
+		regionsCollection *mocks.Regions
 	)
 
 	BeforeEach(func() {
@@ -38,6 +39,11 @@ var _ = Describe("OffersHandler", func() {
 		imageStorage.On("PathsFor", "image checksum").Return(&model.OfferImagePaths{
 			Large:     "images/a large image path",
 			Thumbnail: "images/thumbnail",
+		}, nil)
+		regionsCollection = new(mocks.Regions)
+		regionsCollection.On("GetName", "Tartu").Return(&model.Region{
+			Name:     "Tartu",
+			Location: "Europe/Tallinn",
 		}, nil)
 	})
 
@@ -74,7 +80,7 @@ var _ = Describe("OffersHandler", func() {
 
 		JustBeforeEach(func() {
 			handler = PostOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager,
-				imageStorage, facebookPost)
+				imageStorage, facebookPost, regionsCollection)
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
@@ -186,7 +192,7 @@ var _ = Describe("OffersHandler", func() {
 
 		JustBeforeEach(func() {
 			handler = PutOffers(offersCollection, usersCollection, restaurantsCollection, sessionManager,
-				imageStorage, facebookPost)
+				imageStorage, facebookPost, regionsCollection)
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
@@ -408,7 +414,7 @@ var _ = Describe("OffersHandler", func() {
 		})
 
 		JustBeforeEach(func() {
-			handler = DeleteOffers(offersCollection, usersCollection, sessionManager, restaurantsCollection, facebookPost)
+			handler = DeleteOffers(offersCollection, usersCollection, sessionManager, restaurantsCollection, facebookPost, regionsCollection)
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
