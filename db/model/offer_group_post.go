@@ -23,8 +23,8 @@ type (
 
 const dateWithoutTimeLayout = "2006-01-02"
 
-func DateFromTime(t time.Time) DateWithoutTime {
-	dateString := t.Format(dateWithoutTimeLayout)
+func DateFromTime(t time.Time, loc *time.Location) DateWithoutTime {
+	dateString := t.In(loc).Format(dateWithoutTimeLayout)
 	return DateWithoutTime(dateString)
 }
 

@@ -14,15 +14,23 @@ var _ = Describe("OfferGroupPost", func() {
 		Describe("DateFromTime", func() {
 			It("returns the date in the correct layout", func() {
 				t := time.Date(2011, time.January, 2, 0, 0, 0, 1, time.UTC)
-				result := model.DateFromTime(t)
+				result := model.DateFromTime(t, time.UTC)
 				Expect(string(result)).To(Equal("2011-01-02"))
 			})
 
-			It("plays well with other timezones", func() {
+			It("plays well with changing timezones", func() {
 				location, err := time.LoadLocation("Europe/Tallinn")
 				Expect(err).NotTo(HaveOccurred())
-				t := time.Date(2011, time.January, 2, 0, 0, 0, 1, location)
-				result := model.DateFromTime(t)
+				t := time.Date(2011, time.January, 2, 1, 0, 0, 1, location)
+				result := model.DateFromTime(t, time.UTC)
+				Expect(string(result)).To(Equal("2011-01-01"))
+			})
+
+			It("plays well with unchanging timezones", func() {
+				location, err := time.LoadLocation("Europe/Tallinn")
+				Expect(err).NotTo(HaveOccurred())
+				t := time.Date(2011, time.January, 2, 1, 0, 0, 1, location)
+				result := model.DateFromTime(t, location)
 				Expect(string(result)).To(Equal("2011-01-02"))
 			})
 		})
