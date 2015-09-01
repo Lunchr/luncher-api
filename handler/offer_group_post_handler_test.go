@@ -382,6 +382,12 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 					Key:   "date",
 					Value: "2015-04-10",
 				}}
+				mockPostsCollection.On("GetByDate", model.DateWithoutTime("2015-04-10"), restaurantID).Return(&model.OfferGroupPost{
+					ID:              id,
+					Date:            model.DateWithoutTime("2015-04-10"),
+					RestaurantID:    restaurantID,
+					MessageTemplate: "an old message template",
+				}, nil)
 			})
 
 			AfterEach(func() {
@@ -395,8 +401,9 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 			Context("with valid input", func() {
 				BeforeEach(func() {
 					requestData = map[string]interface{}{
-						"_id":              id,
-						"date":             "2015-04-10",
+						// id and date are garbage because they should be ignored
+						"_id":              bson.ObjectId("123456789012"),
+						"date":             "garbage",
 						"message_template": "a message template",
 					}
 				})
@@ -462,34 +469,6 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 						err := handler(responseRecorder, request, params)
 						Expect(err).NotTo(BeNil())
 					})
-				})
-			})
-
-			Context("with a non-matching date", func() {
-				BeforeEach(func() {
-					requestData = map[string]interface{}{
-						"_id":  id,
-						"date": "2015-04-11",
-					}
-				})
-
-				It("should fail", func() {
-					err := handler(responseRecorder, request, params)
-					Expect(err).NotTo(BeNil())
-				})
-			})
-
-			Context("without an id", func() {
-				BeforeEach(func() {
-					requestData = map[string]interface{}{
-						"date": "2015-04-10",
-					}
-					mockPostsCollection.On("UpdateByID", bson.ObjectId(""), mock.AnythingOfType("*model.OfferGroupPost")).Return(errors.New("missing stuff"))
-				})
-
-				It("should fail", func() {
-					err := handler(responseRecorder, request, params)
-					Expect(err).NotTo(BeNil())
 				})
 			})
 		})

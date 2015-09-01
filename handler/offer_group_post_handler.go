@@ -56,15 +56,16 @@ func PutOfferGroupPost(c db.OfferGroupPosts, sessionManager session.Manager, use
 	facebookPost facebook.Post) router.HandlerWithParams {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant,
 		date model.DateWithoutTime) *router.HandlerError {
-		post, handlerErr := parseOfferGroupPost(r, restaurant)
+		updatedMessageTemplate, handlerErr := parseOfferGroupPostUpdatedMessage(r)
 		if handlerErr != nil {
 			return handlerErr
 		}
-		if post.Date != date {
-			return router.NewSimpleHandlerError("Unexpected date value", http.StatusBadRequest)
-		}
-		err := c.UpdateByID(post.ID, post)
+		post, err := c.GetByDate(date, restaurant.ID)
 		if err != nil {
+			return router.NewSimpleHandlerError("Failed to get the post from DB", http.StatusBadRequest)
+		}
+		post.MessageTemplate = updatedMessageTemplate
+		if err = c.UpdateByID(post.ID, post); err != nil {
 			return router.NewSimpleHandlerError("Failed to insert the post to DB", http.StatusBadRequest)
 		}
 		// Update by date, because the posted data does not include the previous FB post ID
@@ -118,4 +119,16 @@ func parseOfferGroupPost(r *http.Request, restaurant *model.Restaurant) (*model.
 		Date:            date,
 		RestaurantID:    restaurant.ID,
 	}, nil
+}
+
+// Only the message template can be updated, therefore this method
+func parseOfferGroupPostUpdatedMessage(r *http.Request) (string, *router.HandlerError) {
+	var post struct {
+		MessageTemplate string `json:"message_template"`
+	}
+	err := json.NewDecoder(r.Body).Decode(&post)
+	if err != nil {
+		return "", router.NewHandlerError(err, "Failed to parse the post", http.StatusBadRequest)
+	}
+	return post.MessageTemplate, nil
 }
