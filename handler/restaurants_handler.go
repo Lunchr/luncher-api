@@ -41,6 +41,8 @@ func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.
 		restaurant, err := parseRestaurant(r)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to parse the restaurant", http.StatusBadRequest)
+		} else if restaurant.FacebookPageID == "" {
+			return router.NewHandlerError(err, "Registering without an assciated FB page is currently disabled", http.StatusBadRequest)
 		}
 		insertedRestaurants, err := c.Insert(restaurant)
 		if err != nil {
