@@ -10,12 +10,13 @@ const OfferGroupPostCollectionName = "offer_group_post"
 
 type (
 	OfferGroupPost struct {
-		ID           bson.ObjectId   `json:"_id,omitempty"        bson:"_id,omitempty"`
-		RestaurantID bson.ObjectId   `json:"restaurant_id"        bson:"restaurant_id"`
-		Date         DateWithoutTime `json:"date"                 bson:"date"`
+		ID           bson.ObjectId   `json:"_id,omitempty"       bson:"_id,omitempty"`
+		RestaurantID bson.ObjectId   `json:"restaurant_id"       bson:"restaurant_id"`
+		Date         DateWithoutTime `json:"date"                bson:"date"`
 
-		MessageTemplate string `json:"message_template"     bson:"message_template"`
-		FBPostID        string `json:"fb_post_id,omitempty" bson:"fb_post_id"`
+		MessageTemplate     string `json:"message_template"      bson:"message_template"`
+		FBPostID            string `json:"fb_post_id,omitempty"  bson:"fb_post_id"`
+		PostedImageChecksum uint32 `json:"posted_image_checksum" bson:"posted_image_checksum"`
 	}
 
 	DateWithoutTime string

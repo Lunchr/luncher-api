@@ -52,9 +52,10 @@ func main() {
 	facebookRegistrationConfig := facebook.NewConfig(registrationRedirectURL, scopes)
 	facebookRegistrationAuthenticator := facebook.NewAuthenticator(facebookRegistrationConfig)
 
-	facebookPost := luncherFacebook.NewPost(offerGroupPostsCollection, offersCollection, regionsCollection, facebookLoginAuthenticator)
-
 	imageStorage := storage.NewImages()
+
+	facebookPost := luncherFacebook.NewPost(offerGroupPostsCollection, offersCollection, regionsCollection,
+		facebookLoginAuthenticator, imageStorage)
 
 	r := router.NewWithPrefix("/api/v1/")
 	r.GET("/regions", handler.Regions(regionsCollection))
