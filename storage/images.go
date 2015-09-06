@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"image"
 	"path"
 
 	"github.com/Lunchr/luncher-api/db/model"
@@ -15,6 +16,7 @@ type Images interface {
 	StoreDataURL(string) error
 	PathsFor(checksum string) (*model.OfferImagePaths, error)
 	HasChecksum(checksum string) (bool, error)
+	GetOriginal(checksum string) (image.Image, error)
 }
 
 type images struct {
@@ -79,6 +81,10 @@ func (i images) PathsFor(checksum string) (*model.OfferImagePaths, error) {
 
 func (i images) HasChecksum(checksum string) (bool, error) {
 	return i.HasSizesForChecksum(checksum, i.sizeStrings)
+}
+
+func (i images) GetOriginal(checksum string) (image.Image, error) {
+	return i.GetSize(checksum, "original")
 }
 
 func (i images) pathForThumbnail(checksum string) (string, error) {
