@@ -44,6 +44,6 @@ func (c registrationAccessTokensCollection) Exists(token model.Token) (bool, err
 func (c registrationAccessTokensCollection) ensureTTLIndex() error {
 	return c.EnsureIndex(mgo.Index{
 		Key:         []string{"created_at"},
-		ExpireAfter: time.Hour * 24, // 24 hours
+		ExpireAfter: time.Hour * 24 * 7, // 7 days
 	})
 }
