@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"hash/crc32"
 	"image"
+	"image/color"
 	"image/jpeg"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -31,28 +33,29 @@ const (
 	publishDurationBeforeOfferActive = 30 * time.Minute
 )
 
-var crcTable = crc32.MakeTable(crc32.IEEE)
-
 type Post interface {
 	Update(model.DateWithoutTime, *model.User, *model.Restaurant) *router.HandlerError
 }
 
-func NewPost(groupPosts db.OfferGroupPosts, offers db.Offers, regions db.Regions, fbAuth facebook.Authenticator, images storage.Images) Post {
+func NewPost(groupPosts db.OfferGroupPosts, offers db.Offers, regions db.Regions, fbAuth facebook.Authenticator, images storage.Images,
+	collageLayout picasso.Layout) Post {
 	return &facebookPost{
-		groupPosts: groupPosts,
-		offers:     offers,
-		regions:    regions,
-		fbAuth:     fbAuth,
-		images:     images,
+		groupPosts:    groupPosts,
+		offers:        offers,
+		regions:       regions,
+		fbAuth:        fbAuth,
+		images:        images,
+		collageLayout: collageLayout,
 	}
 }
 
 type facebookPost struct {
-	groupPosts db.OfferGroupPosts
-	offers     db.Offers
-	regions    db.Regions
-	fbAuth     facebook.Authenticator
-	images     storage.Images
+	groupPosts    db.OfferGroupPosts
+	offers        db.Offers
+	regions       db.Regions
+	fbAuth        facebook.Authenticator
+	images        storage.Images
+	collageLayout picasso.Layout
 }
 
 func (f *facebookPost) Update(date model.DateWithoutTime, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
@@ -110,26 +113,21 @@ func (f *facebookPost) publishNewPost(post *model.OfferGroupPost, offersForDate 
 		return handlerErr
 	}
 	if collage != nil {
-		var imageData bytes.Buffer
-		if err := jpeg.Encode(&imageData, collage, nil); err != nil {
-			return router.NewHandlerError(err, "Failed to encode a collage into JPEG", http.StatusInternalServerError)
+		encodedCollage, collageChecksum, handlerErr := encodeCollage(collage)
+		if handlerErr != nil {
+			return handlerErr
 		}
 		fbPhoto := fbmodel.Photo{
 			Post:  *fbPost,
-			Photo: &imageData,
+			Photo: encodedCollage,
 		}
 
 		fbPhotoResponse, err := fbAPI.PagePhotoCreate(user.Session.FacebookPageToken, restaurant.FacebookPageID, &fbPhoto)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to post the offers with a photo to Facebook", http.StatusBadGateway)
 		}
-		if fbPhotoResponse.PostID == "" {
-			post.FBPostID = fmt.Sprintf("%s_%s", restaurant.FacebookPageID, fbPhotoResponse.ID)
-		} else {
-			post.FBPostID = fbPhotoResponse.PostID
-		}
-		crc := crc32.Checksum(imageData.Bytes(), crcTable)
-		post.PostedImageChecksum = crc
+		post.FBPostID = getPostIDFromPhotoResponse(fbPhotoResponse, restaurant.FacebookPageID)
+		post.PostedImageChecksum = collageChecksum
 	} else {
 		fbPostResponse, err := fbAPI.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, fbPost)
 		if err != nil {
@@ -141,6 +139,23 @@ func (f *facebookPost) publishNewPost(post *model.OfferGroupPost, offersForDate 
 		return router.NewHandlerError(err, "Failed to update a group post in the DB", http.StatusInternalServerError)
 	}
 	return nil
+}
+
+func encodeCollage(collage image.Image) (io.Reader, uint32, *router.HandlerError) {
+	var imageData bytes.Buffer
+	if err := jpeg.Encode(&imageData, collage, nil); err != nil {
+		return nil, 0, router.NewHandlerError(err, "Failed to encode a collage into JPEG", http.StatusInternalServerError)
+	}
+	crc := crc32.ChecksumIEEE(imageData.Bytes())
+	return &imageData, crc, nil
+}
+
+func getPostIDFromPhotoResponse(photoResponse *fbmodel.PhotoResponse, pageID string) string {
+	if photoResponse.PostID == "" {
+		return fmt.Sprintf("%s_%s", pageID, photoResponse.ID)
+	} else {
+		return photoResponse.PostID
+	}
 }
 
 func (f *facebookPost) deleteExistingPost(post *model.OfferGroupPost, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
@@ -167,19 +182,18 @@ func (f *facebookPost) updateExistingPost(post *model.OfferGroupPost, offersForD
 		return handlerErr
 	}
 	if collage != nil {
-		var imageData bytes.Buffer
-		if err = jpeg.Encode(&imageData, collage, nil); err != nil {
-			return router.NewHandlerError(err, "Failed to encode a collage into JPEG", http.StatusInternalServerError)
+		encodedCollage, collageChecksum, handlerErr := encodeCollage(collage)
+		if handlerErr != nil {
+			return handlerErr
 		}
-		crc := crc32.Checksum(imageData.Bytes(), crcTable)
-		if crc != post.PostedImageChecksum {
-			fbPost, handlerErr := formFBPostForPhotoUpdate(post, offersForDate, currentPost)
+		if collageChecksum != post.PostedImageChecksum {
+			fbPost, handlerErr := formFBPostForBackdatedUpdate(post, offersForDate, currentPost)
 			if handlerErr != nil {
 				return handlerErr
 			}
 			fbPhoto := fbmodel.Photo{
 				Post:  *fbPost,
-				Photo: &imageData,
+				Photo: encodedCollage,
 			}
 
 			err := fbAPI.PostDelete(user.Session.FacebookPageToken, post.FBPostID)
@@ -191,20 +205,34 @@ func (f *facebookPost) updateExistingPost(post *model.OfferGroupPost, offersForD
 			if err != nil {
 				return router.NewHandlerError(err, "Failed to post the offers with a photo to Facebook", http.StatusBadGateway)
 			}
-			if fbPhotoResponse.PostID == "" {
-				post.FBPostID = fmt.Sprintf("%s_%s", restaurant.FacebookPageID, fbPhotoResponse.ID)
-			} else {
-				post.FBPostID = fbPhotoResponse.PostID
-			}
-			post.PostedImageChecksum = crc
+			post.FBPostID = getPostIDFromPhotoResponse(fbPhotoResponse, restaurant.FacebookPageID)
+			post.PostedImageChecksum = collageChecksum
 
 			if err := f.groupPosts.UpdateByID(post.ID, post); err != nil {
 				return router.NewHandlerError(err, "Failed to update a group post in the DB", http.StatusInternalServerError)
 			}
 			return nil
 		}
+	} else if post.PostedImageChecksum != 0 {
+		fbPost, handlerErr := formFBPostForBackdatedUpdate(post, offersForDate, currentPost)
+		if handlerErr != nil {
+			return handlerErr
+		}
+		err := fbAPI.PostDelete(user.Session.FacebookPageToken, post.FBPostID)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to delete the current post from Facebook", http.StatusBadGateway)
+		}
+		fbPostResponse, err := fbAPI.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, fbPost)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to post the offers to Facebook", http.StatusBadGateway)
+		}
+		post.FBPostID = fbPostResponse.ID
+		post.PostedImageChecksum = 0
+		if err := f.groupPosts.UpdateByID(post.ID, post); err != nil {
+			return router.NewHandlerError(err, "Failed to update a group post in the DB", http.StatusInternalServerError)
+		}
+		return nil
 	}
-	// TODO currently the case where all images are deleted isn't handled
 
 	fbPost, handlerErr := formFBPostForUpdate(post, offersForDate, currentPost)
 	if handlerErr != nil {
@@ -218,7 +246,7 @@ func (f *facebookPost) updateExistingPost(post *model.OfferGroupPost, offersForD
 	return nil
 }
 
-func formFBPostForPhotoUpdate(post *model.OfferGroupPost, offersForDate []*model.Offer, currentPost *fbmodel.PostResponse) (*fbmodel.Post, *router.HandlerError) {
+func formFBPostForBackdatedUpdate(post *model.OfferGroupPost, offersForDate []*model.Offer, currentPost *fbmodel.PostResponse) (*fbmodel.Post, *router.HandlerError) {
 	if currentPost.IsPublished {
 		return &fbmodel.Post{
 			Message:       formFBMessage(post, offersForDate),
@@ -273,9 +301,9 @@ func (f *facebookPost) createOfferPhotoCollage(offers []*model.Offer) (image.Ima
 		}
 		images[i] = image
 	}
-	layout := picasso.TopHeavyLayout()
 	width, height := getCollageSizeForNumberOfImages(len(images))
-	collage := layout.Compose(images).Draw(width, height)
+	white := color.RGBA{0xff, 0xff, 0xff, 0xff}
+	collage := f.collageLayout.Compose(images).DrawWithBorder(width, height, white, 2)
 	return collage, nil
 }
 
