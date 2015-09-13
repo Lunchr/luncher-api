@@ -36,22 +36,25 @@ type Post interface {
 	Update(model.DateWithoutTime, *model.User, *model.Restaurant) *router.HandlerError
 }
 
-func NewPost(groupPosts db.OfferGroupPosts, offers db.Offers, regions db.Regions, fbAuth facebook.Authenticator, images storage.Images) Post {
+func NewPost(groupPosts db.OfferGroupPosts, offers db.Offers, regions db.Regions, fbAuth facebook.Authenticator, images storage.Images,
+	collageLayout picasso.Layout) Post {
 	return &facebookPost{
-		groupPosts: groupPosts,
-		offers:     offers,
-		regions:    regions,
-		fbAuth:     fbAuth,
-		images:     images,
+		groupPosts:    groupPosts,
+		offers:        offers,
+		regions:       regions,
+		fbAuth:        fbAuth,
+		images:        images,
+		collageLayout: collageLayout,
 	}
 }
 
 type facebookPost struct {
-	groupPosts db.OfferGroupPosts
-	offers     db.Offers
-	regions    db.Regions
-	fbAuth     facebook.Authenticator
-	images     storage.Images
+	groupPosts    db.OfferGroupPosts
+	offers        db.Offers
+	regions       db.Regions
+	fbAuth        facebook.Authenticator
+	images        storage.Images
+	collageLayout picasso.Layout
 }
 
 func (f *facebookPost) Update(date model.DateWithoutTime, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
@@ -272,10 +275,9 @@ func (f *facebookPost) createOfferPhotoCollage(offers []*model.Offer) (image.Ima
 		}
 		images[i] = image
 	}
-	layout := picasso.TopHeavyLayout()
 	width, height := getCollageSizeForNumberOfImages(len(images))
 	white := color.RGBA{0xff, 0xff, 0xff, 0xff}
-	collage := layout.Compose(images).DrawWithBorder(width, height, white, 2)
+	collage := f.collageLayout.Compose(images).DrawWithBorder(width, height, white, 2)
 	return collage, nil
 }
 
