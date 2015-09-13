@@ -265,6 +265,14 @@ var _ = Describe("Post", func() {
 							bluePixel         image.Image
 							bluePixelJPEGData io.Reader
 							bluePixelChecksum uint32
+
+							redPixel         image.Image
+							redPixelJPEGData io.Reader
+							redPixelChecksum uint32
+
+							greenPixel         image.Image
+							greenPixelJPEGData io.Reader
+							greenPixelChecksum uint32
 						)
 
 						var getSinglePixelImage = func(c color.Color) image.Image {
@@ -285,6 +293,10 @@ var _ = Describe("Post", func() {
 							fbAuth.On("APIConnection", facebookUserToken).Return(fbAPI)
 							bluePixel = getSinglePixelImage(color.RGBA{0x00, 0x00, 0xff, 0xff})
 							bluePixelJPEGData, bluePixelChecksum = getJPEGImageData(bluePixel)
+							redPixel = getSinglePixelImage(color.RGBA{0xff, 0x00, 0x00, 0xff})
+							redPixelJPEGData, redPixelChecksum = getJPEGImageData(redPixel)
+							greenPixel = getSinglePixelImage(color.RGBA{0xff, 0x00, 0x00, 0xff})
+							greenPixelJPEGData, greenPixelChecksum = getJPEGImageData(greenPixel)
 						})
 
 						Describe("with one of the offers having an image", func() {
@@ -356,6 +368,66 @@ var _ = Describe("Post", func() {
 										Expect(post.Published).To(BeFalse())
 										Expect(post.ScheduledPublishTime.Sub(time.Now())).To(BeNumerically("~", 11*time.Minute, time.Second))
 										Expect(post.Photo).To(Equal(bluePixelJPEGData))
+									})
+								})
+							})
+						})
+
+						Describe("with two of the offers having an image", func() {
+							BeforeEach(func() {
+								groupPosts.On("UpdateByID", id, &model.OfferGroupPost{
+									ID:                  id,
+									Date:                date,
+									MessageTemplate:     messageTemplate,
+									FBPostID:            facebookPageID + "_" + photoID,
+									PostedImageChecksum: greenPixelChecksum,
+								}).Return(nil)
+							})
+
+							Context("for past offers", func() {
+								BeforeEach(func() {
+									offersCollection.On("GetForRestaurantWithinTimeBounds", restaurantID, startTime, endTime).Return([]*model.Offer{
+										&model.Offer{
+											CommonOfferFields: model.CommonOfferFields{
+												Title:    "atitle",
+												Price:    5.670000000000,
+												FromTime: time.Date(2005, 01, 02, 9, 0, 0, 0, time.UTC),
+											},
+											ImageChecksum: "checksum1",
+										},
+										&model.Offer{
+											CommonOfferFields: model.CommonOfferFields{
+												Title:    "btitle",
+												Price:    4.670000000000,
+												FromTime: time.Date(2005, 01, 02, 9, 0, 0, 0, time.UTC),
+											},
+											ImageChecksum: "checksum2",
+										},
+									}, nil)
+									images.On("GetOriginal", "checksum1").Return(bluePixel, nil)
+									images.On("GetOriginal", "checksum2").Return(redPixel, nil)
+									picassoNode := new(mocks.Node)
+									collageLayout.On("Compose", []image.Image{bluePixel, redPixel}).Return(picassoNode)
+									white := color.RGBA{0xff, 0xff, 0xff, 0xff}
+									picassoNode.On("DrawWithBorder", 800, 800, white, 2).Return(greenPixel)
+								})
+
+								Context("with photo response including a post ID", func() {
+									BeforeEach(func() {
+										fbAPI.On("PagePhotoCreate", facebookPageToken, facebookPageID, mock.AnythingOfType("*model.Photo")).Return(&fbmodel.PhotoResponse{
+											ID:     "whatever",
+											PostID: facebookPageID + "_" + photoID,
+										}, nil)
+									})
+
+									It("should post the photot with the single image", func() {
+										err := facebookPost.Update(date, user, restaurant)
+										Expect(err).To(BeNil())
+										post := fbAPI.Calls[0].Arguments.Get(2).(*fbmodel.Photo)
+										Expect(post.Message).To(Equal(messageTemplate + "\n\natitle - 5.67€\nbtitle - 4.67€"))
+										Expect(post.Published).To(BeFalse())
+										Expect(post.ScheduledPublishTime.Sub(time.Now())).To(BeNumerically("~", 11*time.Minute, time.Second))
+										Expect(post.Photo).To(Equal(greenPixelJPEGData))
 									})
 								})
 							})
