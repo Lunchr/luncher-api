@@ -1,7 +1,13 @@
 package facebook
 
 import (
+	"bytes"
 	"fmt"
+	"hash/crc32"
+	"image"
+	"image/color"
+	"image/jpeg"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -11,8 +17,10 @@ import (
 	"github.com/Lunchr/luncher-api/db"
 	"github.com/Lunchr/luncher-api/db/model"
 	"github.com/Lunchr/luncher-api/router"
+	"github.com/Lunchr/luncher-api/storage"
 	"github.com/deiwin/facebook"
 	fbmodel "github.com/deiwin/facebook/model"
+	"github.com/deiwin/picasso"
 )
 
 const (
@@ -29,20 +37,25 @@ type Post interface {
 	Update(model.DateWithoutTime, *model.User, *model.Restaurant) *router.HandlerError
 }
 
-func NewPost(groupPosts db.OfferGroupPosts, offers db.Offers, regions db.Regions, fbAuth facebook.Authenticator) Post {
+func NewPost(groupPosts db.OfferGroupPosts, offers db.Offers, regions db.Regions, fbAuth facebook.Authenticator, images storage.Images,
+	collageLayout picasso.Layout) Post {
 	return &facebookPost{
-		groupPosts: groupPosts,
-		offers:     offers,
-		regions:    regions,
-		fbAuth:     fbAuth,
+		groupPosts:    groupPosts,
+		offers:        offers,
+		regions:       regions,
+		fbAuth:        fbAuth,
+		images:        images,
+		collageLayout: collageLayout,
 	}
 }
 
 type facebookPost struct {
-	groupPosts db.OfferGroupPosts
-	offers     db.Offers
-	regions    db.Regions
-	fbAuth     facebook.Authenticator
+	groupPosts    db.OfferGroupPosts
+	offers        db.Offers
+	regions       db.Regions
+	fbAuth        facebook.Authenticator
+	images        storage.Images
+	collageLayout picasso.Layout
 }
 
 func (f *facebookPost) Update(date model.DateWithoutTime, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
@@ -93,17 +106,56 @@ func (f *facebookPost) publishNewPost(post *model.OfferGroupPost, offersForDate 
 	if handlerErr != nil {
 		return handlerErr
 	}
-
 	fbAPI := f.fbAuth.APIConnection(&user.Session.FacebookUserToken)
-	fbPostResponse, err := fbAPI.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, fbPost)
-	if err != nil {
-		return router.NewHandlerError(err, "Failed to post the offers to Facebook", http.StatusBadGateway)
+
+	collage, handlerErr := f.createOfferPhotoCollage(offersForDate)
+	if handlerErr != nil {
+		return handlerErr
 	}
-	post.FBPostID = fbPostResponse.ID
-	if err = f.groupPosts.UpdateByID(post.ID, post); err != nil {
+	if collage != nil {
+		encodedCollage, collageChecksum, handlerErr := encodeCollage(collage)
+		if handlerErr != nil {
+			return handlerErr
+		}
+		fbPhoto := fbmodel.Photo{
+			Post:  *fbPost,
+			Photo: encodedCollage,
+		}
+
+		fbPhotoResponse, err := fbAPI.PagePhotoCreate(user.Session.FacebookPageToken, restaurant.FacebookPageID, &fbPhoto)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to post the offers with a photo to Facebook", http.StatusBadGateway)
+		}
+		post.FBPostID = getPostIDFromPhotoResponse(fbPhotoResponse, restaurant.FacebookPageID)
+		post.PostedImageChecksum = collageChecksum
+	} else {
+		fbPostResponse, err := fbAPI.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, fbPost)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to post the offers to Facebook", http.StatusBadGateway)
+		}
+		post.FBPostID = fbPostResponse.ID
+	}
+	if err := f.groupPosts.UpdateByID(post.ID, post); err != nil {
 		return router.NewHandlerError(err, "Failed to update a group post in the DB", http.StatusInternalServerError)
 	}
 	return nil
+}
+
+func encodeCollage(collage image.Image) (io.Reader, uint32, *router.HandlerError) {
+	var imageData bytes.Buffer
+	if err := jpeg.Encode(&imageData, collage, nil); err != nil {
+		return nil, 0, router.NewHandlerError(err, "Failed to encode a collage into JPEG", http.StatusInternalServerError)
+	}
+	crc := crc32.ChecksumIEEE(imageData.Bytes())
+	return &imageData, crc, nil
+}
+
+func getPostIDFromPhotoResponse(photoResponse *fbmodel.PhotoResponse, pageID string) string {
+	if photoResponse.PostID == "" {
+		return fmt.Sprintf("%s_%s", pageID, photoResponse.ID)
+	} else {
+		return photoResponse.PostID
+	}
 }
 
 func (f *facebookPost) deleteExistingPost(post *model.OfferGroupPost, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
@@ -121,23 +173,91 @@ func (f *facebookPost) deleteExistingPost(post *model.OfferGroupPost, user *mode
 
 func (f *facebookPost) updateExistingPost(post *model.OfferGroupPost, offersForDate []*model.Offer, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
 	fbAPI := f.fbAuth.APIConnection(&user.Session.FacebookUserToken)
-	fbPost, handlerErr := formFBPostForUpdate(post, offersForDate, user, fbAPI)
+	currentPost, err := fbAPI.Post(user.Session.FacebookPageToken, post.FBPostID)
+	if err != nil {
+		return router.NewHandlerError(err, "Failed to retrieve the current post from FB", http.StatusBadGateway)
+	}
+	collage, handlerErr := f.createOfferPhotoCollage(offersForDate)
+	if handlerErr != nil {
+		return handlerErr
+	}
+	if collage != nil {
+		encodedCollage, collageChecksum, handlerErr := encodeCollage(collage)
+		if handlerErr != nil {
+			return handlerErr
+		}
+		if collageChecksum != post.PostedImageChecksum {
+			fbPost, handlerErr := formFBPostForBackdatedUpdate(post, offersForDate, currentPost)
+			if handlerErr != nil {
+				return handlerErr
+			}
+			fbPhoto := fbmodel.Photo{
+				Post:  *fbPost,
+				Photo: encodedCollage,
+			}
+
+			err := fbAPI.PostDelete(user.Session.FacebookPageToken, post.FBPostID)
+			if err != nil {
+				return router.NewHandlerError(err, "Failed to delete the current post from Facebook", http.StatusBadGateway)
+			}
+
+			fbPhotoResponse, err := fbAPI.PagePhotoCreate(user.Session.FacebookPageToken, restaurant.FacebookPageID, &fbPhoto)
+			if err != nil {
+				return router.NewHandlerError(err, "Failed to post the offers with a photo to Facebook", http.StatusBadGateway)
+			}
+			post.FBPostID = getPostIDFromPhotoResponse(fbPhotoResponse, restaurant.FacebookPageID)
+			post.PostedImageChecksum = collageChecksum
+
+			if err := f.groupPosts.UpdateByID(post.ID, post); err != nil {
+				return router.NewHandlerError(err, "Failed to update a group post in the DB", http.StatusInternalServerError)
+			}
+			return nil
+		}
+	} else if post.PostedImageChecksum != 0 {
+		fbPost, handlerErr := formFBPostForBackdatedUpdate(post, offersForDate, currentPost)
+		if handlerErr != nil {
+			return handlerErr
+		}
+		err := fbAPI.PostDelete(user.Session.FacebookPageToken, post.FBPostID)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to delete the current post from Facebook", http.StatusBadGateway)
+		}
+		fbPostResponse, err := fbAPI.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, fbPost)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to post the offers to Facebook", http.StatusBadGateway)
+		}
+		post.FBPostID = fbPostResponse.ID
+		post.PostedImageChecksum = 0
+		if err := f.groupPosts.UpdateByID(post.ID, post); err != nil {
+			return router.NewHandlerError(err, "Failed to update a group post in the DB", http.StatusInternalServerError)
+		}
+		return nil
+	}
+
+	fbPost, handlerErr := formFBPostForUpdate(post, offersForDate, currentPost)
 	if handlerErr != nil {
 		return handlerErr
 	}
 
-	err := fbAPI.PostUpdate(user.Session.FacebookPageToken, post.FBPostID, fbPost)
+	err = fbAPI.PostUpdate(user.Session.FacebookPageToken, post.FBPostID, fbPost)
 	if err != nil {
 		return router.NewHandlerError(err, "Failed updating the offers in Facebook", http.StatusBadGateway)
 	}
 	return nil
 }
 
-func formFBPostForUpdate(post *model.OfferGroupPost, offersForDate []*model.Offer, user *model.User, fbAPI facebook.API) (*fbmodel.Post, *router.HandlerError) {
-	currentPost, err := fbAPI.Post(user.Session.FacebookPageToken, post.FBPostID)
-	if err != nil {
-		return nil, router.NewHandlerError(err, "Failed to retrieve the current post from FB", http.StatusBadGateway)
+func formFBPostForBackdatedUpdate(post *model.OfferGroupPost, offersForDate []*model.Offer, currentPost *fbmodel.PostResponse) (*fbmodel.Post, *router.HandlerError) {
+	if currentPost.IsPublished {
+		return &fbmodel.Post{
+			Message:       formFBMessage(post, offersForDate),
+			Published:     true,
+			BackdatedTime: currentPost.CreatedTime,
+		}, nil
 	}
+	return formFBPost(post, offersForDate)
+}
+
+func formFBPostForUpdate(post *model.OfferGroupPost, offersForDate []*model.Offer, currentPost *fbmodel.PostResponse) (*fbmodel.Post, *router.HandlerError) {
 	if currentPost.IsPublished {
 		return &fbmodel.Post{
 			Message:   formFBMessage(post, offersForDate),
@@ -157,6 +277,51 @@ func formFBPost(post *model.OfferGroupPost, offersForDate []*model.Offer) (*fbmo
 		ScheduledPublishTime: publishTime,
 		Published:            publishTime.Before(time.Now()),
 	}, nil
+}
+
+func (f *facebookPost) createOfferPhotoCollage(offers []*model.Offer) (image.Image, *router.HandlerError) {
+	checksums := getImageChecksums(offers)
+	if len(checksums) == 0 {
+		return nil, nil
+	} else if len(checksums) == 1 {
+		image, err := f.images.GetOriginal(checksums[0])
+		if err != nil {
+			return nil, router.NewHandlerError(err, "Failed to read an image of an offer from disk", http.StatusInternalServerError)
+		}
+		return image, nil
+	} else if len(checksums) > 4 {
+		// Limit the amount of pictures in the collage to 4 because it might get too crowded otherwise
+		checksums = checksums[:4]
+	}
+	images := make([]image.Image, len(checksums))
+	for i, checksum := range checksums {
+		image, err := f.images.GetOriginal(checksum)
+		if err != nil {
+			return nil, router.NewHandlerError(err, "Failed to read an image of an offer from disk", http.StatusInternalServerError)
+		}
+		images[i] = image
+	}
+	width, height := getCollageSizeForNumberOfImages(len(images))
+	white := color.RGBA{0xff, 0xff, 0xff, 0xff}
+	collage := f.collageLayout.Compose(images).DrawWithBorder(width, height, white, 2)
+	return collage, nil
+}
+
+func getImageChecksums(offers []*model.Offer) []string {
+	var checksums []string
+	for _, offer := range offers {
+		if offer.ImageChecksum != "" {
+			checksums = append(checksums, offer.ImageChecksum)
+		}
+	}
+	return checksums
+}
+
+func getCollageSizeForNumberOfImages(nr int) (int, int) {
+	if nr == 1 {
+		return 800, 400
+	}
+	return 800, 800
 }
 
 func formFBMessage(post *model.OfferGroupPost, offers []*model.Offer) string {

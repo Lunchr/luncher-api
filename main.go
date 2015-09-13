@@ -12,6 +12,7 @@ import (
 	"github.com/Lunchr/luncher-api/session"
 	"github.com/Lunchr/luncher-api/storage"
 	"github.com/deiwin/facebook"
+	"github.com/deiwin/picasso"
 )
 
 func main() {
@@ -52,9 +53,11 @@ func main() {
 	facebookRegistrationConfig := facebook.NewConfig(registrationRedirectURL, scopes)
 	facebookRegistrationAuthenticator := facebook.NewAuthenticator(facebookRegistrationConfig)
 
-	facebookPost := luncherFacebook.NewPost(offerGroupPostsCollection, offersCollection, regionsCollection, facebookLoginAuthenticator)
-
 	imageStorage := storage.NewImages()
+	collageLayout := picasso.TopHeavyLayout()
+
+	facebookPost := luncherFacebook.NewPost(offerGroupPostsCollection, offersCollection, regionsCollection,
+		facebookLoginAuthenticator, imageStorage, collageLayout)
 
 	r := router.NewWithPrefix("/api/v1/")
 	r.GET("/regions", handler.Regions(regionsCollection))
