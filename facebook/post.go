@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"image"
+	"image/color"
 	"image/jpeg"
 	"net/http"
 	"strings"
@@ -273,7 +274,8 @@ func (f *facebookPost) createOfferPhotoCollage(offers []*model.Offer) (image.Ima
 	}
 	layout := picasso.TopHeavyLayout()
 	width, height := getCollageSizeForNumberOfImages(len(images))
-	collage := layout.Compose(images).Draw(width, height)
+	white := color.RGBA{0xff, 0xff, 0xff, 0xff}
+	collage := layout.Compose(images).DrawWithBorder(width, height, white, 2)
 	return collage, nil
 }
 
