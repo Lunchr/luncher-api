@@ -188,7 +188,7 @@ func (f *facebookPost) updateExistingPost(post *model.OfferGroupPost, offersForD
 		}
 		crc := crc32.ChecksumIEEE(imageData.Bytes())
 		if crc != post.PostedImageChecksum {
-			fbPost, handlerErr := formFBPostForPhotoUpdate(post, offersForDate, currentPost)
+			fbPost, handlerErr := formFBPostForBackdatedUpdate(post, offersForDate, currentPost)
 			if handlerErr != nil {
 				return handlerErr
 			}
@@ -218,8 +218,26 @@ func (f *facebookPost) updateExistingPost(post *model.OfferGroupPost, offersForD
 			}
 			return nil
 		}
+	} else if post.PostedImageChecksum != 0 {
+		fbPost, handlerErr := formFBPostForBackdatedUpdate(post, offersForDate, currentPost)
+		if handlerErr != nil {
+			return handlerErr
+		}
+		err := fbAPI.PostDelete(user.Session.FacebookPageToken, post.FBPostID)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to delete the current post from Facebook", http.StatusBadGateway)
+		}
+		fbPostResponse, err := fbAPI.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, fbPost)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to post the offers to Facebook", http.StatusBadGateway)
+		}
+		post.FBPostID = fbPostResponse.ID
+		post.PostedImageChecksum = 0
+		if err := f.groupPosts.UpdateByID(post.ID, post); err != nil {
+			return router.NewHandlerError(err, "Failed to update a group post in the DB", http.StatusInternalServerError)
+		}
+		return nil
 	}
-	// TODO currently the case where all images are deleted isn't handled
 
 	fbPost, handlerErr := formFBPostForUpdate(post, offersForDate, currentPost)
 	if handlerErr != nil {
@@ -233,7 +251,7 @@ func (f *facebookPost) updateExistingPost(post *model.OfferGroupPost, offersForD
 	return nil
 }
 
-func formFBPostForPhotoUpdate(post *model.OfferGroupPost, offersForDate []*model.Offer, currentPost *fbmodel.PostResponse) (*fbmodel.Post, *router.HandlerError) {
+func formFBPostForBackdatedUpdate(post *model.OfferGroupPost, offersForDate []*model.Offer, currentPost *fbmodel.PostResponse) (*fbmodel.Post, *router.HandlerError) {
 	if currentPost.IsPublished {
 		return &fbmodel.Post{
 			Message:       formFBMessage(post, offersForDate),

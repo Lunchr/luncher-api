@@ -576,7 +576,29 @@ var _ = Describe("Post", func() {
 								})
 
 								Context("with previous post having a collage", func() {
-									// TODO
+									BeforeEach(func() {
+										offerGroupPost.PostedImageChecksum = bluePixelChecksum
+									})
+
+									It("deletes the current post and creates a new backdated one without a collage", func() {
+										fbAPI.On("PostDelete", facebookPageToken, facebookPostID).Return(nil)
+										fbAPI.On("PagePublish", facebookPageToken, facebookPageID, mock.AnythingOfType("*model.Post")).Return(&fbmodel.PostResponse{
+											ID: facebookPostID,
+										}, nil)
+										groupPosts.On("UpdateByID", id, &model.OfferGroupPost{
+											ID:              id,
+											Date:            date,
+											MessageTemplate: messageTemplate,
+											FBPostID:        facebookPostID,
+										}).Return(nil)
+
+										err := facebookPost.Update(date, user, restaurant)
+										Expect(err).To(BeNil())
+										post := fbAPI.Calls[2].Arguments.Get(2).(*fbmodel.Post)
+										Expect(post.Message).To(Equal(messageTemplate + "\n\natitle - 5.67€\nbtitle - 4.67€"))
+										Expect(post.Published).To(BeTrue())
+										Expect(post.BackdatedTime).To(Equal(originalPublishTime))
+									})
 								})
 							})
 
