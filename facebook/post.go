@@ -126,11 +126,7 @@ func (f *facebookPost) publishNewPost(post *model.OfferGroupPost, offersForDate 
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to post the offers with a photo to Facebook", http.StatusBadGateway)
 		}
-		if fbPhotoResponse.PostID == "" {
-			post.FBPostID = fmt.Sprintf("%s_%s", restaurant.FacebookPageID, fbPhotoResponse.ID)
-		} else {
-			post.FBPostID = fbPhotoResponse.PostID
-		}
+		post.FBPostID = getPostIDFromPhotoResponse(fbPhotoResponse, restaurant.FacebookPageID)
 		post.PostedImageChecksum = collageChecksum
 	} else {
 		fbPostResponse, err := fbAPI.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, fbPost)
@@ -152,6 +148,14 @@ func encodeCollage(collage image.Image) (io.Reader, uint32, *router.HandlerError
 	}
 	crc := crc32.ChecksumIEEE(imageData.Bytes())
 	return &imageData, crc, nil
+}
+
+func getPostIDFromPhotoResponse(photoResponse *fbmodel.PhotoResponse, pageID string) string {
+	if photoResponse.PostID == "" {
+		return fmt.Sprintf("%s_%s", pageID, photoResponse.ID)
+	} else {
+		return photoResponse.PostID
+	}
 }
 
 func (f *facebookPost) deleteExistingPost(post *model.OfferGroupPost, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
