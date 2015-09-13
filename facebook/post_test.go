@@ -26,6 +26,8 @@ var _ = Describe("Post", func() {
 		offersCollection *mocks.Offers
 		regions          *mocks.Regions
 		fbAuth           *mocks.Authenticator
+		images           *mocks.Images
+		collageLayout    *mocks.Layout
 
 		user       *model.User
 		restaurant *model.Restaurant
@@ -36,8 +38,10 @@ var _ = Describe("Post", func() {
 		offersCollection = new(mocks.Offers)
 		regions = new(mocks.Regions)
 		fbAuth = new(mocks.Authenticator)
+		images = new(mocks.Images)
+		collageLayout = new(mocks.Layout)
 
-		facebookPost = facebook.NewPost(groupPosts, offersCollection, regions, fbAuth)
+		facebookPost = facebook.NewPost(groupPosts, offersCollection, regions, fbAuth, images, collageLayout)
 	})
 
 	JustBeforeEach(func() {
