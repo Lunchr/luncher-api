@@ -92,6 +92,27 @@ func (_m *API) PagePublish(pageAccessToken string, pageID string, post *model.Po
 
 	return r0, r1
 }
+func (_m *API) PagePhotoCreate(pageAccessToken string, pageID string, photo *model.Photo) (*model.PhotoResponse, error) {
+	ret := _m.Called(pageAccessToken, pageID, photo)
+
+	var r0 *model.PhotoResponse
+	if rf, ok := ret.Get(0).(func(string, string, *model.Photo) *model.PhotoResponse); ok {
+		r0 = rf(pageAccessToken, pageID, photo)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.PhotoResponse)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(string, string, *model.Photo) error); ok {
+		r1 = rf(pageAccessToken, pageID, photo)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
 func (_m *API) Post(pageAccessToken string, postID string) (*model.PostResponse, error) {
 	ret := _m.Called(pageAccessToken, postID)
 
