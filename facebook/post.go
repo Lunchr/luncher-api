@@ -31,8 +31,6 @@ const (
 	publishDurationBeforeOfferActive = 30 * time.Minute
 )
 
-var crcTable = crc32.MakeTable(crc32.IEEE)
-
 type Post interface {
 	Update(model.DateWithoutTime, *model.User, *model.Restaurant) *router.HandlerError
 }
@@ -128,7 +126,7 @@ func (f *facebookPost) publishNewPost(post *model.OfferGroupPost, offersForDate 
 		} else {
 			post.FBPostID = fbPhotoResponse.PostID
 		}
-		crc := crc32.Checksum(imageData.Bytes(), crcTable)
+		crc := crc32.ChecksumIEEE(imageData.Bytes())
 		post.PostedImageChecksum = crc
 	} else {
 		fbPostResponse, err := fbAPI.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, fbPost)
@@ -171,7 +169,7 @@ func (f *facebookPost) updateExistingPost(post *model.OfferGroupPost, offersForD
 		if err = jpeg.Encode(&imageData, collage, nil); err != nil {
 			return router.NewHandlerError(err, "Failed to encode a collage into JPEG", http.StatusInternalServerError)
 		}
-		crc := crc32.Checksum(imageData.Bytes(), crcTable)
+		crc := crc32.ChecksumIEEE(imageData.Bytes())
 		if crc != post.PostedImageChecksum {
 			fbPost, handlerErr := formFBPostForPhotoUpdate(post, offersForDate, currentPost)
 			if handlerErr != nil {
