@@ -70,13 +70,13 @@ func main() {
 	r.DELETE("/offers/:id", handler.DeleteOffers(offersCollection, usersCollection, sessionManager, restaurantsCollection,
 		facebookPost, regionsCollection))
 	r.GET("/tags", handler.Tags(tagsCollection))
-	r.GETWithParams("/restaurants/:id", handler.Restaurant(restaurantsCollection, sessionManager, usersCollection))
+	r.GETWithParams("/restaurants/:id", handler.Restaurant(restaurantsCollection, sessionManager, usersCollection, facebookLoginAuthenticator))
 	r.POST("/restaurants", handler.PostRestaurants(restaurantsCollection, sessionManager, usersCollection))
 	r.GETWithParams("/restaurants/:id/offers", handler.RestaurantOffers(restaurantsCollection, sessionManager, usersCollection,
-		offersCollection, imageStorage, regionsCollection))
+		offersCollection, imageStorage, regionsCollection, facebookLoginAuthenticator))
 	r.GETWithParams("/restaurants/:id/posts/:date", handler.OfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection, restaurantsCollection))
 	r.POSTWithParams("/restaurants/:id/posts", handler.PostOfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection,
-		restaurantsCollection, facebookPost))
+		restaurantsCollection, facebookPost, facebookLoginAuthenticator))
 	r.PUT("/restaurants/:id/posts/:date", handler.PutOfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection,
 		restaurantsCollection, facebookPost))
 	r.GET("/logout", handler.Logout(sessionManager, usersCollection))

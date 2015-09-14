@@ -14,6 +14,8 @@ import (
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
 	"github.com/Lunchr/luncher-api/storage"
+	"github.com/deiwin/facebook"
+	fbmodel "github.com/deiwin/facebook/model"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -29,11 +31,11 @@ func Restaurants(restaurantsCollection db.Restaurants) router.Handler {
 }
 
 // Restaurant returns a router.Handler that returns the restaurant information for the specified restaurant
-func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users) router.HandlerWithParams {
+func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users, fbAuth facebook.Authenticator) router.HandlerWithParams {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
 		return writeJSON(w, restaurant)
 	}
-	return forRestaurant(sessionManager, users, c, handler)
+	return forRestaurant(sessionManager, users, c, handler, fbAuth)
 }
 
 // Restaurant returns a router.Handler that returns the restaurant information for the
@@ -71,7 +73,7 @@ func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.
 // RestaurantOffers returns all upcoming offers for the restaurant linked to the
 // currently logged in user
 func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, offers db.Offers,
-	imageStorage storage.Images, regions db.Regions) router.HandlerWithParams {
+	imageStorage storage.Images, regions db.Regions, fbAuth facebook.Authenticator) router.HandlerWithParams {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
 		region, err := regions.GetName(restaurant.Region)
 		if err != nil {
@@ -92,14 +94,14 @@ func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager
 		}
 		return writeJSON(w, offerJSONs)
 	}
-	return forRestaurant(sessionManager, users, restaurants, handler)
+	return forRestaurant(sessionManager, users, restaurants, handler, fbAuth)
 }
 
 type HandlerWithRestaurant func(w http.ResponseWriter, r *http.Request, user *model.User,
 	restaurant *model.Restaurant) *router.HandlerError
 
 func forRestaurant(sessionManager session.Manager, users db.Users, restaurants db.Restaurants,
-	handler HandlerWithRestaurant) router.HandlerWithParams {
+	handler HandlerWithRestaurant, fbAuth facebook.Authenticator) router.HandlerWithParams {
 	handlerWithUser := func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *router.HandlerError {
 		restaurantIDString := ps.ByName("id")
 		if restaurantIDString == "" {
@@ -115,9 +117,13 @@ func forRestaurant(sessionManager session.Manager, users db.Users, restaurants d
 			return router.NewHandlerError(err, "Something went wrong while trying to find the specified restaurant", http.StatusInternalServerError)
 		}
 		if !idsInclude(user.RestaurantIDs, restaurantID) {
-			return router.NewSimpleHandlerError("Not authorized to access this restaurant", http.StatusForbidden)
+			fbPages, err := getPages(&user.Session.FacebookUserToken, fbAuth)
+			if err != nil {
+				return router.NewHandlerError(err, "Couldn't get the list of pages managed by this user", http.StatusBadGateway)
+			} else if !fbPagesInclude(fbPages, restaurant.FacebookPageID) {
+				return router.NewSimpleHandlerError("Not authorized to access this restaurant", http.StatusForbidden)
+			}
 		}
-		// TODO Check from FB if user has access to this restaurant
 		return handler(w, r, user, restaurant)
 	}
 	return checkLoginWithParams(sessionManager, users, handlerWithUser)
@@ -126,6 +132,15 @@ func forRestaurant(sessionManager session.Manager, users db.Users, restaurants d
 func idsInclude(ids []bson.ObjectId, id bson.ObjectId) bool {
 	for i := range ids {
 		if ids[i] == id {
+			return true
+		}
+	}
+	return false
+}
+
+func fbPagesInclude(fbPages []fbmodel.Page, fbPageID string) bool {
+	for _, page := range fbPages {
+		if page.ID == fbPageID {
 			return true
 		}
 	}

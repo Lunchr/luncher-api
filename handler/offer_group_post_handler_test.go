@@ -146,12 +146,13 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 			restaurantsCollection db.Restaurants
 			usersCollection       db.Users
 			facebookPost          *mocks.Post
+			fbAuth                *mocks.Authenticator
 			params                httprouter.Params
 			handler               router.HandlerWithParams
 		)
 
 		JustBeforeEach(func() {
-			handler = PostOfferGroupPost(postsCollection, sessionManager, usersCollection, restaurantsCollection, facebookPost)
+			handler = PostOfferGroupPost(postsCollection, sessionManager, usersCollection, restaurantsCollection, facebookPost, fbAuth)
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
@@ -183,6 +184,7 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 				mockUsersCollection = new(mocks.Users)
 				usersCollection = mockUsersCollection
 				facebookPost = new(mocks.Post)
+				fbAuth = new(mocks.Authenticator)
 
 				id = bson.NewObjectId()
 
