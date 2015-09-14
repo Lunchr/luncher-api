@@ -6,6 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
+
 	"github.com/Lunchr/luncher-api/db"
 	"github.com/Lunchr/luncher-api/db/model"
 	"github.com/Lunchr/luncher-api/router"
@@ -25,9 +28,8 @@ func Restaurants(restaurantsCollection db.Restaurants) router.Handler {
 	}
 }
 
-// Restaurant returns a router.Handler that returns the restaurant information for the
-// restaurant linked to the currently logged in user
-func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users) router.Handler {
+// Restaurant returns a router.Handler that returns the restaurant information for the specified restaurant
+func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users) router.HandlerWithParams {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
 		return writeJSON(w, restaurant)
 	}
@@ -55,6 +57,7 @@ func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.
 			// TODO: revert the restaurant insertion we just did? Look into mgo's txn package
 			return router.NewHandlerError(err, "Failed to store the restaurant in the DB", http.StatusInternalServerError)
 		}
+		// TODO Move to after registering instead of after submitting a restaurant
 		// We're using different handlers for login/register. Force logout to make sure all users are using login handler
 		// to do things
 		if err := users.UnsetSessionID(user.ID); err != nil {
@@ -68,7 +71,7 @@ func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.
 // RestaurantOffers returns all upcoming offers for the restaurant linked to the
 // currently logged in user
 func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, offers db.Offers,
-	imageStorage storage.Images, regions db.Regions) router.Handler {
+	imageStorage storage.Images, regions db.Regions) router.HandlerWithParams {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
 		region, err := regions.GetName(restaurant.Region)
 		if err != nil {
@@ -96,15 +99,37 @@ type HandlerWithRestaurant func(w http.ResponseWriter, r *http.Request, user *mo
 	restaurant *model.Restaurant) *router.HandlerError
 
 func forRestaurant(sessionManager session.Manager, users db.Users, restaurants db.Restaurants,
-	handler HandlerWithRestaurant) router.Handler {
-	handlerWithUser := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
-		restaurant, err := restaurants.GetID(user.RestaurantIDs[0])
-		if err != nil {
-			return router.NewHandlerError(err, "Failed to find the restaurant connected to this user", http.StatusInternalServerError)
+	handler HandlerWithRestaurant) router.HandlerWithParams {
+	handlerWithUser := func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *router.HandlerError {
+		restaurantIDString := ps.ByName("id")
+		if restaurantIDString == "" {
+			return router.NewSimpleHandlerError("Expected a restaurant ID to be specified", http.StatusBadRequest)
+		} else if !bson.IsObjectIdHex(restaurantIDString) {
+			return router.NewSimpleHandlerError("Invalid restaurant ID", http.StatusBadRequest)
 		}
+		restaurantID := bson.ObjectIdHex(restaurantIDString)
+		restaurant, err := restaurants.GetID(restaurantID)
+		if err == mgo.ErrNotFound {
+			return router.NewHandlerError(err, "Failed to find the specified restaurant", http.StatusNotFound)
+		} else if err != nil {
+			return router.NewHandlerError(err, "Something went wrong while trying to find the specified restaurant", http.StatusInternalServerError)
+		}
+		if !idsInclude(user.RestaurantIDs, restaurantID) {
+			return router.NewSimpleHandlerError("Not authorized to access this restaurant", http.StatusForbidden)
+		}
+		// TODO Check from FB if user has access to this restaurant
 		return handler(w, r, user, restaurant)
 	}
-	return checkLogin(sessionManager, users, handlerWithUser)
+	return checkLoginWithParams(sessionManager, users, handlerWithUser)
+}
+
+func idsInclude(ids []bson.ObjectId, id bson.ObjectId) bool {
+	for i := range ids {
+		if ids[i] == id {
+			return true
+		}
+	}
+	return false
 }
 
 type HandlerWithParamsWithRestaurant func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User,

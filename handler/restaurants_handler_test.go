@@ -14,6 +14,7 @@ import (
 	"github.com/Lunchr/luncher-api/handler/mocks"
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
+	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/mock"
 
 	. "github.com/onsi/ginkgo"
@@ -145,6 +146,8 @@ var _ = Describe("RestaurantsHandlers", func() {
 						"coordinates": []float64{12.34, 56.78},
 					},
 				}
+				// Temorary:
+				mockUsersCollection.On("UnsetSessionID", mock.AnythingOfType("bson.ObjectId")).Return(nil)
 			})
 
 			AfterEach(func() {
@@ -233,12 +236,13 @@ var _ = Describe("RestaurantsHandlers", func() {
 		})
 	})
 
-	Describe("GET /restaurant", func() {
+	Describe("GET /restaurants/:id", func() {
 		var (
 			sessionManager        session.Manager
 			restaurantsCollection db.Restaurants
 			usersCollection       db.Users
-			handler               router.Handler
+			params                httprouter.Params
+			handler               router.HandlerWithParams
 		)
 
 		JustBeforeEach(func() {
@@ -246,7 +250,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
-			return handler(responseRecorder, request)
+			return handler(responseRecorder, request, nil)
 		}, func(mgr session.Manager, users db.Users) {
 			sessionManager = mgr
 			usersCollection = users
@@ -257,7 +261,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 				mockSessionManager        *mocks.Manager
 				mockRestaurantsCollection *mocks.Restaurants
 				mockUsersCollection       *mocks.Users
-				restaurantID              bson.ObjectId
+				restaurant                *model.Restaurant
 			)
 
 			BeforeEach(func() {
@@ -268,48 +272,94 @@ var _ = Describe("RestaurantsHandlers", func() {
 				mockUsersCollection = new(mocks.Users)
 				usersCollection = mockUsersCollection
 
-				restaurantID = bson.NewObjectId()
-				restaurant := &model.Restaurant{
+				restaurantID := bson.NewObjectId()
+				restaurant = &model.Restaurant{
 					ID:   restaurantID,
 					Name: "restname",
 				}
-				user := &model.User{
-					RestaurantIDs: []bson.ObjectId{restaurant.ID},
-				}
 
 				mockSessionManager.On("Get", mock.Anything).Return("session", nil)
-				mockUsersCollection.On("GetSessionID", "session").Return(user, nil)
-				mockRestaurantsCollection.On("GetID", restaurantID).Return(restaurant, nil)
 			})
 
-			It("should succeed", func() {
-				err := handler(responseRecorder, request)
-				Expect(err).To(BeNil())
+			Context("with an invalid restaurant ID", func() {
+				BeforeEach(func() {
+					mockUsersCollection.On("GetSessionID", "session").Return(&model.User{}, nil)
+					params = httprouter.Params{httprouter.Param{
+						Key:   "id",
+						Value: "gibberish",
+					}}
+				})
+
+				It("fails", func() {
+					err := handler(responseRecorder, request, params)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Code).To(Equal(http.StatusBadRequest))
+				})
 			})
 
-			It("should return json", func() {
-				handler(responseRecorder, request)
-				contentTypes := responseRecorder.HeaderMap["Content-Type"]
-				Expect(contentTypes).To(HaveLen(1))
-				Expect(contentTypes[0]).To(Equal("application/json"))
+			Context("with a valid, but not authorized, restaurant ID", func() {
+				BeforeEach(func() {
+					user := &model.User{
+						RestaurantIDs: []bson.ObjectId{},
+					}
+					mockUsersCollection.On("GetSessionID", "session").Return(user, nil)
+					mockRestaurantsCollection.On("GetID", restaurant.ID).Return(restaurant, nil)
+					params = httprouter.Params{httprouter.Param{
+						Key:   "id",
+						Value: restaurant.ID.Hex(),
+					}}
+				})
+
+				It("fails", func() {
+					err := handler(responseRecorder, request, params)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Code).To(Equal(http.StatusForbidden))
+				})
 			})
 
-			It("should include the restaurant data in the response", func() {
-				handler(responseRecorder, request)
-				var restaurant *model.Restaurant
-				json.Unmarshal(responseRecorder.Body.Bytes(), &restaurant)
-				Expect(restaurant.ID).To(Equal(restaurantID))
-				Expect(restaurant.Name).To(Equal("restname"))
+			Context("with a valid restaurant ID", func() {
+				BeforeEach(func() {
+					user := &model.User{
+						RestaurantIDs: []bson.ObjectId{restaurant.ID},
+					}
+					mockUsersCollection.On("GetSessionID", "session").Return(user, nil)
+					mockRestaurantsCollection.On("GetID", restaurant.ID).Return(restaurant, nil)
+					params = httprouter.Params{httprouter.Param{
+						Key:   "id",
+						Value: restaurant.ID.Hex(),
+					}}
+				})
+
+				It("should succeed", func() {
+					err := handler(responseRecorder, request, params)
+					Expect(err).To(BeNil())
+				})
+
+				It("should return json", func() {
+					handler(responseRecorder, request, params)
+					contentTypes := responseRecorder.HeaderMap["Content-Type"]
+					Expect(contentTypes).To(HaveLen(1))
+					Expect(contentTypes[0]).To(Equal("application/json"))
+				})
+
+				It("should include the restaurant data in the response", func() {
+					handler(responseRecorder, request, params)
+					var response *model.Restaurant
+					json.Unmarshal(responseRecorder.Body.Bytes(), &response)
+					Expect(response.ID).To(Equal(restaurant.ID))
+					Expect(response.Name).To(Equal("restname"))
+				})
 			})
 		})
 	})
 
-	Describe("GET /restaurant/offers", func() {
+	Describe("GET /restaurants/:id/offers", func() {
 		var (
 			sessionManager            session.Manager
 			mockRestaurantsCollection db.Restaurants
 			mockUsersCollection       db.Users
-			handler                   router.Handler
+			params                    httprouter.Params
+			handler                   router.HandlerWithParams
 			mockOffersCollection      db.Offers
 			imageStorage              *mocks.Images
 			regionsCollection         *mocks.Regions
@@ -331,7 +381,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
-			return handler(responseRecorder, request)
+			return handler(responseRecorder, request, nil)
 		}, func(mgr session.Manager, users db.Users) {
 			sessionManager = mgr
 			mockUsersCollection = users
@@ -347,22 +397,26 @@ var _ = Describe("RestaurantsHandlers", func() {
 				regionsCollection.On("GetName", "Tartu").Return(&model.Region{
 					Location: "Europe/Tallinn",
 				}, nil)
+				params = httprouter.Params{httprouter.Param{
+					Key:   "id",
+					Value: bson.ObjectId("12letrrestid").Hex(),
+				}}
 			})
 
 			It("should succeed", func() {
-				err := handler(responseRecorder, request)
+				err := handler(responseRecorder, request, params)
 				Expect(err).To(BeNil())
 			})
 
 			It("should return json", func() {
-				handler(responseRecorder, request)
+				handler(responseRecorder, request, params)
 				contentTypes := responseRecorder.HeaderMap["Content-Type"]
 				Expect(contentTypes).To(HaveLen(1))
 				Expect(contentTypes[0]).To(Equal("application/json"))
 			})
 
 			It("should include the offers in the response", func() {
-				handler(responseRecorder, request)
+				handler(responseRecorder, request, params)
 				var result []*model.OfferJSON
 				json.Unmarshal(responseRecorder.Body.Bytes(), &result)
 				Expect(result).To(HaveLen(2))

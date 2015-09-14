@@ -139,14 +139,15 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 		})
 	})
 
-	Describe("POST /restaurant/posts", func() {
+	Describe("POST /restaurants/:id/posts", func() {
 		var (
 			sessionManager        session.Manager
 			postsCollection       db.OfferGroupPosts
 			restaurantsCollection db.Restaurants
 			usersCollection       db.Users
 			facebookPost          *mocks.Post
-			handler               router.Handler
+			params                httprouter.Params
+			handler               router.HandlerWithParams
 		)
 
 		JustBeforeEach(func() {
@@ -154,7 +155,7 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
-			return handler(responseRecorder, request)
+			return handler(responseRecorder, request, nil)
 		}, func(mgr session.Manager, users db.Users) {
 			sessionManager = mgr
 			usersCollection = users
@@ -198,6 +199,10 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 				mockRestaurantsCollection.On("GetID", restaurantID).Return(restaurant, nil).Once()
 
 				requestMethod = "POST"
+				params = httprouter.Params{httprouter.Param{
+					Key:   "id",
+					Value: restaurantID.Hex(),
+				}}
 			})
 
 			AfterEach(func() {
@@ -234,19 +239,19 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 						})
 
 						It("should succeed", func() {
-							err := handler(responseRecorder, request)
+							err := handler(responseRecorder, request, params)
 							Expect(err).To(BeNil())
 						})
 
 						It("should return json", func() {
-							handler(responseRecorder, request)
+							handler(responseRecorder, request, params)
 							contentTypes := responseRecorder.HeaderMap["Content-Type"]
 							Expect(contentTypes).To(HaveLen(1))
 							Expect(contentTypes[0]).To(Equal("application/json"))
 						})
 
 						It("should include the post with the new ID", func() {
-							handler(responseRecorder, request)
+							handler(responseRecorder, request, params)
 							var post model.OfferGroupPost
 							json.Unmarshal(responseRecorder.Body.Bytes(), &post)
 							Expect(post.ID).To(Equal(id))
@@ -261,7 +266,7 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 						})
 
 						It("should fail", func() {
-							handlerErr := handler(responseRecorder, request)
+							handlerErr := handler(responseRecorder, request, params)
 							Expect(handlerErr).To(Equal(err))
 						})
 					})
@@ -284,7 +289,7 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 						})
 
 						It("should succeed", func() {
-							err := handler(responseRecorder, request)
+							err := handler(responseRecorder, request, params)
 							Expect(err).To(BeNil())
 						})
 					})
@@ -296,7 +301,7 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 					})
 
 					It("should fail", func() {
-						err := handler(responseRecorder, request)
+						err := handler(responseRecorder, request, params)
 						Expect(err).NotTo(BeNil())
 					})
 				})
@@ -310,7 +315,7 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 				})
 
 				It("should fail", func() {
-					err := handler(responseRecorder, request)
+					err := handler(responseRecorder, request, params)
 					Expect(err).NotTo(BeNil())
 				})
 			})
