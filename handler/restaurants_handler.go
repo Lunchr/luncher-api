@@ -55,7 +55,7 @@ func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.
 			// TODO: revert the restaurant insertion we just did? Look into mgo's txn package
 			return router.NewHandlerError(err, "Failed to store the restaurant in the DB", http.StatusInternalServerError)
 		}
-		// XXX We're using different handlers for login/register. Force logout to make sure all users are using login handler
+		// We're using different handlers for login/register. Force logout to make sure all users are using login handler
 		// to do things
 		if err := users.UnsetSessionID(user.ID); err != nil {
 			return router.NewHandlerError(err, "Failed to invalidate session ID", http.StatusInternalServerError)
