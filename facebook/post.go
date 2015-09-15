@@ -30,7 +30,7 @@ const (
 	// That is, Facebook doesn't allow posts to be scheduled less than 10 minutes (or more than 6 months, but
 	// I don't think that will be an issue) from now.
 	postUpdateDebounceDuration       = 11 * time.Minute
-	publishDurationBeforeOfferActive = 30 * time.Minute
+	publishDurationBeforeOfferActive = 15 * time.Minute
 )
 
 type Post interface {

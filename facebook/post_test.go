@@ -213,7 +213,7 @@ var _ = Describe("Post", func() {
 								fbAPI.On("PagePublish", facebookPageToken, facebookPageID, &fbmodel.Post{
 									Message:              messageTemplate + "\n\natitle - 5.67€\nbtitle - 4.67€",
 									Published:            false,
-									ScheduledPublishTime: time.Date(2115, 01, 02, 8, 30, 0, 0, time.UTC),
+									ScheduledPublishTime: time.Date(2115, 01, 02, 8, 45, 0, 0, time.UTC),
 								}).Return(&fbmodel.PostResponse{
 									ID: facebookPostID,
 								}, nil)
@@ -729,7 +729,7 @@ var _ = Describe("Post", func() {
 									fbAPI.On("PostUpdate", facebookPageToken, facebookPostID, &fbmodel.Post{
 										Message:              messageTemplate + "\n\natitle - 5.67€\nbtitle - 4.67€",
 										Published:            false,
-										ScheduledPublishTime: time.Date(2115, 01, 02, 8, 30, 0, 0, time.UTC),
+										ScheduledPublishTime: time.Date(2115, 01, 02, 8, 45, 0, 0, time.UTC),
 									}).Return(nil)
 
 									err := facebookPost.Update(date, user, restaurant)
