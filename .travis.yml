@@ -1,4 +1,6 @@
 language: go
+go:
+  - 1.5
 sudo: false
 services:
   - mongodb
