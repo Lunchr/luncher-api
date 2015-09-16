@@ -127,7 +127,7 @@ var _ = Describe("OffersHandler", func() {
 
 			Context("with the image having already been stored once", func() {
 				BeforeEach(func() {
-					imageStorage.ExpectedCalls = make([]mock.Call, 0)
+					imageStorage.ExpectedCalls = make([]*mock.Call, 0)
 					imageStorage.On("ChecksumDataURL", "image data url").Return("image checksum", nil)
 					imageStorage.On("HasChecksum", "image checksum").Return(true, nil)
 					imageStorage.On("StoreDataURL", "image data url").Return(errors.New("already stored"))
@@ -313,7 +313,7 @@ var _ = Describe("OffersHandler", func() {
 
 			Context("with the image having already been stored once", func() {
 				BeforeEach(func() {
-					imageStorage.ExpectedCalls = make([]mock.Call, 0)
+					imageStorage.ExpectedCalls = make([]*mock.Call, 0)
 					imageStorage.On("ChecksumDataURL", "image data url").Return("image checksum", nil)
 					imageStorage.On("HasChecksum", "image checksum").Return(true, nil)
 					imageStorage.On("StoreDataURL", "image data url").Return(errors.New("already stored"))
