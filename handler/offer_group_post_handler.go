@@ -49,7 +49,7 @@ func PostOfferGroupPost(c db.OfferGroupPosts, sessionManager session.Manager, us
 		}
 		return writeJSON(w, insertedPost)
 	}
-	return forRestaurant(sessionManager, users, restaurants, handler, fbAuth)
+	return forRestaurant(sessionManager, users, restaurants, fbAuth, handler)
 }
 
 // PutOfferGroupPost handles PUT requests to /restaurant/posts/:date. It stores the info in the DB and updates the post in FB.

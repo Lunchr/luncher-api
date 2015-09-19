@@ -49,7 +49,7 @@ func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
 		return writeJSON(w, restaurant)
 	}
-	return forRestaurant(sessionManager, users, c, handler, fbAuth)
+	return forRestaurant(sessionManager, users, c, fbAuth, handler)
 }
 
 // Restaurant returns a router.Handler that returns the restaurant information for the
@@ -102,39 +102,63 @@ func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager
 		}
 		return writeJSON(w, offerJSONs)
 	}
-	return forRestaurant(sessionManager, users, restaurants, handler, fbAuth)
+	return forRestaurant(sessionManager, users, restaurants, fbAuth, handler)
 }
 
 type HandlerWithRestaurant func(w http.ResponseWriter, r *http.Request, user *model.User,
 	restaurant *model.Restaurant) *router.HandlerError
 
-func forRestaurant(sessionManager session.Manager, users db.Users, restaurants db.Restaurants,
-	handler HandlerWithRestaurant, fbAuth facebook.Authenticator) router.HandlerWithParams {
+func forRestaurant(sessionManager session.Manager, users db.Users, restaurants db.Restaurants, fbAuth facebook.Authenticator,
+	handler HandlerWithRestaurant) router.HandlerWithParams {
 	handlerWithUser := func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *router.HandlerError {
-		restaurantIDString := ps.ByName("id")
-		if restaurantIDString == "" {
-			return router.NewSimpleHandlerError("Expected a restaurant ID to be specified", http.StatusBadRequest)
-		} else if !bson.IsObjectIdHex(restaurantIDString) {
-			return router.NewSimpleHandlerError("Invalid restaurant ID", http.StatusBadRequest)
-		}
-		restaurantID := bson.ObjectIdHex(restaurantIDString)
-		restaurant, err := restaurants.GetID(restaurantID)
-		if err == mgo.ErrNotFound {
-			return router.NewHandlerError(err, "Failed to find the specified restaurant", http.StatusNotFound)
-		} else if err != nil {
-			return router.NewHandlerError(err, "Something went wrong while trying to find the specified restaurant", http.StatusInternalServerError)
-		}
-		if !idsInclude(user.RestaurantIDs, restaurantID) {
-			fbPages, err := getPages(&user.Session.FacebookUserToken, fbAuth)
-			if err != nil {
-				return router.NewHandlerError(err, "Couldn't get the list of pages managed by this user", http.StatusBadGateway)
-			} else if !fbPagesInclude(fbPages, restaurant.FacebookPageID) {
-				return router.NewSimpleHandlerError("Not authorized to access this restaurant", http.StatusForbidden)
-			}
+		restaurant, handlerErr := getRestaurantByParams(ps, user, restaurants, fbAuth)
+		if handlerErr != nil {
+			return handlerErr
 		}
 		return handler(w, r, user, restaurant)
 	}
 	return checkLoginWithParams(sessionManager, users, handlerWithUser)
+}
+
+type HandlerWithParamsWithRestaurant func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User,
+	restaurant *model.Restaurant) *router.HandlerError
+
+func forRestaurantWithParams(sessionManager session.Manager, users db.Users, restaurants db.Restaurants,
+	handler HandlerWithParamsWithRestaurant) router.HandlerWithParams {
+	handlerWithUser := func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *router.HandlerError {
+		// FIXME
+		restaurant, err := restaurants.GetID(user.RestaurantIDs[0])
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to find the restaurant connected to this user", http.StatusInternalServerError)
+		}
+		return handler(w, r, ps, user, restaurant)
+	}
+	return checkLoginWithParams(sessionManager, users, handlerWithUser)
+}
+
+func getRestaurantByParams(ps httprouter.Params, user *model.User, restaurants db.Restaurants, fbAuth facebook.Authenticator) (*model.Restaurant, *router.HandlerError) {
+	restaurantIDString := ps.ByName("id")
+	if restaurantIDString == "" {
+		return nil, router.NewSimpleHandlerError("Expected a restaurant ID to be specified", http.StatusBadRequest)
+	} else if !bson.IsObjectIdHex(restaurantIDString) {
+		return nil, router.NewSimpleHandlerError("Invalid restaurant ID", http.StatusBadRequest)
+	}
+	restaurantID := bson.ObjectIdHex(restaurantIDString)
+	restaurant, err := restaurants.GetID(restaurantID)
+	if err == mgo.ErrNotFound {
+		return nil, router.NewHandlerError(err, "Failed to find the specified restaurant", http.StatusNotFound)
+	} else if err != nil {
+		return nil, router.NewHandlerError(err, "Something went wrong while trying to find the specified restaurant", http.StatusInternalServerError)
+	}
+	if !idsInclude(user.RestaurantIDs, restaurantID) {
+		fbPages, err := getPages(&user.Session.FacebookUserToken, fbAuth)
+		if err != nil {
+			return nil, router.NewHandlerError(err, "Couldn't get the list of pages managed by this user", http.StatusBadGateway)
+		} else if !fbPagesInclude(fbPages, restaurant.FacebookPageID) {
+			return nil, router.NewSimpleHandlerError("Not authorized to access this restaurant", http.StatusForbidden)
+		}
+	}
+	return restaurant, nil
 }
 
 func idsInclude(ids []bson.ObjectId, id bson.ObjectId) bool {
@@ -153,21 +177,6 @@ func fbPagesInclude(fbPages []fbmodel.Page, fbPageID string) bool {
 		}
 	}
 	return false
-}
-
-type HandlerWithParamsWithRestaurant func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User,
-	restaurant *model.Restaurant) *router.HandlerError
-
-func forRestaurantWithParams(sessionManager session.Manager, users db.Users, restaurants db.Restaurants,
-	handler HandlerWithParamsWithRestaurant) router.HandlerWithParams {
-	handlerWithUser := func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *router.HandlerError {
-		restaurant, err := restaurants.GetID(user.RestaurantIDs[0])
-		if err != nil {
-			return router.NewHandlerError(err, "Failed to find the restaurant connected to this user", http.StatusInternalServerError)
-		}
-		return handler(w, r, ps, user, restaurant)
-	}
-	return checkLoginWithParams(sessionManager, users, handlerWithUser)
 }
 
 func parseRestaurant(r *http.Request) (*model.Restaurant, error) {
