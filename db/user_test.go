@@ -15,21 +15,18 @@ const (
 
 var _ = Describe("User", func() {
 	Describe("GetFbID", func() {
-		It("should get by facebook user id", func(done Done) {
-			defer close(done)
+		It("should get by facebook user id", func() {
 			user, err := usersCollection.GetFbID(facebookUserID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(user).NotTo(BeNil())
 		})
 
-		It("should get nothing for wrong facebook id", func(done Done) {
-			defer close(done)
+		It("should get nothing for wrong facebook id", func() {
 			_, err := usersCollection.GetFbID(facebookPageID)
 			Expect(err).To(HaveOccurred())
 		})
 
-		It("should link to the restaurant", func(done Done) {
-			defer close(done)
+		It("should link to the restaurant", func() {
 			user, err := usersCollection.GetFbID(facebookUserID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(user).NotTo(BeNil())
@@ -41,8 +38,7 @@ var _ = Describe("User", func() {
 	})
 
 	Describe("GetAll", func() {
-		It("should list all the users", func(done Done) {
-			defer close(done)
+		It("should list all the users", func() {
 			iter := usersCollection.GetAll()
 			count := 0
 			fbIDs := map[string]int{
@@ -70,8 +66,7 @@ var _ = Describe("User", func() {
 			Context("with access token set", func() {
 				var token oauth2.Token
 
-				BeforeEach(func(done Done) {
-					defer close(done)
+				BeforeEach(func() {
 					token = oauth2.Token{
 						AccessToken: "asd",
 					}
@@ -79,8 +74,7 @@ var _ = Describe("User", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("should be included in the Get", func(done Done) {
-					defer close(done)
+				It("should be included in the Get", func() {
 					user, err := usersCollection.GetFbID(facebookUserID)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(user).NotTo(BeNil())
@@ -93,15 +87,13 @@ var _ = Describe("User", func() {
 			Context("with access token set", func() {
 				var token string
 
-				BeforeEach(func(done Done) {
-					defer close(done)
+				BeforeEach(func() {
 					token = "bsd"
 					err := usersCollection.SetPageAccessToken(facebookUserID, token)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("should be included in the Get", func(done Done) {
-					defer close(done)
+				It("should be included in the Get", func() {
 					user, err := usersCollection.GetFbID(facebookUserID)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(user).NotTo(BeNil())
@@ -113,8 +105,7 @@ var _ = Describe("User", func() {
 		Describe("Update", func() {
 			Context("with user updated with a facebook user id change", func() {
 				var newID bson.ObjectId
-				BeforeEach(func(done Done) {
-					defer close(done)
+				BeforeEach(func() {
 					updatedUser := *mocks.users[0]
 					newID = bson.NewObjectId()
 					updatedUser.RestaurantIDs = []bson.ObjectId{newID}
@@ -125,8 +116,7 @@ var _ = Describe("User", func() {
 					Expect(err).NotTo(HaveOccurred())
 				})
 
-				It("should be reflected in the Get", func(done Done) {
-					defer close(done)
+				It("should be reflected in the Get", func() {
 					user, err := usersCollection.GetFbID(facebookUserID)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(user).NotTo(BeNil())
@@ -139,16 +129,14 @@ var _ = Describe("User", func() {
 			Context("with SessionID set", func() {
 				var id string
 
-				BeforeEach(func(done Done) {
-					defer close(done)
+				BeforeEach(func() {
 					id = "someid"
 					err := usersCollection.SetSessionID(mocks.userID, id)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
 				Describe("SetSessionID", func() {
-					It("should be included in the Get", func(done Done) {
-						defer close(done)
+					It("should be included in the Get", func() {
 						user, err := usersCollection.GetFbID(facebookUserID)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(user).NotTo(BeNil())
@@ -157,8 +145,7 @@ var _ = Describe("User", func() {
 				})
 
 				Describe("UnsetSessionID", func() {
-					It("should remove the session ID", func(done Done) {
-						defer close(done)
+					It("should remove the session ID", func() {
 						err := usersCollection.UnsetSessionID(mocks.userID)
 						Expect(err).NotTo(HaveOccurred())
 
@@ -170,8 +157,7 @@ var _ = Describe("User", func() {
 				})
 
 				Describe("GetBySessionID", func() {
-					It("should be included in the Get", func(done Done) {
-						defer close(done)
+					It("should be included in the Get", func() {
 						user, err := usersCollection.GetSessionID(id)
 						Expect(err).NotTo(HaveOccurred())
 						Expect(user).NotTo(BeNil())
