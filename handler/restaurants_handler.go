@@ -19,16 +19,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-// Restaurants returns a list of all restaurants
-func Restaurants(restaurantsCollection db.Restaurants) router.Handler {
-	return func(w http.ResponseWriter, r *http.Request) *router.HandlerError {
-		restaurants, err := restaurantsCollection.Get()
-		if err != nil {
-			return router.NewHandlerError(err, "", http.StatusInternalServerError)
-		}
-		return writeJSON(w, restaurants)
-	}
-}
 
 // Restaurant returns a router.Handler that returns the restaurant information for the specified restaurant
 func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users, fbAuth facebook.Authenticator) router.HandlerWithParams {

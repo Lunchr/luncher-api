@@ -8,7 +8,6 @@ import (
 
 type Restaurants interface {
 	Insert(...*model.Restaurant) ([]*model.Restaurant, error)
-	Get() ([]*model.Restaurant, error)
 	GetAll() RestaurantIter
 	GetID(bson.ObjectId) (*model.Restaurant, error)
 	Exists(name string) (bool, error)
@@ -41,11 +40,6 @@ func (c restaurantsCollection) Insert(restaurantsToInsert ...*model.Restaurant) 
 		docs[i] = restaurant
 	}
 	return restaurantsToInsert, c.Collection.Insert(docs...)
-}
-
-func (c restaurantsCollection) Get() (restaurants []*model.Restaurant, err error) {
-	err = c.Find(bson.M{}).All(&restaurants)
-	return
 }
 
 func (c restaurantsCollection) GetAll() RestaurantIter {
