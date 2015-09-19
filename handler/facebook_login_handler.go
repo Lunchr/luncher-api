@@ -7,6 +7,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/Lunchr/luncher-api/db"
+	"github.com/Lunchr/luncher-api/db/model"
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
 	"github.com/deiwin/facebook"
@@ -47,7 +48,7 @@ func RedirectedFromFBForLogin(sessionManager session.Manager, auther facebook.Au
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to persist Facebook login information", http.StatusInternalServerError)
 		}
-		pageID, handlerErr := getPageID(fbUserID, usersCollection, restaurantsCollection)
+		pageID, handlerErr := getPageID(user, restaurantsCollection)
 		if handlerErr != nil {
 			return handlerErr
 		}
@@ -101,11 +102,7 @@ func getUserID(tok *oauth2.Token, auther facebook.Authenticator) (string, error)
 	return user.ID, nil
 }
 
-func getPageID(userID string, usersCollection db.Users, restaurantsCollection db.Restaurants) (string, *router.HandlerError) {
-	user, err := usersCollection.GetFbID(userID)
-	if err != nil {
-		return "", router.NewHandlerError(err, "Failed to find a user in DB related to this Facebook User ID", http.StatusInternalServerError)
-	}
+func getPageID(user *model.User, restaurantsCollection db.Restaurants) (string, *router.HandlerError) {
 	restaurant, err := restaurantsCollection.GetID(user.RestaurantIDs[0])
 	if err != nil {
 		return "", router.NewHandlerError(err, "Failed to find the restaurant in the DB", http.StatusInternalServerError)
