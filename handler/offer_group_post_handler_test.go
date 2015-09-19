@@ -60,11 +60,17 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 				usersCollection = mockUsersCollection
 
 				restaurantID = bson.NewObjectId()
+				facebookPageID := "fbpageid"
 				restaurant := &model.Restaurant{
-					ID: restaurantID,
+					ID:             restaurantID,
+					FacebookPageID: facebookPageID,
 				}
 				user := &model.User{
-					RestaurantIDs: []bson.ObjectId{restaurant.ID},
+					Session: model.UserSession{
+						FacebookPageTokens: []model.FacebookPageToken{model.FacebookPageToken{
+							PageID: facebookPageID,
+						}},
+					},
 				}
 
 				mockSessionManager.On("Get", mock.Anything).Return("session", nil)
@@ -190,11 +196,17 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 				id = bson.NewObjectId()
 
 				restaurantID = bson.NewObjectId()
+				facebookPageID := "fbpageid"
 				restaurant = &model.Restaurant{
-					ID: restaurantID,
+					ID:             restaurantID,
+					FacebookPageID: facebookPageID,
 				}
 				user = &model.User{
-					RestaurantIDs: []bson.ObjectId{restaurant.ID},
+					Session: model.UserSession{
+						FacebookPageTokens: []model.FacebookPageToken{model.FacebookPageToken{
+							PageID: facebookPageID,
+						}},
+					},
 				}
 
 				mockSessionManager.On("Get", mock.Anything).Return("session", nil)
