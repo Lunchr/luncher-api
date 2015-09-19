@@ -53,28 +53,21 @@ func RedirectedFromFBForRegistration(sessionManager session.Manager, auther face
 		}
 		fbUserID, err := getUserID(tok, auther)
 		if err != nil {
-			return router.NewHandlerError(err, "Failed to get the user information from Facebook", http.StatusInternalServerError)
+			return router.NewHandlerError(err, "Failed to get the user information from Facebook", http.StatusBadGateway)
 		}
-		// We can't guarantee that the user doesn't just close the browser or something during the registration process.
-		// Because of this, there already might be a user object with this FB User ID in the DB. If the user exists in the DB,
-		// but doesn't have a restaurant connected to it, continue as the user would've been just created. But, to be safe, when
-		// the user already exists and has a restaurant connected to it, fail immediately.
-		user, err := usersCollection.GetFbID(fbUserID)
-		if err == mgo.ErrNotFound {
-			err = usersCollection.Insert(&model.User{FacebookUserID: fbUserID})
-			if err != nil {
-				return router.NewHandlerError(err, "Failed to create a User object in the DB", http.StatusInternalServerError)
-			}
-		} else if err != nil {
+		_, err = usersCollection.GetFbID(fbUserID)
+		if err == nil {
+			return router.NewSimpleHandlerError("This Facebook user is already registered", http.StatusBadRequest)
+		} else if err != mgo.ErrNotFound {
 			return router.NewHandlerError(err, "Failed to check the DB for users", http.StatusInternalServerError)
-		} else if len(user.RestaurantIDs) > 0 {
-			return router.NewSimpleHandlerError("This Facebook user is already registered", http.StatusForbidden)
 		}
-		err = storeAccessTokensInDB(fbUserID, tok, session, usersCollection)
+		err = usersCollection.Insert(&model.User{FacebookUserID: fbUserID})
 		if err != nil {
-			return router.NewHandlerError(err, "Failed to persist Facebook login information", http.StatusInternalServerError)
+			return router.NewHandlerError(err, "Failed to create a User object in the DB", http.StatusInternalServerError)
 		}
-		http.Redirect(w, r, "/#/register/pages", http.StatusSeeOther)
+		// We're not storing the session data in the DB so that the user will be asked to log in again when they get
+		// redirected to the admin page
+		http.Redirect(w, r, "/#/admin", http.StatusSeeOther)
 		return nil
 	}
 }

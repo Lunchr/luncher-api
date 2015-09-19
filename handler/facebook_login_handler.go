@@ -3,6 +3,9 @@ package handler
 import (
 	"net/http"
 
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
+
 	"github.com/Lunchr/luncher-api/db"
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
@@ -34,7 +37,13 @@ func RedirectedFromFBForLogin(sessionManager session.Manager, auther facebook.Au
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to get the user information from Facebook", http.StatusInternalServerError)
 		}
-		err = storeAccessTokensInDB(fbUserID, tok, session, usersCollection)
+		user, err := usersCollection.GetFbID(fbUserID)
+		if err == mgo.ErrNotFound {
+			return router.NewHandlerError(err, "User not registered", http.StatusForbidden)
+		} else if err != nil {
+			return router.NewHandlerError(err, "Failed to find the user from DB", http.StatusInternalServerError)
+		}
+		err = storeAccessTokensInDB(user.ID, fbUserID, tok, session, usersCollection)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to persist Facebook login information", http.StatusInternalServerError)
 		}
@@ -75,16 +84,12 @@ func getLongTermToken(session string, r *http.Request, auther facebook.Authentic
 	return tok, nil
 }
 
-func storeAccessTokensInDB(fbUserID string, tok *oauth2.Token, sessionID string, usersCollection db.Users) error {
+func storeAccessTokensInDB(userID bson.ObjectId, fbUserID string, tok *oauth2.Token, sessionID string, usersCollection db.Users) error {
 	err := usersCollection.SetAccessToken(fbUserID, *tok)
 	if err != nil {
 		return err
 	}
-	user, err := usersCollection.GetFbID(fbUserID)
-	if err != nil {
-		return err
-	}
-	return usersCollection.SetSessionID(user.ID, sessionID)
+	return usersCollection.SetSessionID(userID, sessionID)
 }
 
 func getUserID(tok *oauth2.Token, auther facebook.Authenticator) (string, error) {

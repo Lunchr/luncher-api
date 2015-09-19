@@ -172,8 +172,6 @@ var _ = Describe("RestaurantsHandlers", func() {
 						"coordinates": []float64{12.34, 56.78},
 					},
 				}
-				// Temorary:
-				mockUsersCollection.On("UnsetSessionID", mock.AnythingOfType("bson.ObjectId")).Return(nil)
 			})
 
 			AfterEach(func() {

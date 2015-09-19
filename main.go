@@ -85,8 +85,8 @@ func main() {
 	r.GET("/login/facebook/redirected", handler.RedirectedFromFBForLogin(sessionManager, facebookLoginAuthenticator, usersCollection, restaurantsCollection))
 	r.GET("/register/facebook", handler.RedirectToFBForRegistration(sessionManager, facebookRegistrationAuthenticator, registrationTokensCollection))
 	r.GET("/register/facebook/redirected", handler.RedirectedFromFBForRegistration(sessionManager, facebookRegistrationAuthenticator, usersCollection))
-	r.GET("/register/facebook/pages", handler.ListPagesManagedByUser(sessionManager, facebookRegistrationAuthenticator, usersCollection))
-	r.GETWithParams("/register/facebook/pages/:id", handler.Page(sessionManager, facebookRegistrationAuthenticator, usersCollection))
+	r.GET("/register/facebook/pages", handler.ListPagesManagedByUser(sessionManager, facebookLoginAuthenticator, usersCollection))
+	r.GETWithParams("/register/facebook/pages/:id", handler.Page(sessionManager, facebookLoginAuthenticator, usersCollection))
 
 	http.Handle("/api/v1/", r)
 	portString := fmt.Sprintf(":%d", mainConfig.Port)
