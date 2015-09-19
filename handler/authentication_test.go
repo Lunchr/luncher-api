@@ -41,8 +41,7 @@ var _ = Describe("Authentication Handlers", func() {
 				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
 			})
 
-			It("should redirect to root", func(done Done) {
-				defer close(done)
+			It("should redirect to root", func() {
 				handler(responseRecorder, request)
 				ExpectLocationToBeMockedURL(responseRecorder, "/")
 			})
@@ -57,10 +56,9 @@ func ExpectUserToBeLoggedIn(handler func() *router.HandlerError, setDependencies
 				setDependencies(&mockSessionManager{}, nil)
 			})
 
-			It("should be forbidden", func(done Done) {
-				defer close(done)
+			It("should be forbidden", func() {
 				err := handler()
-				Expect(err.Code).To(Equal(http.StatusForbidden))
+				Expect(err.Code).To(Equal(http.StatusUnauthorized))
 			})
 		})
 
@@ -69,10 +67,9 @@ func ExpectUserToBeLoggedIn(handler func() *router.HandlerError, setDependencies
 				setDependencies(&mockSessionManager{isSet: true}, mockUsers{})
 			})
 
-			It("should be forbidden", func(done Done) {
-				defer close(done)
+			It("should be forbidden", func() {
 				err := handler()
-				Expect(err.Code).To(Equal(http.StatusForbidden))
+				Expect(err.Code).To(Equal(http.StatusUnauthorized))
 			})
 		})
 	})

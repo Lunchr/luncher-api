@@ -10,6 +10,8 @@ import (
 
 const sessionCookieName = "luncher_session"
 
+var ErrNotFound = errors.New("session manager: no session found")
+
 // Manager for the current session
 type Manager interface {
 	// GetOrInit returns the current session ID stored in the request
@@ -30,7 +32,7 @@ func (m manager) Get(r *http.Request) (string, error) {
 	if cookie, err := r.Cookie(sessionCookieName); err != nil {
 		return "", err
 	} else if cookie.Value == "" {
-		return "", errors.New("session manager: no session found")
+		return "", ErrNotFound
 	} else {
 		return cookie.Value, nil
 	}

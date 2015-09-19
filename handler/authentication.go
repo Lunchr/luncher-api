@@ -3,6 +3,8 @@ package handler
 import (
 	"net/http"
 
+	"gopkg.in/mgo.v2"
+
 	"github.com/Lunchr/luncher-api/db"
 	"github.com/Lunchr/luncher-api/db/model"
 	"github.com/Lunchr/luncher-api/router"
@@ -26,9 +28,9 @@ type HandlerWithParamsWithUser func(w http.ResponseWriter, r *http.Request, ps h
 
 func checkLogin(sessionManager session.Manager, usersCollection db.Users, handler HandlerWithUser) router.Handler {
 	return func(w http.ResponseWriter, r *http.Request) *router.HandlerError {
-		user, err := getUserForSession(sessionManager, usersCollection, r)
-		if err != nil {
-			return router.NewHandlerError(err, "", http.StatusForbidden)
+		user, handlerErr := getUserForSession(sessionManager, usersCollection, r)
+		if handlerErr != nil {
+			return handlerErr
 		}
 		return handler(w, r, user)
 	}
@@ -36,22 +38,26 @@ func checkLogin(sessionManager session.Manager, usersCollection db.Users, handle
 
 func checkLoginWithParams(sessionManager session.Manager, usersCollection db.Users, handler HandlerWithParamsWithUser) router.HandlerWithParams {
 	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) *router.HandlerError {
-		user, err := getUserForSession(sessionManager, usersCollection, r)
-		if err != nil {
-			return router.NewHandlerError(err, "", http.StatusForbidden)
+		user, handlerErr := getUserForSession(sessionManager, usersCollection, r)
+		if handlerErr != nil {
+			return handlerErr
 		}
 		return handler(w, r, ps, user)
 	}
 }
 
-func getUserForSession(sessionManager session.Manager, usersCollection db.Users, r *http.Request) (*model.User, error) {
-	session, err := sessionManager.Get(r)
-	if err != nil {
-		return nil, err
+func getUserForSession(sessionManager session.Manager, usersCollection db.Users, r *http.Request) (*model.User, *router.HandlerError) {
+	sessionID, err := sessionManager.Get(r)
+	if err == session.ErrNotFound {
+		return nil, router.NewHandlerError(err, "Session not established for this connection", http.StatusUnauthorized)
+	} else if err != nil {
+		return nil, router.NewHandlerError(err, "Failed to get the session", http.StatusInternalServerError)
 	}
-	user, err := usersCollection.GetSessionID(session)
-	if err != nil {
-		return nil, err
+	user, err := usersCollection.GetSessionID(sessionID)
+	if err == mgo.ErrNotFound {
+		return nil, router.NewHandlerError(err, "User not logged in", http.StatusUnauthorized)
+	} else if err != nil {
+		return nil, router.NewHandlerError(err, "Failed to find the user for this session", http.StatusInternalServerError)
 	}
 	return user, nil
 }

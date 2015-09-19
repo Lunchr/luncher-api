@@ -16,6 +16,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/oauth2"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
 	. "github.com/onsi/ginkgo"
@@ -484,7 +485,7 @@ type mockUsers struct {
 
 func (m mockUsers) GetSessionID(session string) (*model.User, error) {
 	if session != "correctSession" {
-		return nil, errors.New("wrong session")
+		return nil, mgo.ErrNotFound
 	}
 	user := &model.User{
 		ID:            objectID,
