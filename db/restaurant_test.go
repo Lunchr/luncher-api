@@ -32,6 +32,26 @@ var _ = Describe("Restaurant", func() {
 		})
 	})
 
+	Describe("GetByIDs", func() {
+		It("lists all restaurants with the associated FB page ID in the list", func() {
+			ids := []bson.ObjectId{mocks.restaurantID, bson.NewObjectId()}
+			restaurants, err := restaurantsCollection.GetByIDs(ids)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(restaurants).To(HaveLen(1))
+			Expect(restaurants[0]).To(Equal(mocks.restaurants[1]))
+		})
+	})
+
+	Describe("GetByFacebookPageIDs", func() {
+		It("lists all restaurants with the associated FB page ID in the list", func() {
+			facebookPageIDs := []string{"3", facebookPageID, "gibberish"}
+			restaurants, err := restaurantsCollection.GetByFacebookPageIDs(facebookPageIDs)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(restaurants).To(HaveLen(2))
+			Expect(restaurants).To(ConsistOf(mocks.restaurants[1], mocks.restaurants[2]))
+		})
+	})
+
 	Describe("GetAll", func() {
 		It("should list all the restaurants", func(done Done) {
 			defer close(done)
