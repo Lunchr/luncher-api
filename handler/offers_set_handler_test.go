@@ -52,7 +52,8 @@ var _ = Describe("OffersHandler", func() {
 		var (
 			usersCollection       db.Users
 			restaurantsCollection *mocks.Restaurants
-			handler               router.Handler
+			handler               router.HandlerWithParams
+			params                httprouter.Params
 			sessionManager        session.Manager
 			facebookPost          *mocks.Post
 		)
@@ -74,6 +75,10 @@ var _ = Describe("OffersHandler", func() {
 				},
 				Phone: "+372 5678 910",
 			}
+			params = httprouter.Params{httprouter.Param{
+				Key:   "restaurantID",
+				Value: restaurantID.Hex(),
+			}}
 			restaurantsCollection.On("GetID", restaurantID).Return(restaurant, nil).Once()
 			facebookPost = new(mocks.Post)
 			facebookPost.On("Update", model.DateWithoutTime("2014-11-11"), mock.AnythingOfType("*model.User"), restaurant).Return(nil)
@@ -85,7 +90,7 @@ var _ = Describe("OffersHandler", func() {
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
-			return handler(responseRecorder, request)
+			return handler(responseRecorder, request, params)
 		}, func(mgr session.Manager, users db.Users) {
 			sessionManager = mgr
 			usersCollection = users
@@ -107,19 +112,19 @@ var _ = Describe("OffersHandler", func() {
 			})
 
 			It("should succeed", func() {
-				err := handler(responseRecorder, request)
+				err := handler(responseRecorder, request, params)
 				Expect(err).To(BeNil())
 			})
 
 			It("should return json", func() {
-				handler(responseRecorder, request)
+				handler(responseRecorder, request, params)
 				contentTypes := responseRecorder.HeaderMap["Content-Type"]
 				Expect(contentTypes).To(HaveLen(1))
 				Expect(contentTypes[0]).To(Equal("application/json"))
 			})
 
 			It("should include the offer with the new ID", func() {
-				handler(responseRecorder, request)
+				handler(responseRecorder, request, params)
 				var offer model.OfferJSON
 				json.Unmarshal(responseRecorder.Body.Bytes(), &offer)
 				Expect(offer.ID).To(Equal(objectID))
@@ -139,12 +144,12 @@ var _ = Describe("OffersHandler", func() {
 				})
 
 				It("succeeds", func() {
-					err := handler(responseRecorder, request)
+					err := handler(responseRecorder, request, params)
 					Expect(err).To(BeNil())
 				})
 
 				It("includes the image paths in the response", func() {
-					handler(responseRecorder, request)
+					handler(responseRecorder, request, params)
 					var offer model.OfferJSON
 					json.Unmarshal(responseRecorder.Body.Bytes(), &offer)
 					Expect(offer.ID).To(Equal(objectID))
