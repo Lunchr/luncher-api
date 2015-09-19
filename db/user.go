@@ -14,7 +14,7 @@ type Users interface {
 	GetAll() UserIter
 	Update(string, *model.User) error
 	SetAccessToken(string, oauth2.Token) error
-	SetPageAccessToken(string, string) error
+	SetPageAccessTokens(string, []model.FacebookPageToken) error
 	SetSessionID(bson.ObjectId, string) error
 	UnsetSessionID(bson.ObjectId) error
 }
@@ -69,9 +69,9 @@ func (c usersCollection) SetAccessToken(facebookUserID string, tok oauth2.Token)
 	})
 }
 
-func (c usersCollection) SetPageAccessToken(facebookUserID string, tok string) error {
+func (c usersCollection) SetPageAccessTokens(facebookUserID string, tokens []model.FacebookPageToken) error {
 	return c.Collection.Update(bson.M{"facebook_user_id": facebookUserID}, bson.M{
-		"$set": bson.M{"session.facebook_page_token": tok},
+		"$set": bson.M{"session.facebook_page_tokens": tokens},
 	})
 }
 

@@ -85,11 +85,14 @@ var _ = Describe("User", func() {
 
 		Describe("SetPageAccessToken", func() {
 			Context("with access token set", func() {
-				var token string
+				var tokens []model.FacebookPageToken
 
 				BeforeEach(func() {
-					token = "bsd"
-					err := usersCollection.SetPageAccessToken(facebookUserID, token)
+					tokens = []model.FacebookPageToken{model.FacebookPageToken{
+						PageID: "pageid",
+						Token:  "atoken",
+					}}
+					err := usersCollection.SetPageAccessTokens(facebookUserID, tokens)
 					Expect(err).NotTo(HaveOccurred())
 				})
 
@@ -97,7 +100,7 @@ var _ = Describe("User", func() {
 					user, err := usersCollection.GetFbID(facebookUserID)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(user).NotTo(BeNil())
-					Expect(user.Session.FacebookPageToken).To(Equal("bsd"))
+					Expect(user.Session.FacebookPageTokens).To(Equal(tokens))
 				})
 			})
 		})
