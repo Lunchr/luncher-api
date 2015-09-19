@@ -163,16 +163,20 @@ var _ = Describe("OffersHandler", func() {
 			sessionManager        session.Manager
 			facebookPost          *mocks.Post
 			params                httprouter.Params
+			restaurantID          bson.ObjectId
 		)
 
 		BeforeEach(func() {
 			usersCollection = &mockUsers{}
 			restaurantsCollection = new(mocks.Restaurants)
 
-			restaurantID := bson.ObjectId("12letrrestid")
+			restaurantID = bson.ObjectId("12letrrestid")
 			params = httprouter.Params{httprouter.Param{
 				Key:   "id",
 				Value: objectID.Hex(),
+			}, httprouter.Param{
+				Key:   "restaurantID",
+				Value: restaurantID.Hex(),
 			}}
 
 			restaurant := &model.Restaurant{
@@ -219,6 +223,9 @@ var _ = Describe("OffersHandler", func() {
 				params = httprouter.Params{httprouter.Param{
 					Key:   "id",
 					Value: "not a proper bson.ObjectId",
+				}, httprouter.Param{
+					Key:   "restaurantID",
+					Value: restaurantID.Hex(),
 				}}
 				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
 			})
@@ -386,16 +393,20 @@ var _ = Describe("OffersHandler", func() {
 			restaurantsCollection *mocks.Restaurants
 			facebookPost          *mocks.Post
 			params                httprouter.Params
+			restaurantID          bson.ObjectId
 		)
 
 		BeforeEach(func() {
 			usersCollection = &mockUsers{}
 			restaurantsCollection = new(mocks.Restaurants)
 
-			restaurantID := bson.ObjectId("12letrrestid")
+			restaurantID = bson.ObjectId("12letrrestid")
 			params = httprouter.Params{httprouter.Param{
 				Key:   "id",
 				Value: objectID.Hex(),
+			}, httprouter.Param{
+				Key:   "restaurantID",
+				Value: restaurantID.Hex(),
 			}}
 
 			restaurant := &model.Restaurant{
@@ -441,6 +452,9 @@ var _ = Describe("OffersHandler", func() {
 				params = httprouter.Params{httprouter.Param{
 					Key:   "id",
 					Value: "not a proper bson.ObjectId",
+				}, httprouter.Param{
+					Key:   "restaurantID",
+					Value: restaurantID.Hex(),
 				}}
 				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
 			})

@@ -120,10 +120,9 @@ type HandlerWithParamsWithRestaurant func(w http.ResponseWriter, r *http.Request
 func forRestaurantWithParams(sessionManager session.Manager, users db.Users, restaurants db.Restaurants,
 	handler HandlerWithParamsWithRestaurant) router.HandlerWithParams {
 	handlerWithUser := func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *router.HandlerError {
-		// FIXME
-		restaurant, err := restaurants.GetID(user.RestaurantIDs[0])
-		if err != nil {
-			return router.NewHandlerError(err, "Failed to find the restaurant connected to this user", http.StatusInternalServerError)
+		restaurant, handlerErr := getRestaurantByParams(ps, user, restaurants)
+		if handlerErr != nil {
+			return handlerErr
 		}
 		return handler(w, r, ps, user, restaurant)
 	}

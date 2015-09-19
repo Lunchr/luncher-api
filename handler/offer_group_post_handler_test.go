@@ -19,7 +19,7 @@ import (
 )
 
 var _ = Describe("OfferGroupPostHandlers", func() {
-	Describe("GET /restaurant/posts/:date", func() {
+	Describe("GET /restaurants/:restaurantID/posts/:date", func() {
 		var (
 			sessionManager        session.Manager
 			postsCollection       db.OfferGroupPosts
@@ -74,6 +74,9 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 				params = httprouter.Params{httprouter.Param{
 					Key:   "date",
 					Value: "2015-04-10",
+				}, httprouter.Param{
+					Key:   "restaurantID",
+					Value: restaurantID.Hex(),
 				}}
 			})
 
@@ -139,7 +142,7 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 		})
 	})
 
-	Describe("POST /restaurants/:id/posts", func() {
+	Describe("POST /restaurants/:restaurantID/posts", func() {
 		var (
 			sessionManager        session.Manager
 			postsCollection       db.OfferGroupPosts
@@ -322,7 +325,7 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 		})
 	})
 
-	Describe("PUT /restaurant/posts/:date", func() {
+	Describe("PUT /restaurants/:restaurantID/posts/:date", func() {
 		var (
 			sessionManager        session.Manager
 			postsCollection       db.OfferGroupPosts
@@ -371,11 +374,17 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 				id = bson.NewObjectId()
 
 				restaurantID = bson.NewObjectId()
+				facebookPageID := "fbpageid"
 				restaurant = &model.Restaurant{
-					ID: restaurantID,
+					ID:             restaurantID,
+					FacebookPageID: facebookPageID,
 				}
 				user = &model.User{
-					RestaurantIDs: []bson.ObjectId{restaurant.ID},
+					Session: model.UserSession{
+						FacebookPageTokens: []model.FacebookPageToken{model.FacebookPageToken{
+							PageID: facebookPageID,
+						}},
+					},
 				}
 
 				mockSessionManager.On("Get", mock.Anything).Return("session", nil)
@@ -386,6 +395,9 @@ var _ = Describe("OfferGroupPostHandlers", func() {
 				params = httprouter.Params{httprouter.Param{
 					Key:   "date",
 					Value: "2015-04-10",
+				}, httprouter.Param{
+					Key:   "restaurantID",
+					Value: restaurantID.Hex(),
 				}}
 				mockPostsCollection.On("GetByDate", model.DateWithoutTime("2015-04-10"), restaurantID).Return(&model.OfferGroupPost{
 					ID:              id,
