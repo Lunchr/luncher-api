@@ -62,11 +62,15 @@ func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.
 			return router.NewHandlerError(err, "Failed to store the restaurant in the DB", http.StatusInternalServerError)
 		}
 		var insertedRestaurant = insertedRestaurants[0]
-		user.RestaurantIDs = append(user.RestaurantIDs, insertedRestaurant.ID)
-		err = users.Update(user.FacebookUserID, user)
-		if err != nil {
-			// TODO: revert the restaurant insertion we just did? Look into mgo's txn package
-			return router.NewHandlerError(err, "Failed to store the restaurant in the DB", http.StatusInternalServerError)
+		// We want to leave the FB page related restaurant role management wholly to FB, so we handle them totally
+		// separately
+		if insertedRestaurant.FacebookPageID == "" {
+			user.RestaurantIDs = append(user.RestaurantIDs, insertedRestaurant.ID)
+			err = users.Update(user.FacebookUserID, user)
+			if err != nil {
+				// TODO: revert the restaurant insertion we just did? Look into mgo's txn package
+				return router.NewHandlerError(err, "Failed to attach the restaurant to the user in the DB", http.StatusInternalServerError)
+			}
 		}
 		return writeJSON(w, insertedRestaurant)
 	}

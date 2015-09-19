@@ -228,22 +228,40 @@ var _ = Describe("RestaurantsHandlers", func() {
 				})
 			})
 
-			Context("the updated user", func() {
-				var updatedUser *model.User
-				BeforeEach(func() {
-					mockRestaurantsCollection.On("Insert", mock.AnythingOfType("[]*model.Restaurant")).Return([]*model.Restaurant{
-						&model.Restaurant{
-							ID: id,
-						},
-					}, nil)
-					mockUsersCollection.On("Update", mock.AnythingOfType("string"), mock.AnythingOfType("*model.User")).Return(nil).Run(func(args mock.Arguments) {
-						updatedUser = args.Get(1).(*model.User)
+			Describe("the updated user", func() {
+				Context("with restaurant not being attached to a FB page", func() {
+					var updatedUser *model.User
+					BeforeEach(func() {
+						mockRestaurantsCollection.On("Insert", mock.AnythingOfType("[]*model.Restaurant")).Return([]*model.Restaurant{
+							&model.Restaurant{
+								ID: id,
+							},
+						}, nil)
+						mockUsersCollection.On("Update", mock.AnythingOfType("string"), mock.AnythingOfType("*model.User")).Return(nil).Run(func(args mock.Arguments) {
+							updatedUser = args.Get(1).(*model.User)
+						})
+					})
+
+					It("should update the user to include a reference to the restaurant", func() {
+						handler(responseRecorder, request)
+						Expect(updatedUser.RestaurantIDs[0]).To(Equal(id))
 					})
 				})
 
-				It("should update the user to include a reference to the restaurant", func() {
-					handler(responseRecorder, request)
-					Expect(updatedUser.RestaurantIDs[0]).To(Equal(id))
+				Context("with restaurant being attached to a FB page", func() {
+					BeforeEach(func() {
+						mockRestaurantsCollection.On("Insert", mock.AnythingOfType("[]*model.Restaurant")).Return([]*model.Restaurant{
+							&model.Restaurant{
+								ID:             id,
+								FacebookPageID: "something",
+							},
+						}, nil)
+					})
+
+					It("should NOT update the user to include a reference to the restaurant", func() {
+						err := handler(responseRecorder, request)
+						Expect(err).To(BeNil())
+					})
 				})
 			})
 		})
