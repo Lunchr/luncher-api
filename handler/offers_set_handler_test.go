@@ -490,11 +490,10 @@ func (m mockUsers) GetSessionID(session string) (*model.User, error) {
 	user := &model.User{
 		ID:            objectID,
 		RestaurantIDs: []bson.ObjectId{"12letrrestid"},
-		Session: &model.UserSession{
+		Session: model.UserSession{
 			FacebookUserToken: oauth2.Token{
 				AccessToken: "usertoken",
 			},
-			FacebookPageToken: "pagetoken",
 		},
 	}
 	return user, nil

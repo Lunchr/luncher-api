@@ -74,7 +74,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 				}
 				user := &model.User{
 					RestaurantIDs: []bson.ObjectId{allRestaurants[0].ID, allRestaurants[2].ID},
-					Session: &model.UserSession{
+					Session: model.UserSession{
 						FacebookUserToken: fbUserToken,
 					},
 				}
@@ -336,7 +336,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 					}
 					user := &model.User{
 						RestaurantIDs: []bson.ObjectId{},
-						Session: &model.UserSession{
+						Session: model.UserSession{
 							FacebookUserToken: *facebookUserToken,
 						},
 					}
