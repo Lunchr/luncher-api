@@ -2,7 +2,6 @@ package handler_test
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"time"
 
@@ -16,7 +15,6 @@ import (
 	"github.com/Lunchr/luncher-api/handler/mocks"
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
-	fbmodel "github.com/deiwin/facebook/model"
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/mock"
 
@@ -31,12 +29,11 @@ var _ = Describe("RestaurantsHandlers", func() {
 			users          db.Users
 
 			restaurants *mocks.Restaurants
-			fbAuth      *mocks.Authenticator
 			handler     router.Handler
 		)
 
 		JustBeforeEach(func() {
-			handler = UserRestaurants(restaurants, sessionManager, users, fbAuth)
+			handler = UserRestaurants(restaurants, sessionManager, users)
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
@@ -58,7 +55,6 @@ var _ = Describe("RestaurantsHandlers", func() {
 				mockUsers = new(mocks.Users)
 				users = mockUsers
 				restaurants = new(mocks.Restaurants)
-				fbAuth = new(mocks.Authenticator)
 
 				allRestaurants := []*model.Restaurant{&model.Restaurant{
 					ID: bson.NewObjectId(),
@@ -76,24 +72,17 @@ var _ = Describe("RestaurantsHandlers", func() {
 					RestaurantIDs: []bson.ObjectId{allRestaurants[0].ID, allRestaurants[2].ID},
 					Session: model.UserSession{
 						FacebookUserToken: fbUserToken,
+						FacebookPageTokens: []model.FacebookPageToken{model.FacebookPageToken{
+							PageID: "fbpageid1",
+						}, model.FacebookPageToken{
+							PageID: "fbpageid2",
+						}},
 					},
 				}
 
 				mockSessionManager.On("Get", request).Return("session", nil)
 				mockUsers.On("GetSessionID", "session").Return(user, nil)
 				restaurants.On("GetByIDs", user.RestaurantIDs).Return([]*model.Restaurant{allRestaurants[0], allRestaurants[2]}, nil)
-				fbAPI := new(mocks.API)
-				fbAuth.On("APIConnection", &fbUserToken).Return(fbAPI)
-				fbAPI.On("Accounts").Return(&fbmodel.Accounts{
-					Data: []fbmodel.Page{
-						fbmodel.Page{
-							ID: "fbpageid1",
-						},
-						fbmodel.Page{
-							ID: "fbpageid2",
-						},
-					},
-				}, nil)
 				restaurants.On("GetByFacebookPageIDs", []string{"fbpageid1", "fbpageid2"}).Return([]*model.Restaurant{allRestaurants[1], allRestaurants[3]}, nil)
 			})
 
@@ -266,12 +255,11 @@ var _ = Describe("RestaurantsHandlers", func() {
 			restaurantsCollection db.Restaurants
 			usersCollection       db.Users
 			params                httprouter.Params
-			fbAuth                *mocks.Authenticator
 			handler               router.HandlerWithParams
 		)
 
 		JustBeforeEach(func() {
-			handler = Restaurant(restaurantsCollection, sessionManager, usersCollection, fbAuth)
+			handler = Restaurant(restaurantsCollection, sessionManager, usersCollection)
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
@@ -297,7 +285,6 @@ var _ = Describe("RestaurantsHandlers", func() {
 				restaurantsCollection = mockRestaurantsCollection
 				mockUsersCollection = new(mocks.Users)
 				usersCollection = mockUsersCollection
-				fbAuth = new(mocks.Authenticator)
 
 				restaurantID := bson.NewObjectId()
 				restaurant = &model.Restaurant{
@@ -313,7 +300,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 				BeforeEach(func() {
 					mockUsersCollection.On("GetSessionID", "session").Return(&model.User{}, nil)
 					params = httprouter.Params{httprouter.Param{
-						Key:   "id",
+						Key:   "restaurantID",
 						Value: "gibberish",
 					}}
 				})
@@ -326,47 +313,18 @@ var _ = Describe("RestaurantsHandlers", func() {
 			})
 
 			Context("with a valid restaurant ID", func() {
-				var (
-					fbAPI *mocks.API
-				)
-
 				BeforeEach(func() {
-					facebookUserToken := &oauth2.Token{
-						AccessToken: "a user token",
-					}
-					user := &model.User{
-						RestaurantIDs: []bson.ObjectId{},
-						Session: model.UserSession{
-							FacebookUserToken: *facebookUserToken,
-						},
-					}
-					mockUsersCollection.On("GetSessionID", "session").Return(user, nil)
 					mockRestaurantsCollection.On("GetID", restaurant.ID).Return(restaurant, nil)
 					params = httprouter.Params{httprouter.Param{
-						Key:   "id",
+						Key:   "restaurantID",
 						Value: restaurant.ID.Hex(),
 					}}
-					fbAPI = new(mocks.API)
-					fbAuth.On("APIConnection", facebookUserToken).Return(fbAPI)
-				})
-
-				Context("with query for FB accounts failing", func() {
-					BeforeEach(func() {
-						fbAPI.On("Accounts").Return(nil, errors.New("something went wrong"))
-					})
-
-					It("fails", func() {
-						err := handler(responseRecorder, request, params)
-						Expect(err).To(HaveOccurred())
-						Expect(err.Code).To(Equal(http.StatusBadGateway))
-					})
 				})
 
 				Context("but not authorized", func() {
 					BeforeEach(func() {
-						fbAPI.On("Accounts").Return(&fbmodel.Accounts{
-							Data: []fbmodel.Page{},
-						}, nil)
+						user := &model.User{}
+						mockUsersCollection.On("GetSessionID", "session").Return(user, nil)
 					})
 
 					It("fails", func() {
@@ -376,13 +334,17 @@ var _ = Describe("RestaurantsHandlers", func() {
 					})
 				})
 
-				Context("and FB authorized", func() {
+				Context("having a FB page access token for the restaurant's page", func() {
 					BeforeEach(func() {
-						fbAPI.On("Accounts").Return(&fbmodel.Accounts{
-							Data: []fbmodel.Page{fbmodel.Page{
-								ID: facebookPageID,
-							}},
-						}, nil)
+						user := &model.User{
+							RestaurantIDs: []bson.ObjectId{},
+							Session: model.UserSession{
+								FacebookPageTokens: []model.FacebookPageToken{model.FacebookPageToken{
+									PageID: facebookPageID,
+								}},
+							},
+						}
+						mockUsersCollection.On("GetSessionID", "session").Return(user, nil)
 					})
 
 					It("succeeds", func() {
@@ -390,40 +352,36 @@ var _ = Describe("RestaurantsHandlers", func() {
 						Expect(err).To(BeNil())
 					})
 				})
-			})
 
-			Context("with a valid restaurant ID", func() {
-				BeforeEach(func() {
-					user := &model.User{
-						RestaurantIDs: []bson.ObjectId{restaurant.ID},
-					}
-					mockUsersCollection.On("GetSessionID", "session").Return(user, nil)
-					mockRestaurantsCollection.On("GetID", restaurant.ID).Return(restaurant, nil)
-					params = httprouter.Params{httprouter.Param{
-						Key:   "id",
-						Value: restaurant.ID.Hex(),
-					}}
+				Context("having direct access", func() {
+					BeforeEach(func() {
+						user := &model.User{
+							RestaurantIDs: []bson.ObjectId{restaurant.ID},
+						}
+						mockUsersCollection.On("GetSessionID", "session").Return(user, nil)
+					})
+
+					It("should succeed", func() {
+						err := handler(responseRecorder, request, params)
+						Expect(err).To(BeNil())
+					})
+
+					It("should return json", func() {
+						handler(responseRecorder, request, params)
+						contentTypes := responseRecorder.HeaderMap["Content-Type"]
+						Expect(contentTypes).To(HaveLen(1))
+						Expect(contentTypes[0]).To(Equal("application/json"))
+					})
+
+					It("should include the restaurant data in the response", func() {
+						handler(responseRecorder, request, params)
+						var response *model.Restaurant
+						json.Unmarshal(responseRecorder.Body.Bytes(), &response)
+						Expect(response.ID).To(Equal(restaurant.ID))
+						Expect(response.Name).To(Equal("restname"))
+					})
 				})
 
-				It("should succeed", func() {
-					err := handler(responseRecorder, request, params)
-					Expect(err).To(BeNil())
-				})
-
-				It("should return json", func() {
-					handler(responseRecorder, request, params)
-					contentTypes := responseRecorder.HeaderMap["Content-Type"]
-					Expect(contentTypes).To(HaveLen(1))
-					Expect(contentTypes[0]).To(Equal("application/json"))
-				})
-
-				It("should include the restaurant data in the response", func() {
-					handler(responseRecorder, request, params)
-					var response *model.Restaurant
-					json.Unmarshal(responseRecorder.Body.Bytes(), &response)
-					Expect(response.ID).To(Equal(restaurant.ID))
-					Expect(response.Name).To(Equal("restname"))
-				})
 			})
 		})
 	})
@@ -438,7 +396,6 @@ var _ = Describe("RestaurantsHandlers", func() {
 			mockOffersCollection      db.Offers
 			imageStorage              *mocks.Images
 			regionsCollection         *mocks.Regions
-			fbAuth                    *mocks.Authenticator
 		)
 
 		BeforeEach(func() {
@@ -449,12 +406,11 @@ var _ = Describe("RestaurantsHandlers", func() {
 				Thumbnail: "images/thumbnail",
 			}, nil)
 			imageStorage.On("PathsFor", "").Return(nil, nil)
-			fbAuth = new(mocks.Authenticator)
 		})
 
 		JustBeforeEach(func() {
 			handler = RestaurantOffers(mockRestaurantsCollection, sessionManager, mockUsersCollection,
-				mockOffersCollection, imageStorage, regionsCollection, fbAuth)
+				mockOffersCollection, imageStorage, regionsCollection)
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
@@ -475,7 +431,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 					Location: "Europe/Tallinn",
 				}, nil)
 				params = httprouter.Params{httprouter.Param{
-					Key:   "id",
+					Key:   "restaurantID",
 					Value: bson.ObjectId("12letrrestid").Hex(),
 				}}
 			})

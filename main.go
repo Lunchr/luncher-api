@@ -70,15 +70,15 @@ func main() {
 	r.DELETE("/offers/:id", handler.DeleteOffers(offersCollection, usersCollection, sessionManager, restaurantsCollection,
 		facebookPost, regionsCollection))
 	r.GET("/tags", handler.Tags(tagsCollection))
-	r.GET("/user/restaurants", handler.UserRestaurants(restaurantsCollection, sessionManager, usersCollection, facebookLoginAuthenticator))
-	r.GETWithParams("/restaurants/:id", handler.Restaurant(restaurantsCollection, sessionManager, usersCollection, facebookLoginAuthenticator))
+	r.GET("/user/restaurants", handler.UserRestaurants(restaurantsCollection, sessionManager, usersCollection))
+	r.GETWithParams("/restaurants/:restaurantID", handler.Restaurant(restaurantsCollection, sessionManager, usersCollection))
 	r.POST("/restaurants", handler.PostRestaurants(restaurantsCollection, sessionManager, usersCollection))
-	r.GETWithParams("/restaurants/:id/offers", handler.RestaurantOffers(restaurantsCollection, sessionManager, usersCollection,
-		offersCollection, imageStorage, regionsCollection, facebookLoginAuthenticator))
-	r.GETWithParams("/restaurants/:id/posts/:date", handler.OfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection, restaurantsCollection))
-	r.POSTWithParams("/restaurants/:id/posts", handler.PostOfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection,
-		restaurantsCollection, facebookPost, facebookLoginAuthenticator))
-	r.PUT("/restaurants/:id/posts/:date", handler.PutOfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection,
+	r.GETWithParams("/restaurants/:restaurantID/offers", handler.RestaurantOffers(restaurantsCollection, sessionManager, usersCollection,
+		offersCollection, imageStorage, regionsCollection))
+	r.GETWithParams("/restaurants/:restaurantID/posts/:date", handler.OfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection, restaurantsCollection))
+	r.POSTWithParams("/restaurants/:restaurantID/posts", handler.PostOfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection,
+		restaurantsCollection, facebookPost))
+	r.PUT("/restaurants/:restaurantID/posts/:date", handler.PutOfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection,
 		restaurantsCollection, facebookPost))
 	r.GET("/logout", handler.Logout(sessionManager, usersCollection))
 	r.GET("/login/facebook", handler.RedirectToFBForLogin(sessionManager, facebookLoginAuthenticator))

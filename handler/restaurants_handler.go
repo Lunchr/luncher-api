@@ -14,25 +14,20 @@ import (
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
 	"github.com/Lunchr/luncher-api/storage"
-	"github.com/deiwin/facebook"
-	fbmodel "github.com/deiwin/facebook/model"
 	"github.com/julienschmidt/httprouter"
 )
 
 // UserRestaurants returns a list of restaurants the user has access to
-func UserRestaurants(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, fbAuth facebook.Authenticator) router.Handler {
+func UserRestaurants(restaurants db.Restaurants, sessionManager session.Manager, users db.Users) router.Handler {
 	handlerWithUser := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
 		restaurantsByIDs, err := restaurants.GetByIDs(user.RestaurantIDs)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to find restaurants associated with this user", http.StatusInternalServerError)
 		}
-		fbPages, handlerErr := getPages(&user.Session.FacebookUserToken, fbAuth)
-		if handlerErr != nil {
-			return handlerErr
-		}
-		fbPageIDs := make([]string, len(fbPages))
-		for i, fbPage := range fbPages {
-			fbPageIDs[i] = fbPage.ID
+		fbPageAccessTokens := user.Session.FacebookPageTokens
+		fbPageIDs := make([]string, len(fbPageAccessTokens))
+		for i, fbPageAccessToken := range fbPageAccessTokens {
+			fbPageIDs[i] = fbPageAccessToken.PageID
 		}
 		restaurantsByFBPageIDs, err := restaurants.GetByFacebookPageIDs(fbPageIDs)
 		if err != nil {
@@ -45,11 +40,11 @@ func UserRestaurants(restaurants db.Restaurants, sessionManager session.Manager,
 }
 
 // Restaurant returns a router.Handler that returns the restaurant information for the specified restaurant
-func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users, fbAuth facebook.Authenticator) router.HandlerWithParams {
+func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users) router.HandlerWithParams {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
 		return writeJSON(w, restaurant)
 	}
-	return forRestaurant(sessionManager, users, c, fbAuth, handler)
+	return forRestaurant(sessionManager, users, c, handler)
 }
 
 // Restaurant returns a router.Handler that returns the restaurant information for the
@@ -81,7 +76,7 @@ func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.
 // RestaurantOffers returns all upcoming offers for the restaurant linked to the
 // currently logged in user
 func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, offers db.Offers,
-	imageStorage storage.Images, regions db.Regions, fbAuth facebook.Authenticator) router.HandlerWithParams {
+	imageStorage storage.Images, regions db.Regions) router.HandlerWithParams {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
 		region, err := regions.GetName(restaurant.Region)
 		if err != nil {
@@ -102,16 +97,15 @@ func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager
 		}
 		return writeJSON(w, offerJSONs)
 	}
-	return forRestaurant(sessionManager, users, restaurants, fbAuth, handler)
+	return forRestaurant(sessionManager, users, restaurants, handler)
 }
 
 type HandlerWithRestaurant func(w http.ResponseWriter, r *http.Request, user *model.User,
 	restaurant *model.Restaurant) *router.HandlerError
 
-func forRestaurant(sessionManager session.Manager, users db.Users, restaurants db.Restaurants, fbAuth facebook.Authenticator,
-	handler HandlerWithRestaurant) router.HandlerWithParams {
+func forRestaurant(sessionManager session.Manager, users db.Users, restaurants db.Restaurants, handler HandlerWithRestaurant) router.HandlerWithParams {
 	handlerWithUser := func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *router.HandlerError {
-		restaurant, handlerErr := getRestaurantByParams(ps, user, restaurants, fbAuth)
+		restaurant, handlerErr := getRestaurantByParams(ps, user, restaurants)
 		if handlerErr != nil {
 			return handlerErr
 		}
@@ -136,8 +130,8 @@ func forRestaurantWithParams(sessionManager session.Manager, users db.Users, res
 	return checkLoginWithParams(sessionManager, users, handlerWithUser)
 }
 
-func getRestaurantByParams(ps httprouter.Params, user *model.User, restaurants db.Restaurants, fbAuth facebook.Authenticator) (*model.Restaurant, *router.HandlerError) {
-	restaurantIDString := ps.ByName("id")
+func getRestaurantByParams(ps httprouter.Params, user *model.User, restaurants db.Restaurants) (*model.Restaurant, *router.HandlerError) {
+	restaurantIDString := ps.ByName("restaurantID")
 	if restaurantIDString == "" {
 		return nil, router.NewSimpleHandlerError("Expected a restaurant ID to be specified", http.StatusBadRequest)
 	} else if !bson.IsObjectIdHex(restaurantIDString) {
@@ -150,15 +144,16 @@ func getRestaurantByParams(ps httprouter.Params, user *model.User, restaurants d
 	} else if err != nil {
 		return nil, router.NewHandlerError(err, "Something went wrong while trying to find the specified restaurant", http.StatusInternalServerError)
 	}
-	if !idsInclude(user.RestaurantIDs, restaurantID) {
-		fbPages, err := getPages(&user.Session.FacebookUserToken, fbAuth)
-		if err != nil {
-			return nil, router.NewHandlerError(err, "Couldn't get the list of pages managed by this user", http.StatusBadGateway)
-		} else if !fbPagesInclude(fbPages, restaurant.FacebookPageID) {
-			return nil, router.NewSimpleHandlerError("Not authorized to access this restaurant", http.StatusForbidden)
-		}
+	if !authorizedToManageRestaurant(user, restaurant) {
+		return nil, router.NewSimpleHandlerError("Not authorized to access this restaurant", http.StatusForbidden)
 	}
 	return restaurant, nil
+}
+
+func authorizedToManageRestaurant(user *model.User, restaurant *model.Restaurant) bool {
+	hasDirectAccess := idsInclude(user.RestaurantIDs, restaurant.ID)
+	authorizedThroughFB := hasPageAccessTokenForRestaurant(user, restaurant)
+	return hasDirectAccess || authorizedThroughFB
 }
 
 func idsInclude(ids []bson.ObjectId, id bson.ObjectId) bool {
@@ -170,9 +165,9 @@ func idsInclude(ids []bson.ObjectId, id bson.ObjectId) bool {
 	return false
 }
 
-func fbPagesInclude(fbPages []fbmodel.Page, fbPageID string) bool {
-	for _, page := range fbPages {
-		if page.ID == fbPageID {
+func hasPageAccessTokenForRestaurant(user *model.User, restaurant *model.Restaurant) bool {
+	for _, pageAccessToken := range user.Session.FacebookPageTokens {
+		if pageAccessToken.PageID == restaurant.FacebookPageID {
 			return true
 		}
 	}
