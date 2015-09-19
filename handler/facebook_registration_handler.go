@@ -82,9 +82,9 @@ func RedirectedFromFBForRegistration(sessionManager session.Manager, auther face
 // ListPagesManagedByUser returns a handler that lists all pages managed by the currently logged in user
 func ListPagesManagedByUser(sessionManager session.Manager, auther facebook.Authenticator, usersCollection db.Users) router.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
-		fbPages, err := getPages(&user.Session.FacebookUserToken, auther)
-		if err != nil {
-			return router.NewHandlerError(err, "Couldn't get the list of pages managed by this user", http.StatusBadGateway)
+		fbPages, handlerErr := getPages(&user.Session.FacebookUserToken, auther)
+		if handlerErr != nil {
+			return handlerErr
 		}
 		pages := mapFBPagesToModelPages(fbPages)
 		return writeJSON(w, pages)
@@ -109,11 +109,11 @@ func Page(sessionManager session.Manager, auther facebook.Authenticator, usersCo
 	return checkLoginWithParams(sessionManager, usersCollection, handler)
 }
 
-func getPages(tok *oauth2.Token, auther facebook.Authenticator) ([]fbmodel.Page, error) {
+func getPages(tok *oauth2.Token, auther facebook.Authenticator) ([]fbmodel.Page, *router.HandlerError) {
 	api := auther.APIConnection(tok)
 	accs, err := api.Accounts()
 	if err != nil {
-		return nil, err
+		return nil, router.NewHandlerError(err, "Couldn't get the list of pages managed by this user", http.StatusBadGateway)
 	}
 	return accs.Data, nil
 }

@@ -25,72 +25,95 @@ import (
 )
 
 var _ = Describe("RestaurantsHandlers", func() {
-	Describe("GET /restaurants", func() {
+	Describe("GET /user/restaurants", func() {
 		var (
-			mockRestaurantsCollection db.Restaurants
-			handler                   router.Handler
+			sessionManager session.Manager
+			users          db.Users
+
+			restaurants *mocks.Restaurants
+			fbAuth      *mocks.Authenticator
+			handler     router.Handler
 		)
 
-		BeforeEach(func() {
-			mockRestaurantsCollection = &mockRestaurants{}
-		})
-
 		JustBeforeEach(func() {
-			handler = Restaurants(mockRestaurantsCollection)
+			handler = UserRestaurants(restaurants, sessionManager, users, fbAuth)
 		})
 
-		It("should succeed", func() {
-			err := handler(responseRecorder, request)
-			Expect(err).To(BeNil())
+		ExpectUserToBeLoggedIn(func() *router.HandlerError {
+			return handler(responseRecorder, request)
+		}, func(mgr session.Manager, _users_ db.Users) {
+			sessionManager = mgr
+			users = _users_
 		})
 
-		It("should return json", func() {
-			handler(responseRecorder, request)
-			contentTypes := responseRecorder.HeaderMap["Content-Type"]
-			Expect(contentTypes).To(HaveLen(1))
-			Expect(contentTypes[0]).To(Equal("application/json"))
-		})
-
-		Context("with simple mocked result from DB", func() {
+		Context("with the user logged in", func() {
 			var (
-				mockResult []*model.Restaurant
+				mockSessionManager *mocks.Manager
+				mockUsers          *mocks.Users
 			)
-			BeforeEach(func() {
-				mockResult = []*model.Restaurant{&model.Restaurant{Name: "somerestaurant"}}
-				mockRestaurantsCollection = &mockRestaurants{
-					func() (restaurants []*model.Restaurant, err error) {
-						restaurants = mockResult
-						return
-					},
-					nil,
-				}
-			})
-
-			It("should write the returned data to responsewriter", func() {
-				handler(responseRecorder, request)
-				var result []*model.Restaurant
-				json.Unmarshal(responseRecorder.Body.Bytes(), &result)
-				Expect(result).To(HaveLen(1))
-				Expect(result[0].Name).To(Equal(mockResult[0].Name))
-			})
-		})
-
-		Context("with an error returned from the DB", func() {
-			var dbErr = errors.New("DB stuff failed")
 
 			BeforeEach(func() {
-				mockRestaurantsCollection = &mockRestaurants{
-					func() (restaurants []*model.Restaurant, err error) {
-						err = dbErr
-						return
-					},
-					nil,
+				mockSessionManager = new(mocks.Manager)
+				sessionManager = mockSessionManager
+				mockUsers = new(mocks.Users)
+				users = mockUsers
+				restaurants = new(mocks.Restaurants)
+				fbAuth = new(mocks.Authenticator)
+
+				allRestaurants := []*model.Restaurant{&model.Restaurant{
+					ID: bson.NewObjectId(),
+				}, &model.Restaurant{
+					FacebookPageID: "fbpageid1",
+				}, &model.Restaurant{
+					ID: bson.NewObjectId(),
+				}, &model.Restaurant{
+					FacebookPageID: "fbpageid2",
+				}}
+				fbUserToken := oauth2.Token{
+					AccessToken: "usertoken",
 				}
+				user := &model.User{
+					RestaurantIDs: []bson.ObjectId{allRestaurants[0].ID, allRestaurants[2].ID},
+					Session: &model.UserSession{
+						FacebookUserToken: fbUserToken,
+					},
+				}
+
+				mockSessionManager.On("Get", request).Return("session", nil)
+				mockUsers.On("GetSessionID", "session").Return(user, nil)
+				restaurants.On("GetByIDs", user.RestaurantIDs).Return([]*model.Restaurant{allRestaurants[0], allRestaurants[2]}, nil)
+				fbAPI := new(mocks.API)
+				fbAuth.On("APIConnection", &fbUserToken).Return(fbAPI)
+				fbAPI.On("Accounts").Return(&fbmodel.Accounts{
+					Data: []fbmodel.Page{
+						fbmodel.Page{
+							ID: "fbpageid1",
+						},
+						fbmodel.Page{
+							ID: "fbpageid2",
+						},
+					},
+				}, nil)
+				restaurants.On("GetByFacebookPageIDs", []string{"fbpageid1", "fbpageid2"}).Return([]*model.Restaurant{allRestaurants[1], allRestaurants[3]}, nil)
 			})
 
-			It("should return error 500", func() {
+			It("succeeds", func() {
 				err := handler(responseRecorder, request)
-				Expect(err.Code).To(Equal(http.StatusInternalServerError))
+				Expect(err).To(BeNil())
+			})
+
+			It("returns json", func() {
+				handler(responseRecorder, request)
+				contentTypes := responseRecorder.HeaderMap["Content-Type"]
+				Expect(contentTypes).To(HaveLen(1))
+				Expect(contentTypes[0]).To(Equal("application/json"))
+			})
+
+			It("includes all restaurants", func() {
+				handler(responseRecorder, request)
+				var response []*model.Restaurant
+				json.Unmarshal(responseRecorder.Body.Bytes(), &response)
+				Expect(response).To(HaveLen(4))
 			})
 		})
 	})

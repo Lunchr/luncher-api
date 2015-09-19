@@ -19,6 +19,30 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// UserRestaurants returns a list of restaurants the user has access to
+func UserRestaurants(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, fbAuth facebook.Authenticator) router.Handler {
+	handlerWithUser := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
+		restaurantsByIDs, err := restaurants.GetByIDs(user.RestaurantIDs)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to find restaurants associated with this user", http.StatusInternalServerError)
+		}
+		fbPages, handlerErr := getPages(&user.Session.FacebookUserToken, fbAuth)
+		if handlerErr != nil {
+			return handlerErr
+		}
+		fbPageIDs := make([]string, len(fbPages))
+		for i, fbPage := range fbPages {
+			fbPageIDs[i] = fbPage.ID
+		}
+		restaurantsByFBPageIDs, err := restaurants.GetByFacebookPageIDs(fbPageIDs)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to find restaurants for FB pages associated with this user", http.StatusInternalServerError)
+		}
+		allRestaurants := append(restaurantsByIDs, restaurantsByFBPageIDs...)
+		return writeJSON(w, allRestaurants)
+	}
+	return checkLogin(sessionManager, users, handlerWithUser)
+}
 
 // Restaurant returns a router.Handler that returns the restaurant information for the specified restaurant
 func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users, fbAuth facebook.Authenticator) router.HandlerWithParams {
