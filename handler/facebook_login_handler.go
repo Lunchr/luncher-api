@@ -3,7 +3,11 @@ package handler
 import (
 	"net/http"
 
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
+
 	"github.com/Lunchr/luncher-api/db"
+	"github.com/Lunchr/luncher-api/db/model"
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
 	"github.com/deiwin/facebook"
@@ -23,41 +27,82 @@ func RedirectToFBForLogin(sessionManager session.Manager, auther facebook.Authen
 // RedirectedFromFBForLogin returns a handler that receives the user and page tokens for the
 // user who has just logged in through Facebook. Updates the user and page
 // access tokens in the DB
-func RedirectedFromFBForLogin(sessionManager session.Manager, auther facebook.Authenticator, usersCollection db.Users, restaurantsCollection db.Restaurants) router.Handler {
+func RedirectedFromFBForLogin(sessionManager session.Manager, fbAuth facebook.Authenticator, users db.Users, restaurants db.Restaurants) router.Handler {
 	return func(w http.ResponseWriter, r *http.Request) *router.HandlerError {
 		session := sessionManager.GetOrInit(w, r)
-		tok, handlerErr := getLongTermToken(session, r, auther)
+		tok, handlerErr := getLongTermToken(session, r, fbAuth)
 		if handlerErr != nil {
 			return handlerErr
 		}
-		fbUserID, err := getUserID(tok, auther)
+		fbUserID, err := getUserID(tok, fbAuth)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to get the user information from Facebook", http.StatusInternalServerError)
 		}
-		err = storeAccessTokensInDB(fbUserID, tok, session, usersCollection)
-		if err != nil {
-			return router.NewHandlerError(err, "Failed to persist Facebook login information", http.StatusInternalServerError)
+		user, err := users.GetFbID(fbUserID)
+		if err == mgo.ErrNotFound {
+			return router.NewHandlerError(err, "User not registered", http.StatusForbidden)
+		} else if err != nil {
+			return router.NewHandlerError(err, "Failed to find the user from DB", http.StatusInternalServerError)
 		}
-		pageID, handlerErr := getPageID(fbUserID, usersCollection, restaurantsCollection)
-		if handlerErr != nil {
+		if handlerErr = storeAccessTokensInDB(user.ID, fbUserID, tok, session, users); err != nil {
 			return handlerErr
 		}
-		if pageID != "" {
-			pageAccessToken, err := auther.PageAccessToken(tok, pageID)
-			if err != nil {
-				if err == facebook.ErrNoSuchPage {
-					return router.NewHandlerError(err, "Access denied by Facebook to the managed page", http.StatusForbidden)
-				}
-				return router.NewHandlerError(err, "Failed to get access to the Facebook page", http.StatusInternalServerError)
-			}
-			err = usersCollection.SetPageAccessToken(fbUserID, pageAccessToken)
-			if err != nil {
-				return router.NewHandlerError(err, "Failed to persist Facebook login information", http.StatusInternalServerError)
-			}
+		if handlerErr = storeTokensForRestaurantPages(fbUserID, tok, restaurants, users, fbAuth); err != nil {
+			return handlerErr
 		}
 		http.Redirect(w, r, "/#/admin", http.StatusSeeOther)
 		return nil
 	}
+}
+
+func storeTokensForRestaurantPages(fbUserID string, userAccessToken *oauth2.Token, restaurants db.Restaurants, users db.Users,
+	fbAuth facebook.Authenticator) *router.HandlerError {
+	managedRestaurants, handlerErr := getRestaurantsManagedThroughFB(userAccessToken, restaurants, fbAuth)
+	if handlerErr != nil {
+		return handlerErr
+	}
+	pageAccessTokens, handlerErr := getPageAccessTokensForRestaurants(userAccessToken, managedRestaurants, fbAuth)
+	if handlerErr != nil {
+		return handlerErr
+	}
+	if err := users.SetPageAccessTokens(fbUserID, pageAccessTokens); err != nil {
+		return router.NewHandlerError(err, "Failed to persist Facebook page access tokens", http.StatusInternalServerError)
+	}
+	return nil
+}
+
+func getPageAccessTokensForRestaurants(userAccessToken *oauth2.Token, restaurants []*model.Restaurant, fbAuth facebook.Authenticator) ([]model.FacebookPageToken,
+	*router.HandlerError) {
+	pageAccessTokens := make([]model.FacebookPageToken, len(restaurants))
+	for i, restaurant := range restaurants {
+		pageAccessToken, err := fbAuth.PageAccessToken(userAccessToken, restaurant.FacebookPageID)
+		if err == facebook.ErrNoSuchPage {
+			return nil, router.NewHandlerError(err, "Access denied by Facebook to the managed page", http.StatusForbidden)
+		} else if err != nil {
+			return nil, router.NewHandlerError(err, "Failed to get access to the Facebook page", http.StatusInternalServerError)
+		}
+		pageAccessTokens[i] = model.FacebookPageToken{
+			PageID: restaurant.FacebookPageID,
+			Token:  pageAccessToken,
+		}
+	}
+	return pageAccessTokens, nil
+}
+
+func getRestaurantsManagedThroughFB(userAccessToken *oauth2.Token, restaurants db.Restaurants, fbAuth facebook.Authenticator) ([]*model.Restaurant, *router.HandlerError) {
+	fbPagesManagedByUser, handlerErr := getPages(userAccessToken, fbAuth)
+	if handlerErr != nil {
+		return nil, handlerErr
+	}
+	fbPageIDs := make([]string, len(fbPagesManagedByUser))
+	for i, fbPage := range fbPagesManagedByUser {
+		fbPageIDs[i] = fbPage.ID
+	}
+	restaurantsManagedByUserThroughFB, err := restaurants.GetByFacebookPageIDs(fbPageIDs)
+	if err != nil {
+		return nil, router.NewHandlerError(err, "Failed to find restaurants for FB pages associated with this user", http.StatusInternalServerError)
+	}
+	return restaurantsManagedByUserThroughFB, nil
 }
 
 func getLongTermToken(session string, r *http.Request, auther facebook.Authenticator) (*oauth2.Token, *router.HandlerError) {
@@ -75,16 +120,14 @@ func getLongTermToken(session string, r *http.Request, auther facebook.Authentic
 	return tok, nil
 }
 
-func storeAccessTokensInDB(fbUserID string, tok *oauth2.Token, sessionID string, usersCollection db.Users) error {
-	err := usersCollection.SetAccessToken(fbUserID, *tok)
-	if err != nil {
-		return err
+func storeAccessTokensInDB(userID bson.ObjectId, fbUserID string, tok *oauth2.Token, sessionID string, usersCollection db.Users) *router.HandlerError {
+	if err := usersCollection.SetAccessToken(fbUserID, *tok); err != nil {
+		return router.NewHandlerError(err, "Failed to persist Facebook user access token in DB", http.StatusInternalServerError)
 	}
-	user, err := usersCollection.GetFbID(fbUserID)
-	if err != nil {
-		return err
+	if err := usersCollection.SetSessionID(userID, sessionID); err != nil {
+		return router.NewHandlerError(err, "Failed to persist session ID in DB", http.StatusInternalServerError)
 	}
-	return usersCollection.SetSessionID(user.ID, sessionID)
+	return nil
 }
 
 func getUserID(tok *oauth2.Token, auther facebook.Authenticator) (string, error) {
@@ -94,16 +137,4 @@ func getUserID(tok *oauth2.Token, auther facebook.Authenticator) (string, error)
 		return "", err
 	}
 	return user.ID, nil
-}
-
-func getPageID(userID string, usersCollection db.Users, restaurantsCollection db.Restaurants) (string, *router.HandlerError) {
-	user, err := usersCollection.GetFbID(userID)
-	if err != nil {
-		return "", router.NewHandlerError(err, "Failed to find a user in DB related to this Facebook User ID", http.StatusInternalServerError)
-	}
-	restaurant, err := restaurantsCollection.GetID(user.RestaurantIDs[0])
-	if err != nil {
-		return "", router.NewHandlerError(err, "Failed to find the restaurant in the DB", http.StatusInternalServerError)
-	}
-	return restaurant.FacebookPageID, nil
 }

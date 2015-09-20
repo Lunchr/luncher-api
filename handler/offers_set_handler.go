@@ -15,17 +15,13 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-type HandlerWithUserAndOffer func(w http.ResponseWriter, r *http.Request, user *model.User, offer *model.Offer) *router.HandlerError
+type HandlerWithRestaurantAndOffer func(http.ResponseWriter, *http.Request, *model.User, *model.Restaurant, *model.Offer) *router.HandlerError
 
 // PostOffers handles POST requests to /offers. It stores the offer in the DB and
 // sends it to Facebook to be posted on the page's wall at the requested time.
-func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants, sessionManager session.Manager,
-	imageStorage storage.Images, facebookPost facebook.Post, regions db.Regions) router.Handler {
-	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
-		restaurant, err := restaurantsCollection.GetID(user.RestaurantIDs[0])
-		if err != nil {
-			return router.NewHandlerError(err, "Couldn't find a restaurant related to this user", http.StatusInternalServerError)
-		}
+func PostOffers(offers db.Offers, users db.Users, restaurants db.Restaurants, sessionManager session.Manager,
+	imageStorage storage.Images, facebookPost facebook.Post, regions db.Regions) router.HandlerWithParams {
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
 		offerPOST, err := parseOffer(r, restaurant)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to parse the offer", http.StatusBadRequest)
@@ -34,7 +30,7 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to map the offer to the internal representation", http.StatusInternalServerError)
 		}
-		offers, err := offersCollection.Insert(offer)
+		offers, err := offers.Insert(offer)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to store the offer in the DB", http.StatusInternalServerError)
 		}
@@ -55,18 +51,14 @@ func PostOffers(offersCollection db.Offers, usersCollection db.Users, restaurant
 		}
 		return writeJSON(w, offerJSON)
 	}
-	return checkLogin(sessionManager, usersCollection, handler)
+	return forRestaurant(sessionManager, users, restaurants, handler)
 }
 
 // PutOffers handles PUT requests to /offers. It updates the offer in the DB and
 // updates the related Facebook post.
-func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurantsCollection db.Restaurants, sessionManager session.Manager,
+func PutOffers(offers db.Offers, users db.Users, restaurants db.Restaurants, sessionManager session.Manager,
 	imageStorage storage.Images, facebookPost facebook.Post, regions db.Regions) router.HandlerWithParams {
-	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, currentOffer *model.Offer) *router.HandlerError {
-		restaurant, err := restaurantsCollection.GetID(user.RestaurantIDs[0])
-		if err != nil {
-			return router.NewHandlerError(err, "Couldn't find the restaurant this offer belongs to", http.StatusInternalServerError)
-		}
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant, currentOffer *model.Offer) *router.HandlerError {
 		offerPOST, err := parseOffer(r, restaurant)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to parse the offer", http.StatusBadRequest)
@@ -78,7 +70,7 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to map the offer to the internal representation", http.StatusInternalServerError)
 		}
-		err = offersCollection.UpdateID(currentOffer.ID, offer)
+		err = offers.UpdateID(currentOffer.ID, offer)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to update the offer in DB", http.StatusInternalServerError)
 		}
@@ -108,19 +100,15 @@ func PutOffers(offersCollection db.Offers, usersCollection db.Users, restaurants
 		return writeJSON(w, offerJSON)
 	}
 
-	return checkLoginWithParams(sessionManager, usersCollection, forOffer(offersCollection, handler))
+	return forRestaurantWithParams(sessionManager, users, restaurants, forOffer(offers, handler))
 }
 
 // DeleteOffers handles DELETE requests to /offers. It deletes the offer from the DB and
 // deletes the related Facebook post.
-func DeleteOffers(offersCollection db.Offers, usersCollection db.Users, sessionManager session.Manager, restaurantsCollection db.Restaurants,
+func DeleteOffers(offers db.Offers, users db.Users, sessionManager session.Manager, restaurants db.Restaurants,
 	facebookPost facebook.Post, regions db.Regions) router.HandlerWithParams {
-	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, currentOffer *model.Offer) *router.HandlerError {
-		restaurant, err := restaurantsCollection.GetID(user.RestaurantIDs[0])
-		if err != nil {
-			return router.NewHandlerError(err, "Couldn't find the restaurant this offer belongs to", http.StatusInternalServerError)
-		}
-		if err = offersCollection.RemoveID(currentOffer.ID); err != nil {
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant, currentOffer *model.Offer) *router.HandlerError {
+		if err := offers.RemoveID(currentOffer.ID); err != nil {
 			return router.NewHandlerError(err, "Failed to delete the offer from DB", http.StatusInternalServerError)
 		}
 
@@ -137,11 +125,11 @@ func DeleteOffers(offersCollection db.Offers, usersCollection db.Users, sessionM
 		w.WriteHeader(http.StatusOK)
 		return nil
 	}
-	return checkLoginWithParams(sessionManager, usersCollection, forOffer(offersCollection, handler))
+	return forRestaurantWithParams(sessionManager, users, restaurants, forOffer(offers, handler))
 }
 
-func forOffer(offersCollection db.Offers, handler HandlerWithUserAndOffer) HandlerWithParamsWithUser {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User) *router.HandlerError {
+func forOffer(offersCollection db.Offers, handler HandlerWithRestaurantAndOffer) HandlerWithParamsWithRestaurant {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
 		idString := ps.ByName("id")
 		if !bson.IsObjectIdHex(idString) {
 			return router.NewStringHandlerError("invalid offer ID", "", http.StatusBadRequest)
@@ -151,7 +139,7 @@ func forOffer(offersCollection db.Offers, handler HandlerWithUserAndOffer) Handl
 		if err != nil {
 			return router.NewHandlerError(err, "Couldn't find an offer with this ID", http.StatusNotFound)
 		}
-		return handler(w, r, user, offer)
+		return handler(w, r, user, restaurant, offer)
 	}
 }
 

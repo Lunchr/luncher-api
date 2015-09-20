@@ -32,7 +32,7 @@ func OfferGroupPost(c db.OfferGroupPosts, sessionManager session.Manager, users 
 
 // PostOfferGroupPost handles POST requests to /restaurant/posts. It stores the info in the DB and updates the post in FB.
 func PostOfferGroupPost(c db.OfferGroupPosts, sessionManager session.Manager, users db.Users, restaurants db.Restaurants,
-	facebookPost facebook.Post) router.Handler {
+	facebookPost facebook.Post) router.HandlerWithParams {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
 		post, handlerErr := parseOfferGroupPost(r, restaurant)
 		if handlerErr != nil {

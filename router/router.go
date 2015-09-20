@@ -62,6 +62,10 @@ func (r Router) POST(path string, handler Handler) {
 	r.Handler("POST", r.prefix+path, handleErrors(handler))
 }
 
+func (r Router) POSTWithParams(path string, handler HandlerWithParams) {
+	r.Router.POST(r.prefix+path, handleErrorsWithParams(handler))
+}
+
 func (r Router) PUT(path string, handler HandlerWithParams) {
 	r.Router.PUT(r.prefix+path, handleErrorsWithParams(handler))
 }

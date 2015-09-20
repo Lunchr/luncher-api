@@ -8,8 +8,9 @@ import (
 
 type Restaurants interface {
 	Insert(...*model.Restaurant) ([]*model.Restaurant, error)
-	Get() ([]*model.Restaurant, error)
 	GetAll() RestaurantIter
+	GetByIDs([]bson.ObjectId) ([]*model.Restaurant, error)
+	GetByFacebookPageIDs([]string) ([]*model.Restaurant, error)
 	GetID(bson.ObjectId) (*model.Restaurant, error)
 	Exists(name string) (bool, error)
 	UpdateID(bson.ObjectId, *model.Restaurant) error
@@ -43,14 +44,27 @@ func (c restaurantsCollection) Insert(restaurantsToInsert ...*model.Restaurant) 
 	return restaurantsToInsert, c.Collection.Insert(docs...)
 }
 
-func (c restaurantsCollection) Get() (restaurants []*model.Restaurant, err error) {
-	err = c.Find(bson.M{}).All(&restaurants)
-	return
-}
-
 func (c restaurantsCollection) GetAll() RestaurantIter {
 	i := c.Find(nil).Iter()
 	return &restaurantIter{i}
+}
+
+func (c restaurantsCollection) GetByIDs(ids []bson.ObjectId) ([]*model.Restaurant, error) {
+	var restaurants []*model.Restaurant
+	err := c.FindId(bson.M{
+		"$in": ids,
+	}).All(&restaurants)
+	return restaurants, err
+}
+
+func (c restaurantsCollection) GetByFacebookPageIDs(ids []string) ([]*model.Restaurant, error) {
+	var restaurants []*model.Restaurant
+	err := c.Find(bson.M{
+		"facebook_page_id": bson.M{
+			"$in": ids,
+		},
+	}).All(&restaurants)
+	return restaurants, err
 }
 
 func (c restaurantsCollection) GetID(id bson.ObjectId) (*model.Restaurant, error) {

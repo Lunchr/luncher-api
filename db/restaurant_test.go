@@ -32,12 +32,37 @@ var _ = Describe("Restaurant", func() {
 		})
 	})
 
-	Describe("Get", func() {
-		It("should get all restaurants", func(done Done) {
-			defer close(done)
-			restaurants, err := restaurantsCollection.Get()
+	Describe("GetByIDs", func() {
+		It("lists all restaurants with the associated FB page ID in the list", func() {
+			ids := []bson.ObjectId{mocks.restaurantID, bson.NewObjectId()}
+			restaurants, err := restaurantsCollection.GetByIDs(ids)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(restaurants).To(HaveLen(3))
+			Expect(restaurants).To(HaveLen(1))
+			Expect(restaurants[0]).To(Equal(mocks.restaurants[1]))
+		})
+
+		It("returns an empty list if nothing found", func() {
+			ids := []bson.ObjectId{bson.NewObjectId()}
+			restaurants, err := restaurantsCollection.GetByIDs(ids)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(restaurants).To(BeEmpty())
+		})
+	})
+
+	Describe("GetByFacebookPageIDs", func() {
+		It("lists all restaurants with the associated FB page ID in the list", func() {
+			facebookPageIDs := []string{"3", facebookPageID, "gibberish"}
+			restaurants, err := restaurantsCollection.GetByFacebookPageIDs(facebookPageIDs)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(restaurants).To(HaveLen(2))
+			Expect(restaurants).To(ConsistOf(mocks.restaurants[1], mocks.restaurants[2]))
+		})
+
+		It("returns an empty list if nothing found", func() {
+			facebookPageIDs := []string{"gibberish"}
+			restaurants, err := restaurantsCollection.GetByFacebookPageIDs(facebookPageIDs)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(restaurants).To(BeEmpty())
 		})
 	})
 

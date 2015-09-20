@@ -16,6 +16,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/stretchr/testify/mock"
 	"golang.org/x/oauth2"
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
 	. "github.com/onsi/ginkgo"
@@ -51,7 +52,8 @@ var _ = Describe("OffersHandler", func() {
 		var (
 			usersCollection       db.Users
 			restaurantsCollection *mocks.Restaurants
-			handler               router.Handler
+			handler               router.HandlerWithParams
+			params                httprouter.Params
 			sessionManager        session.Manager
 			facebookPost          *mocks.Post
 		)
@@ -73,6 +75,10 @@ var _ = Describe("OffersHandler", func() {
 				},
 				Phone: "+372 5678 910",
 			}
+			params = httprouter.Params{httprouter.Param{
+				Key:   "restaurantID",
+				Value: restaurantID.Hex(),
+			}}
 			restaurantsCollection.On("GetID", restaurantID).Return(restaurant, nil).Once()
 			facebookPost = new(mocks.Post)
 			facebookPost.On("Update", model.DateWithoutTime("2014-11-11"), mock.AnythingOfType("*model.User"), restaurant).Return(nil)
@@ -84,7 +90,7 @@ var _ = Describe("OffersHandler", func() {
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
-			return handler(responseRecorder, request)
+			return handler(responseRecorder, request, params)
 		}, func(mgr session.Manager, users db.Users) {
 			sessionManager = mgr
 			usersCollection = users
@@ -106,19 +112,19 @@ var _ = Describe("OffersHandler", func() {
 			})
 
 			It("should succeed", func() {
-				err := handler(responseRecorder, request)
+				err := handler(responseRecorder, request, params)
 				Expect(err).To(BeNil())
 			})
 
 			It("should return json", func() {
-				handler(responseRecorder, request)
+				handler(responseRecorder, request, params)
 				contentTypes := responseRecorder.HeaderMap["Content-Type"]
 				Expect(contentTypes).To(HaveLen(1))
 				Expect(contentTypes[0]).To(Equal("application/json"))
 			})
 
 			It("should include the offer with the new ID", func() {
-				handler(responseRecorder, request)
+				handler(responseRecorder, request, params)
 				var offer model.OfferJSON
 				json.Unmarshal(responseRecorder.Body.Bytes(), &offer)
 				Expect(offer.ID).To(Equal(objectID))
@@ -138,12 +144,12 @@ var _ = Describe("OffersHandler", func() {
 				})
 
 				It("succeeds", func() {
-					err := handler(responseRecorder, request)
+					err := handler(responseRecorder, request, params)
 					Expect(err).To(BeNil())
 				})
 
 				It("includes the image paths in the response", func() {
-					handler(responseRecorder, request)
+					handler(responseRecorder, request, params)
 					var offer model.OfferJSON
 					json.Unmarshal(responseRecorder.Body.Bytes(), &offer)
 					Expect(offer.ID).To(Equal(objectID))
@@ -162,16 +168,20 @@ var _ = Describe("OffersHandler", func() {
 			sessionManager        session.Manager
 			facebookPost          *mocks.Post
 			params                httprouter.Params
+			restaurantID          bson.ObjectId
 		)
 
 		BeforeEach(func() {
 			usersCollection = &mockUsers{}
 			restaurantsCollection = new(mocks.Restaurants)
 
-			restaurantID := bson.ObjectId("12letrrestid")
+			restaurantID = bson.ObjectId("12letrrestid")
 			params = httprouter.Params{httprouter.Param{
 				Key:   "id",
 				Value: objectID.Hex(),
+			}, httprouter.Param{
+				Key:   "restaurantID",
+				Value: restaurantID.Hex(),
 			}}
 
 			restaurant := &model.Restaurant{
@@ -218,6 +228,9 @@ var _ = Describe("OffersHandler", func() {
 				params = httprouter.Params{httprouter.Param{
 					Key:   "id",
 					Value: "not a proper bson.ObjectId",
+				}, httprouter.Param{
+					Key:   "restaurantID",
+					Value: restaurantID.Hex(),
 				}}
 				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
 			})
@@ -385,16 +398,20 @@ var _ = Describe("OffersHandler", func() {
 			restaurantsCollection *mocks.Restaurants
 			facebookPost          *mocks.Post
 			params                httprouter.Params
+			restaurantID          bson.ObjectId
 		)
 
 		BeforeEach(func() {
 			usersCollection = &mockUsers{}
 			restaurantsCollection = new(mocks.Restaurants)
 
-			restaurantID := bson.ObjectId("12letrrestid")
+			restaurantID = bson.ObjectId("12letrrestid")
 			params = httprouter.Params{httprouter.Param{
 				Key:   "id",
 				Value: objectID.Hex(),
+			}, httprouter.Param{
+				Key:   "restaurantID",
+				Value: restaurantID.Hex(),
 			}}
 
 			restaurant := &model.Restaurant{
@@ -440,6 +457,9 @@ var _ = Describe("OffersHandler", func() {
 				params = httprouter.Params{httprouter.Param{
 					Key:   "id",
 					Value: "not a proper bson.ObjectId",
+				}, httprouter.Param{
+					Key:   "restaurantID",
+					Value: restaurantID.Hex(),
 				}}
 				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
 			})
@@ -484,16 +504,15 @@ type mockUsers struct {
 
 func (m mockUsers) GetSessionID(session string) (*model.User, error) {
 	if session != "correctSession" {
-		return nil, errors.New("wrong session")
+		return nil, mgo.ErrNotFound
 	}
 	user := &model.User{
 		ID:            objectID,
 		RestaurantIDs: []bson.ObjectId{"12letrrestid"},
-		Session: &model.UserSession{
+		Session: model.UserSession{
 			FacebookUserToken: oauth2.Token{
 				AccessToken: "usertoken",
 			},
-			FacebookPageToken: "pagetoken",
 		},
 	}
 	return user, nil

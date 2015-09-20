@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/oauth2"
+
 	"gopkg.in/mgo.v2"
 
 	"github.com/Lunchr/luncher-api/db"
@@ -84,6 +86,11 @@ func (f *facebookPost) updatePost(post *model.OfferGroupPost, user *model.User, 
 	if restaurant.FacebookPageID == "" {
 		return nil
 	}
+	userAccessToken := &user.Session.FacebookUserToken
+	pageAccessToken := getPageAccessToken(user, restaurant.FacebookPageID)
+	if pageAccessToken == "" {
+		return router.NewSimpleHandlerError("Couldn't find the page access token for the restaurant", http.StatusInternalServerError)
+	}
 
 	offersForDate, handlerErr := f.getOffersForDate(post.Date, restaurant)
 	if handlerErr != nil {
@@ -93,20 +100,30 @@ func (f *facebookPost) updatePost(post *model.OfferGroupPost, user *model.User, 
 		if len(offersForDate) == 0 {
 			return nil
 		}
-		return f.publishNewPost(post, offersForDate, user, restaurant)
+		return f.publishNewPost(post, offersForDate, userAccessToken, pageAccessToken, restaurant.FacebookPageID)
 	}
 	if len(offersForDate) == 0 {
-		return f.deleteExistingPost(post, user, restaurant)
+		return f.deleteExistingPost(post, userAccessToken, pageAccessToken, restaurant.FacebookPageID)
 	}
-	return f.updateExistingPost(post, offersForDate, user, restaurant)
+	return f.updateExistingPost(post, offersForDate, userAccessToken, pageAccessToken, restaurant.FacebookPageID)
 }
 
-func (f *facebookPost) publishNewPost(post *model.OfferGroupPost, offersForDate []*model.Offer, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
+func getPageAccessToken(user *model.User, pageID string) string {
+	for _, pageToken := range user.Session.FacebookPageTokens {
+		if pageToken.PageID == pageID {
+			return pageToken.Token
+		}
+	}
+	return ""
+}
+
+func (f *facebookPost) publishNewPost(post *model.OfferGroupPost, offersForDate []*model.Offer, userAccessToken *oauth2.Token,
+	pageAccessToken, pageID string) *router.HandlerError {
 	fbPost, handlerErr := formFBPost(post, offersForDate)
 	if handlerErr != nil {
 		return handlerErr
 	}
-	fbAPI := f.fbAuth.APIConnection(&user.Session.FacebookUserToken)
+	fbAPI := f.fbAuth.APIConnection(userAccessToken)
 
 	collage, handlerErr := f.createOfferPhotoCollage(offersForDate)
 	if handlerErr != nil {
@@ -122,14 +139,14 @@ func (f *facebookPost) publishNewPost(post *model.OfferGroupPost, offersForDate 
 			Photo: encodedCollage,
 		}
 
-		fbPhotoResponse, err := fbAPI.PagePhotoCreate(user.Session.FacebookPageToken, restaurant.FacebookPageID, &fbPhoto)
+		fbPhotoResponse, err := fbAPI.PagePhotoCreate(pageAccessToken, pageID, &fbPhoto)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to post the offers with a photo to Facebook", http.StatusBadGateway)
 		}
-		post.FBPostID = getPostIDFromPhotoResponse(fbPhotoResponse, restaurant.FacebookPageID)
+		post.FBPostID = getPostIDFromPhotoResponse(fbPhotoResponse, pageID)
 		post.PostedImageChecksum = collageChecksum
 	} else {
-		fbPostResponse, err := fbAPI.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, fbPost)
+		fbPostResponse, err := fbAPI.PagePublish(pageAccessToken, pageID, fbPost)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to post the offers to Facebook", http.StatusBadGateway)
 		}
@@ -158,9 +175,9 @@ func getPostIDFromPhotoResponse(photoResponse *fbmodel.PhotoResponse, pageID str
 	}
 }
 
-func (f *facebookPost) deleteExistingPost(post *model.OfferGroupPost, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
-	fbAPI := f.fbAuth.APIConnection(&user.Session.FacebookUserToken)
-	err := fbAPI.PostDelete(user.Session.FacebookPageToken, post.FBPostID)
+func (f *facebookPost) deleteExistingPost(post *model.OfferGroupPost, userAccessToken *oauth2.Token, pageAccessToken, pageID string) *router.HandlerError {
+	fbAPI := f.fbAuth.APIConnection(userAccessToken)
+	err := fbAPI.PostDelete(pageAccessToken, post.FBPostID)
 	if err != nil {
 		return router.NewHandlerError(err, "Failed to delete the current post from Facebook", http.StatusBadGateway)
 	}
@@ -171,9 +188,10 @@ func (f *facebookPost) deleteExistingPost(post *model.OfferGroupPost, user *mode
 	return nil
 }
 
-func (f *facebookPost) updateExistingPost(post *model.OfferGroupPost, offersForDate []*model.Offer, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
-	fbAPI := f.fbAuth.APIConnection(&user.Session.FacebookUserToken)
-	currentPost, err := fbAPI.Post(user.Session.FacebookPageToken, post.FBPostID)
+func (f *facebookPost) updateExistingPost(post *model.OfferGroupPost, offersForDate []*model.Offer, userAccessToken *oauth2.Token,
+	pageAccessToken, pageID string) *router.HandlerError {
+	fbAPI := f.fbAuth.APIConnection(userAccessToken)
+	currentPost, err := fbAPI.Post(pageAccessToken, post.FBPostID)
 	if err != nil {
 		return router.NewHandlerError(err, "Failed to retrieve the current post from FB", http.StatusBadGateway)
 	}
@@ -196,16 +214,16 @@ func (f *facebookPost) updateExistingPost(post *model.OfferGroupPost, offersForD
 				Photo: encodedCollage,
 			}
 
-			err := fbAPI.PostDelete(user.Session.FacebookPageToken, post.FBPostID)
+			err := fbAPI.PostDelete(pageAccessToken, post.FBPostID)
 			if err != nil {
 				return router.NewHandlerError(err, "Failed to delete the current post from Facebook", http.StatusBadGateway)
 			}
 
-			fbPhotoResponse, err := fbAPI.PagePhotoCreate(user.Session.FacebookPageToken, restaurant.FacebookPageID, &fbPhoto)
+			fbPhotoResponse, err := fbAPI.PagePhotoCreate(pageAccessToken, pageID, &fbPhoto)
 			if err != nil {
 				return router.NewHandlerError(err, "Failed to post the offers with a photo to Facebook", http.StatusBadGateway)
 			}
-			post.FBPostID = getPostIDFromPhotoResponse(fbPhotoResponse, restaurant.FacebookPageID)
+			post.FBPostID = getPostIDFromPhotoResponse(fbPhotoResponse, pageID)
 			post.PostedImageChecksum = collageChecksum
 
 			if err := f.groupPosts.UpdateByID(post.ID, post); err != nil {
@@ -218,11 +236,11 @@ func (f *facebookPost) updateExistingPost(post *model.OfferGroupPost, offersForD
 		if handlerErr != nil {
 			return handlerErr
 		}
-		err := fbAPI.PostDelete(user.Session.FacebookPageToken, post.FBPostID)
+		err := fbAPI.PostDelete(pageAccessToken, post.FBPostID)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to delete the current post from Facebook", http.StatusBadGateway)
 		}
-		fbPostResponse, err := fbAPI.PagePublish(user.Session.FacebookPageToken, restaurant.FacebookPageID, fbPost)
+		fbPostResponse, err := fbAPI.PagePublish(pageAccessToken, pageID, fbPost)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to post the offers to Facebook", http.StatusBadGateway)
 		}
@@ -239,7 +257,7 @@ func (f *facebookPost) updateExistingPost(post *model.OfferGroupPost, offersForD
 		return handlerErr
 	}
 
-	err = fbAPI.PostUpdate(user.Session.FacebookPageToken, post.FBPostID, fbPost)
+	err = fbAPI.PostUpdate(pageAccessToken, post.FBPostID, fbPost)
 	if err != nil {
 		return router.NewHandlerError(err, "Failed updating the offers in Facebook", http.StatusBadGateway)
 	}

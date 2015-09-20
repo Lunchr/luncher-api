@@ -1,7 +1,6 @@
 package handler_test
 
 import (
-	"errors"
 	"net/http"
 	"net/http/httptest"
 
@@ -60,7 +59,7 @@ type mockSessionManager struct {
 
 func (m mockSessionManager) Get(r *http.Request) (string, error) {
 	if !m.isSet {
-		return "", errors.New("no session")
+		return "", session.ErrNotFound
 	}
 	if m.id == "" {
 		return "session", nil

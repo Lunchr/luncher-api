@@ -32,27 +32,6 @@ func (_m *Restaurants) Insert(_a0 ...*model.Restaurant) ([]*model.Restaurant, er
 
 	return r0, r1
 }
-func (_m *Restaurants) Get() ([]*model.Restaurant, error) {
-	ret := _m.Called()
-
-	var r0 []*model.Restaurant
-	if rf, ok := ret.Get(0).(func() []*model.Restaurant); ok {
-		r0 = rf()
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*model.Restaurant)
-		}
-	}
-
-	var r1 error
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
 func (_m *Restaurants) GetAll() db.RestaurantIter {
 	ret := _m.Called()
 
@@ -64,6 +43,48 @@ func (_m *Restaurants) GetAll() db.RestaurantIter {
 	}
 
 	return r0
+}
+func (_m *Restaurants) GetByIDs(_a0 []bson.ObjectId) ([]*model.Restaurant, error) {
+	ret := _m.Called(_a0)
+
+	var r0 []*model.Restaurant
+	if rf, ok := ret.Get(0).(func([]bson.ObjectId) []*model.Restaurant); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Restaurant)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func([]bson.ObjectId) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+func (_m *Restaurants) GetByFacebookPageIDs(_a0 []string) ([]*model.Restaurant, error) {
+	ret := _m.Called(_a0)
+
+	var r0 []*model.Restaurant
+	if rf, ok := ret.Get(0).(func([]string) []*model.Restaurant); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*model.Restaurant)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func([]string) error); ok {
+		r1 = rf(_a0)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 func (_m *Restaurants) GetID(_a0 bson.ObjectId) (*model.Restaurant, error) {
 	ret := _m.Called(_a0)

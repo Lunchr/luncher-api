@@ -103,9 +103,12 @@ var _ = Describe("Post", func() {
 					Region:         regionName,
 				}
 				user = &model.User{
-					Session: &model.UserSession{
+					Session: model.UserSession{
 						FacebookUserToken: *facebookUserToken,
-						FacebookPageToken: facebookPageToken,
+						FacebookPageTokens: []model.FacebookPageToken{model.FacebookPageToken{
+							PageID: facebookPageID,
+							Token:  facebookPageToken,
+						}},
 					},
 				}
 				fbAPI = new(mocks.API)
