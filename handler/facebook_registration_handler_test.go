@@ -119,11 +119,24 @@ var _ = Describe("Facebook registration handler", func() {
 
 		Context("with user logged in", func() {
 			var (
-				api *mocks.API
+				api                *mocks.API
+				mockUsers          *mocks.Users
+				mockSessionManager *mocks.Manager
 			)
 			BeforeEach(func() {
-				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
-				usersCollection = mockUsers{}
+				mockUsers = new(mocks.Users)
+				usersCollection = mockUsers
+				mockSessionManager = new(mocks.Manager)
+				sessionManager = mockSessionManager
+
+				mockSessionManager.On("Get", mock.Anything).Return("session", nil)
+				mockUsers.On("GetSessionID", "session").Return(&model.User{
+					Session: model.UserSession{
+						FacebookPageTokens: []model.FacebookPageToken{model.FacebookPageToken{
+							PageID: "id3",
+						}},
+					},
+				}, nil)
 				api = new(mocks.API)
 				auther.On("APIConnection", mock.AnythingOfType("*oauth2.Token")).Return(api)
 				api.On("Accounts").Return(&fbModel.Accounts{
@@ -135,6 +148,10 @@ var _ = Describe("Facebook registration handler", func() {
 						fbModel.Page{
 							ID:   "id2",
 							Name: "name2",
+						},
+						fbModel.Page{
+							ID:   "id3",
+							Name: "an already registered page",
 						},
 					},
 				}, nil)
@@ -157,7 +174,7 @@ var _ = Describe("Facebook registration handler", func() {
 				Expect(contentTypes[0]).To(Equal("application/json"))
 			})
 
-			It("should respond with a list of pages returned from Facebook", func() {
+			It("should respond with a list of pages returned from Facebook excluding already registered pages", func() {
 				handler(responseRecorder, request)
 				var result []*FacebookPage
 				json.Unmarshal(responseRecorder.Body.Bytes(), &result)

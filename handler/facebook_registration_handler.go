@@ -80,9 +80,24 @@ func ListPagesManagedByUser(sessionManager session.Manager, auther facebook.Auth
 			return handlerErr
 		}
 		pages := mapFBPagesToModelPages(fbPages)
-		return writeJSON(w, pages)
+		var pagesNotAlreadyRegistered []FacebookPage
+		for _, page := range pages {
+			if !pageAlreadyRegistered(page.ID, user.Session.FacebookPageTokens) {
+				pagesNotAlreadyRegistered = append(pagesNotAlreadyRegistered, page)
+			}
+		}
+		return writeJSON(w, pagesNotAlreadyRegistered)
 	}
 	return checkLogin(sessionManager, usersCollection, handler)
+}
+
+func pageAlreadyRegistered(pageID string, accessTokensOfRegisteredPages []model.FacebookPageToken) bool {
+	for _, pageAccessToken := range accessTokensOfRegisteredPages {
+		if pageAccessToken.PageID == pageID {
+			return true
+		}
+	}
+	return false
 }
 
 // Page returns a handler that returns information about the specified page
