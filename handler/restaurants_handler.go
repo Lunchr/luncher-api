@@ -14,6 +14,7 @@ import (
 	"github.com/Lunchr/luncher-api/router"
 	"github.com/Lunchr/luncher-api/session"
 	"github.com/Lunchr/luncher-api/storage"
+	"github.com/deiwin/facebook"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -49,7 +50,7 @@ func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users
 
 // Restaurant returns a router.Handler that returns the restaurant information for the
 // restaurant linked to the currently logged in user
-func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.Users) router.Handler {
+func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.Users, fbAuth facebook.Authenticator) router.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
 		restaurant, err := parseRestaurant(r)
 		if err != nil {
@@ -70,6 +71,16 @@ func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.
 			if err != nil {
 				// TODO: revert the restaurant insertion we just did? Look into mgo's txn package
 				return router.NewHandlerError(err, "Failed to attach the restaurant to the user in the DB", http.StatusInternalServerError)
+			}
+		} else {
+			pageAccessToken, handlerErr := getPageAccessToken(&user.Session.FacebookUserToken, insertedRestaurant.FacebookPageID, fbAuth)
+			if handlerErr != nil {
+				return handlerErr
+			}
+			user.Session.FacebookPageTokens = append(user.Session.FacebookPageTokens, pageAccessToken)
+			err = users.Update(user.FacebookUserID, user)
+			if err != nil {
+				return router.NewHandlerError(err, "Failed to store the access token for this restaurant's page in the DB", http.StatusInternalServerError)
 			}
 		}
 		return writeJSON(w, insertedRestaurant)

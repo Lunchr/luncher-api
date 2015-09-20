@@ -72,7 +72,7 @@ func main() {
 	r.GET("/tags", handler.Tags(tagsCollection))
 	r.GET("/user/restaurants", handler.UserRestaurants(restaurantsCollection, sessionManager, usersCollection))
 	r.GETWithParams("/restaurants/:restaurantID", handler.Restaurant(restaurantsCollection, sessionManager, usersCollection))
-	r.POST("/restaurants", handler.PostRestaurants(restaurantsCollection, sessionManager, usersCollection))
+	r.POST("/restaurants", handler.PostRestaurants(restaurantsCollection, sessionManager, usersCollection, facebookLoginAuthenticator))
 	r.GETWithParams("/restaurants/:restaurantID/offers", handler.RestaurantOffers(restaurantsCollection, sessionManager, usersCollection,
 		offersCollection, imageStorage, regionsCollection))
 	r.GETWithParams("/restaurants/:restaurantID/posts/:date", handler.OfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection, restaurantsCollection))

@@ -113,10 +113,11 @@ var _ = Describe("RestaurantsHandlers", func() {
 			restaurantsCollection db.Restaurants
 			usersCollection       db.Users
 			handler               router.Handler
+			fbAuth                *mocks.Authenticator
 		)
 
 		JustBeforeEach(func() {
-			handler = PostRestaurants(restaurantsCollection, sessionManager, usersCollection)
+			handler = PostRestaurants(restaurantsCollection, sessionManager, usersCollection, fbAuth)
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
@@ -142,7 +143,15 @@ var _ = Describe("RestaurantsHandlers", func() {
 				restaurantsCollection = mockRestaurantsCollection
 				mockUsersCollection = new(mocks.Users)
 				usersCollection = mockUsersCollection
-				user = &model.User{}
+				fbAuth = new(mocks.Authenticator)
+
+				user = &model.User{
+					Session: model.UserSession{
+						FacebookUserToken: oauth2.Token{
+							AccessToken: "athing",
+						},
+					},
+				}
 				id = bson.NewObjectId()
 
 				mockSessionManager.On("Get", mock.Anything).Return("session", nil)
@@ -229,8 +238,8 @@ var _ = Describe("RestaurantsHandlers", func() {
 			})
 
 			Describe("the updated user", func() {
+				var updatedUser *model.User
 				Context("with restaurant not being attached to a FB page", func() {
-					var updatedUser *model.User
 					BeforeEach(func() {
 						mockRestaurantsCollection.On("Insert", mock.AnythingOfType("[]*model.Restaurant")).Return([]*model.Restaurant{
 							&model.Restaurant{
@@ -249,18 +258,30 @@ var _ = Describe("RestaurantsHandlers", func() {
 				})
 
 				Context("with restaurant being attached to a FB page", func() {
+					var (
+						facebookPageID  = "something"
+						pageAccessToken = "access token"
+					)
+
 					BeforeEach(func() {
 						mockRestaurantsCollection.On("Insert", mock.AnythingOfType("[]*model.Restaurant")).Return([]*model.Restaurant{
 							&model.Restaurant{
 								ID:             id,
-								FacebookPageID: "something",
+								FacebookPageID: facebookPageID,
 							},
 						}, nil)
+						mockUsersCollection.On("Update", mock.AnythingOfType("string"), mock.AnythingOfType("*model.User")).Return(nil).Run(func(args mock.Arguments) {
+							updatedUser = args.Get(1).(*model.User)
+						})
+						fbAuth.On("PageAccessToken", &user.Session.FacebookUserToken, facebookPageID).Return(pageAccessToken, nil)
 					})
 
-					It("should NOT update the user to include a reference to the restaurant", func() {
+					It("should update the user to add a page access token for the restaurant", func() {
 						err := handler(responseRecorder, request)
 						Expect(err).To(BeNil())
+						insertedToken := updatedUser.Session.FacebookPageTokens[0]
+						Expect(insertedToken.PageID).To(Equal(facebookPageID))
+						Expect(insertedToken.Token).To(Equal(pageAccessToken))
 					})
 				})
 			})

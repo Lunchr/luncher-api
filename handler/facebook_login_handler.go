@@ -75,18 +75,26 @@ func getPageAccessTokensForRestaurants(userAccessToken *oauth2.Token, restaurant
 	*router.HandlerError) {
 	pageAccessTokens := make([]model.FacebookPageToken, len(restaurants))
 	for i, restaurant := range restaurants {
-		pageAccessToken, err := fbAuth.PageAccessToken(userAccessToken, restaurant.FacebookPageID)
-		if err == facebook.ErrNoSuchPage {
-			return nil, router.NewHandlerError(err, "Access denied by Facebook to the managed page", http.StatusForbidden)
-		} else if err != nil {
-			return nil, router.NewHandlerError(err, "Failed to get access to the Facebook page", http.StatusInternalServerError)
+		pageAccessToken, handlerErr := getPageAccessToken(userAccessToken, restaurant.FacebookPageID, fbAuth)
+		if handlerErr != nil {
+			return nil, handlerErr
 		}
-		pageAccessTokens[i] = model.FacebookPageToken{
-			PageID: restaurant.FacebookPageID,
-			Token:  pageAccessToken,
-		}
+		pageAccessTokens[i] = pageAccessToken
 	}
 	return pageAccessTokens, nil
+}
+
+func getPageAccessToken(userAccessToken *oauth2.Token, pageID string, fbAuth facebook.Authenticator) (model.FacebookPageToken, *router.HandlerError) {
+	pageAccessToken, err := fbAuth.PageAccessToken(userAccessToken, pageID)
+	if err == facebook.ErrNoSuchPage {
+		return model.FacebookPageToken{}, router.NewHandlerError(err, "Access denied by Facebook to the managed page", http.StatusForbidden)
+	} else if err != nil {
+		return model.FacebookPageToken{}, router.NewHandlerError(err, "Failed to get access to the Facebook page", http.StatusInternalServerError)
+	}
+	return model.FacebookPageToken{
+		PageID: pageID,
+		Token:  pageAccessToken,
+	}, nil
 }
 
 func getRestaurantsManagedThroughFB(userAccessToken *oauth2.Token, restaurants db.Restaurants, fbAuth facebook.Authenticator) ([]*model.Restaurant, *router.HandlerError) {
