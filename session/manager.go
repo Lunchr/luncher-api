@@ -29,7 +29,9 @@ func NewManager() Manager {
 }
 
 func (m manager) Get(r *http.Request) (string, error) {
-	if cookie, err := r.Cookie(sessionCookieName); err != nil {
+	if cookie, err := r.Cookie(sessionCookieName); err == http.ErrNoCookie {
+		return "", ErrNotFound
+	} else if err != nil {
 		return "", err
 	} else if cookie.Value == "" {
 		return "", ErrNotFound
