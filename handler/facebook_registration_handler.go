@@ -23,18 +23,17 @@ func RedirectToFBForRegistration(sessionManager session.Manager, auther facebook
 	tokens db.RegistrationAccessTokens) router.Handler {
 	return func(w http.ResponseWriter, r *http.Request) *router.HandlerError {
 		tokenString := r.FormValue("token")
-		if tokenString == "" {
-			return router.NewSimpleHandlerError("Please provide an access token", http.StatusUnauthorized)
-		}
-		token, err := model.TokenFromString(tokenString)
-		if err != nil {
-			return router.NewHandlerError(err, "Failed to parse the token", http.StatusBadRequest)
-		}
-		tokenExists, err := tokens.Exists(token)
-		if err != nil {
-			return router.NewHandlerError(err, "Failed to check if token exists in DB", http.StatusBadRequest)
-		} else if !tokenExists {
-			return router.NewSimpleHandlerError("Invalid access token", http.StatusForbidden)
+		if tokenString != "" {
+			token, err := model.TokenFromString(tokenString)
+			if err != nil {
+				return router.NewHandlerError(err, "Failed to parse the token", http.StatusBadRequest)
+			}
+			tokenExists, err := tokens.Exists(token)
+			if err != nil {
+				return router.NewHandlerError(err, "Failed to check if token exists in DB", http.StatusBadRequest)
+			} else if !tokenExists {
+				return router.NewSimpleHandlerError("Invalid access token", http.StatusForbidden)
+			}
 		}
 		session := sessionManager.GetOrInit(w, r)
 		redirectURL := auther.AuthURL(session)

@@ -48,9 +48,14 @@ var _ = Describe("Facebook registration handler", func() {
 		})
 
 		Context("without an access token", func() {
-			It("fails with StatusUnauthorized", func() {
+			It("responds with the redirect URL", func() {
 				err := handler(responseRecorder, request)
-				Expect(err.Code).To(Equal(http.StatusUnauthorized))
+				Expect(err).NotTo(HaveOccurred())
+				contentTypes := responseRecorder.HeaderMap["Content-Type"]
+				Expect(contentTypes).To(HaveLen(1))
+				Expect(contentTypes[0]).To(Equal("text/plain"))
+				Expect(responseRecorder.Code).To(Equal(http.StatusOK))
+				Expect(responseRecorder.Body.String()).To(Equal(testURL))
 			})
 		})
 
