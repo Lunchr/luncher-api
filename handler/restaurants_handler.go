@@ -88,8 +88,9 @@ func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.
 	return checkLogin(sessionManager, users, handler)
 }
 
-// RestaurantOffers returns all upcoming offers for the restaurant linked to the
-// currently logged in user
+// RestaurantOffers returns all upcoming offers for the restaurant linked to the currently
+// logged in user unless the request includes a 'title' query parameter, in which the offer
+// with the specified title will be fetched instead.
 func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, offers db.Offers,
 	imageStorage storage.Images, regions db.Regions) router.HandlerWithParams {
 	getTodaysOffersForRestaurant := func(w http.ResponseWriter, restaurant *model.Restaurant) *router.HandlerError {
@@ -113,7 +114,25 @@ func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager
 		return writeJSON(w, offerJSONs)
 	}
 
+	getOfferByTitle := func(w http.ResponseWriter, restaurant *model.Restaurant, title string) *router.HandlerError {
+		offer, err := offers.GetForRestaurantByTitle(restaurant.ID, title)
+		if err == mgo.ErrNotFound {
+			return router.NewHandlerError(err, "Failed to find an offer with the specified title", http.StatusNotFound)
+		} else if err != nil {
+			return router.NewHandlerError(err, "Failed to find an offer with the specified title", http.StatusInternalServerError)
+		}
+		offerJSON, handlerErr := mapOfferToJSON(offer, imageStorage)
+		if handlerErr != nil {
+			return handlerErr
+		}
+		return writeJSON(w, offerJSON)
+	}
+
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
+		title := r.FormValue("title")
+		if title != "" {
+			return getOfferByTitle(w, restaurant, title)
+		}
 		return getTodaysOffersForRestaurant(w, restaurant)
 	}
 	return forRestaurant(sessionManager, users, restaurants, handler)
