@@ -519,7 +519,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 					mockOffersCollection = new(mocks.Offers)
 					offersCollection = mockOffersCollection
 					requestQuery = url.Values{
-						"title": {title},
+						"title": {url.QueryEscape(title)},
 					}
 				})
 

@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -114,7 +115,11 @@ func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager
 		return writeJSON(w, offerJSONs)
 	}
 
-	getOfferByTitle := func(w http.ResponseWriter, restaurant *model.Restaurant, title string) *router.HandlerError {
+	getOfferByTitle := func(w http.ResponseWriter, restaurant *model.Restaurant, escapedTitle string) *router.HandlerError {
+		title, err := url.QueryUnescape(escapedTitle)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to parse the specified title", http.StatusBadRequest)
+		}
 		offer, err := offers.GetForRestaurantByTitle(restaurant.ID, title)
 		if err == mgo.ErrNotFound {
 			return router.NewHandlerError(err, "Failed to find an offer with the specified title", http.StatusNotFound)
