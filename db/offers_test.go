@@ -432,6 +432,82 @@ var _ = Describe("Offers", func() {
 		})
 	})
 
+	Describe("GetSimilarForRestaurant", func() {
+		var (
+			partialTitle string
+			restaurantID bson.ObjectId
+		)
+
+		Context("with an existing restaurant", func() {
+			BeforeEach(func() {
+				restaurantID = mocks.restaurantID
+			})
+
+			Context("with no offers with similar title in DB", func() {
+				BeforeEach(func() {
+					partialTitle = "nothing to see here"
+				})
+
+				It("should return an empty list", func() {
+					offers, err := offersCollection.GetSimilarForRestaurant(restaurantID, partialTitle)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(offers).To(HaveLen(0))
+				})
+			})
+
+			Context("with an offer with a similar title in DB", func() {
+				BeforeEach(func() {
+					partialTitle = "Sweet"
+				})
+
+				It("should include the offer", func() {
+					offers, err := offersCollection.GetSimilarForRestaurant(restaurantID, partialTitle)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(offers).To(HaveLen(1))
+					Expect(offers).To(ContainOfferMock(0))
+				})
+			})
+
+			Context("with partial title being a catch-all regex", func() {
+				BeforeEach(func() {
+					partialTitle = ".*"
+				})
+
+				It("should return an empty list", func() {
+					offers, err := offersCollection.GetSimilarForRestaurant(restaurantID, partialTitle)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(offers).To(HaveLen(0))
+				})
+			})
+
+			Context("with an offer with a case-insensitive title match in the DB", func() {
+				BeforeEach(func() {
+					partialTitle = "sweet"
+				})
+
+				It("should include the offer", func() {
+					offers, err := offersCollection.GetSimilarForRestaurant(restaurantID, partialTitle)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(offers).To(HaveLen(1))
+					Expect(offers).To(ContainOfferMock(0))
+				})
+			})
+		})
+
+		Context("with a non-existing restaurant", func() {
+			BeforeEach(func() {
+				restaurantID = bson.ObjectId("somethingrnd")
+				partialTitle = "Sweet"
+			})
+
+			It("should return an empty list", func() {
+				offers, err := offersCollection.GetSimilarForRestaurant(restaurantID, partialTitle)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(offers).To(HaveLen(0))
+			})
+		})
+	})
+
 	Describe("GetForRestaurantWithinTimeBounds", func() {
 		var (
 			startTime      time.Time
