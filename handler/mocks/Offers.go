@@ -96,15 +96,15 @@ func (_m *Offers) GetForRestaurant(restaurantID bson.ObjectId, startTime time.Ti
 
 	return r0, r1
 }
-func (_m *Offers) GetSimilarForRestaurant(restaurantID bson.ObjectId, partialTitle string) ([]*model.Offer, error) {
+func (_m *Offers) GetSimilarTitlesForRestaurant(restaurantID bson.ObjectId, partialTitle string) ([]string, error) {
 	ret := _m.Called(restaurantID, partialTitle)
 
-	var r0 []*model.Offer
-	if rf, ok := ret.Get(0).(func(bson.ObjectId, string) []*model.Offer); ok {
+	var r0 []string
+	if rf, ok := ret.Get(0).(func(bson.ObjectId, string) []string); ok {
 		r0 = rf(restaurantID, partialTitle)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]*model.Offer)
+			r0 = ret.Get(0).([]string)
 		}
 	}
 

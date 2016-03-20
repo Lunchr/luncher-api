@@ -15,7 +15,7 @@ type Offers interface {
 	GetForRegion(region string, startTime, endTime time.Time) ([]*model.Offer, error)
 	GetNear(loc geo.Location, startTime, endTime time.Time) ([]*model.OfferWithDistance, error)
 	GetForRestaurant(restaurantID bson.ObjectId, startTime time.Time) ([]*model.Offer, error)
-	GetSimilarForRestaurant(restaurantID bson.ObjectId, partialTitle string) ([]*model.Offer, error)
+	GetSimilarTitlesForRestaurant(restaurantID bson.ObjectId, partialTitle string) ([]string, error)
 	GetForRestaurantWithinTimeBounds(restaurantID bson.ObjectId, startTime, endTime time.Time) ([]*model.Offer, error)
 	UpdateID(bson.ObjectId, *model.Offer) error
 	GetID(bson.ObjectId) (*model.Offer, error)
@@ -84,16 +84,16 @@ func (c offersCollection) GetForRestaurant(restaurantID bson.ObjectId, startTime
 	return offers, err
 }
 
-func (c offersCollection) GetSimilarForRestaurant(restaurantID bson.ObjectId, partialTitle string) ([]*model.Offer, error) {
-	var offers []*model.Offer
+func (c offersCollection) GetSimilarTitlesForRestaurant(restaurantID bson.ObjectId, partialTitle string) ([]string, error) {
+	var matchingTitles []string
 	err := c.Find(bson.M{
 		"title": bson.M{
 			"$regex":   regexp.QuoteMeta(partialTitle),
 			"$options": "i",
 		},
 		"restaurant.id": restaurantID,
-	}).All(&offers)
-	return offers, err
+	}).Distinct("title", &matchingTitles)
+	return matchingTitles, err
 }
 
 func (c offersCollection) GetForRestaurantWithinTimeBounds(restaurantID bson.ObjectId, startTime, endTime time.Time) ([]*model.Offer, error) {

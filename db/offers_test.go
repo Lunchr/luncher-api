@@ -432,15 +432,17 @@ var _ = Describe("Offers", func() {
 		})
 	})
 
-	Describe("GetSimilarForRestaurant", func() {
+	Describe("GetSimilarTitlesForRestaurant", func() {
 		var (
 			partialTitle string
+			mockTitle    string
 			restaurantID bson.ObjectId
 		)
 
 		Context("with an existing restaurant", func() {
 			BeforeEach(func() {
 				restaurantID = mocks.restaurantID
+				mockTitle = mocks.offers[0].Title
 			})
 
 			Context("with no offers with similar title in DB", func() {
@@ -449,9 +451,9 @@ var _ = Describe("Offers", func() {
 				})
 
 				It("should return an empty list", func() {
-					offers, err := offersCollection.GetSimilarForRestaurant(restaurantID, partialTitle)
+					matchingTitles, err := offersCollection.GetSimilarTitlesForRestaurant(restaurantID, partialTitle)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(offers).To(HaveLen(0))
+					Expect(matchingTitles).To(BeEmpty())
 				})
 			})
 
@@ -460,11 +462,11 @@ var _ = Describe("Offers", func() {
 					partialTitle = "Sweet"
 				})
 
-				It("should include the offer", func() {
-					offers, err := offersCollection.GetSimilarForRestaurant(restaurantID, partialTitle)
+				It("should return the offer title", func() {
+					matchingTitles, err := offersCollection.GetSimilarTitlesForRestaurant(restaurantID, partialTitle)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(offers).To(HaveLen(1))
-					Expect(offers).To(ContainOfferMock(0))
+					Expect(matchingTitles).To(HaveLen(1))
+					Expect(matchingTitles).To(ContainElement(mockTitle))
 				})
 			})
 
@@ -474,22 +476,46 @@ var _ = Describe("Offers", func() {
 				})
 
 				It("should return an empty list", func() {
-					offers, err := offersCollection.GetSimilarForRestaurant(restaurantID, partialTitle)
+					matchingTitles, err := offersCollection.GetSimilarTitlesForRestaurant(restaurantID, partialTitle)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(offers).To(HaveLen(0))
+					Expect(matchingTitles).To(BeEmpty())
 				})
 			})
 
-			Context("with an offer with a case-insensitive title match in the DB", func() {
+			Context("with an offer with a case-insensitive title match in DB", func() {
 				BeforeEach(func() {
 					partialTitle = "sweet"
 				})
 
-				It("should include the offer", func() {
-					offers, err := offersCollection.GetSimilarForRestaurant(restaurantID, partialTitle)
+				It("should return the offer title", func() {
+					matchingTitles, err := offersCollection.GetSimilarTitlesForRestaurant(restaurantID, partialTitle)
 					Expect(err).NotTo(HaveOccurred())
-					Expect(offers).To(HaveLen(1))
-					Expect(offers).To(ContainOfferMock(0))
+					Expect(matchingTitles).To(HaveLen(1))
+					Expect(matchingTitles).To(ContainElement(mockTitle))
+				})
+			})
+
+			Context("with 2 offers with identical matching titles in DB", func() {
+				RebuildDBAfterEach()
+
+				var offerWithIdenticalTitle = func() *model.Offer {
+					offer := anOffer()
+					offer.Restaurant.ID = restaurantID
+					offer.Title = mockTitle
+					return offer
+				}
+
+				BeforeEach(func() {
+					partialTitle = "Sweet"
+					_, err := offersCollection.Insert(offerWithIdenticalTitle())
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("should include the offer title only once", func() {
+					matchingTitles, err := offersCollection.GetSimilarTitlesForRestaurant(restaurantID, partialTitle)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(matchingTitles).To(HaveLen(1))
+					Expect(matchingTitles).To(ContainElement(mockTitle))
 				})
 			})
 		})
@@ -501,7 +527,7 @@ var _ = Describe("Offers", func() {
 			})
 
 			It("should return an empty list", func() {
-				offers, err := offersCollection.GetSimilarForRestaurant(restaurantID, partialTitle)
+				offers, err := offersCollection.GetSimilarTitlesForRestaurant(restaurantID, partialTitle)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(offers).To(HaveLen(0))
 			})
