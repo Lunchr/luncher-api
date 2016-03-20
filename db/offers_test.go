@@ -534,6 +534,54 @@ var _ = Describe("Offers", func() {
 		})
 	})
 
+	Describe("GetForRestaurantByTitle", func() {
+		var (
+			title        string
+			restaurantID bson.ObjectId
+		)
+
+		Context("with an existing restaurant", func() {
+			BeforeEach(func() {
+				restaurantID = mocks.restaurantID
+			})
+
+			Context("with a title not matching any offers in DB", func() {
+				BeforeEach(func() {
+					title = "blabla"
+				})
+
+				It("should return ErrNotFound", func() {
+					_, err := offersCollection.GetForRestaurantByTitle(restaurantID, title)
+					Expect(err).To(Equal(mgo.ErrNotFound))
+				})
+			})
+
+			Context("with a title matching an offer in DB", func() {
+				BeforeEach(func() {
+					title = mocks.offers[0].Title
+				})
+
+				It("should return the matching offer", func() {
+					offer, err := offersCollection.GetForRestaurantByTitle(restaurantID, title)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(offer.Title).To(Equal(title))
+				})
+			})
+		})
+
+		Context("with a non-existing restaurant", func() {
+			BeforeEach(func() {
+				restaurantID = bson.ObjectId("somethingrnd")
+				title = "Sweet & Sour Chicken"
+			})
+
+			It("should return ErrNotFound", func() {
+				_, err := offersCollection.GetForRestaurantByTitle(restaurantID, title)
+				Expect(err).To(Equal(mgo.ErrNotFound))
+			})
+		})
+	})
+
 	Describe("GetForRestaurantWithinTimeBounds", func() {
 		var (
 			startTime      time.Time
