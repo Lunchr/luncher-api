@@ -461,42 +461,44 @@ var _ = Describe("RestaurantsHandlers", func() {
 		})
 
 		Context("with user logged in", func() {
-			BeforeEach(func() {
-				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
-				mockUsersCollection = mockUsers{}
-				mockOffersCollection = mockOffers{}
-				mockRestaurantsCollection = &mockRestaurants{}
-				regionsCollection = new(mocks.Regions)
-				regionsCollection.On("GetName", "Tartu").Return(&model.Region{
-					Location: "Europe/Tallinn",
-				}, nil)
-				params = httprouter.Params{httprouter.Param{
-					Key:   "restaurantID",
-					Value: bson.ObjectId("12letrrestid").Hex(),
-				}}
-			})
+			Context("with title not specified", func() {
+				BeforeEach(func() {
+					sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
+					mockUsersCollection = mockUsers{}
+					mockOffersCollection = mockOffers{}
+					mockRestaurantsCollection = &mockRestaurants{}
+					regionsCollection = new(mocks.Regions)
+					regionsCollection.On("GetName", "Tartu").Return(&model.Region{
+						Location: "Europe/Tallinn",
+					}, nil)
+					params = httprouter.Params{httprouter.Param{
+						Key:   "restaurantID",
+						Value: bson.ObjectId("12letrrestid").Hex(),
+					}}
+				})
 
-			It("should succeed", func() {
-				err := handler(responseRecorder, request, params)
-				Expect(err).To(BeNil())
-			})
+				It("should succeed", func() {
+					err := handler(responseRecorder, request, params)
+					Expect(err).To(BeNil())
+				})
 
-			It("should return json", func() {
-				handler(responseRecorder, request, params)
-				contentTypes := responseRecorder.HeaderMap["Content-Type"]
-				Expect(contentTypes).To(HaveLen(1))
-				Expect(contentTypes[0]).To(Equal("application/json"))
-			})
+				It("should return json", func() {
+					handler(responseRecorder, request, params)
+					contentTypes := responseRecorder.HeaderMap["Content-Type"]
+					Expect(contentTypes).To(HaveLen(1))
+					Expect(contentTypes[0]).To(Equal("application/json"))
+				})
 
-			It("should include the offers in the response", func() {
-				handler(responseRecorder, request, params)
-				var result []*model.OfferJSON
-				json.Unmarshal(responseRecorder.Body.Bytes(), &result)
-				Expect(result).To(HaveLen(2))
-				Expect(result[0].Title).To(Equal("a"))
-				Expect(result[1].Title).To(Equal("b"))
-				Expect(result[0].Image.Large).To(Equal("images/a large image path"))
-				Expect(result[1].Image).To(BeNil())
+				It("should include the offers in the response", func() {
+					handler(responseRecorder, request, params)
+					var result []*model.OfferJSON
+					json.Unmarshal(responseRecorder.Body.Bytes(), &result)
+					Expect(result).To(HaveLen(2))
+					Expect(result[0].Title).To(Equal("a"))
+					Expect(result[1].Title).To(Equal("b"))
+					Expect(result[0].Image.Large).To(Equal("images/a large image path"))
+					Expect(result[1].Image).To(BeNil())
+				})
 			})
 		})
 	})

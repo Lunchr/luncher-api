@@ -92,7 +92,7 @@ func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.
 // currently logged in user
 func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, offers db.Offers,
 	imageStorage storage.Images, regions db.Regions) router.HandlerWithParams {
-	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
+	getTodaysOffersForRestaurant := func(w http.ResponseWriter, restaurant *model.Restaurant) *router.HandlerError {
 		region, err := regions.GetName(restaurant.Region)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to find the region for this restaurant", http.StatusInternalServerError)
@@ -111,6 +111,10 @@ func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager
 			return handlerErr
 		}
 		return writeJSON(w, offerJSONs)
+	}
+
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
+		return getTodaysOffersForRestaurant(w, restaurant)
 	}
 	return forRestaurant(sessionManager, users, restaurants, handler)
 }
