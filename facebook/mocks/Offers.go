@@ -96,6 +96,48 @@ func (_m *Offers) GetForRestaurant(restaurantID bson.ObjectId, startTime time.Ti
 
 	return r0, r1
 }
+func (_m *Offers) GetSimilarTitlesForRestaurant(restaurantID bson.ObjectId, partialTitle string) ([]string, error) {
+	ret := _m.Called(restaurantID, partialTitle)
+
+	var r0 []string
+	if rf, ok := ret.Get(0).(func(bson.ObjectId, string) []string); ok {
+		r0 = rf(restaurantID, partialTitle)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(bson.ObjectId, string) error); ok {
+		r1 = rf(restaurantID, partialTitle)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+func (_m *Offers) GetForRestaurantByTitle(restaurantID bson.ObjectId, title string) (*model.Offer, error) {
+	ret := _m.Called(restaurantID, title)
+
+	var r0 *model.Offer
+	if rf, ok := ret.Get(0).(func(bson.ObjectId, string) *model.Offer); ok {
+		r0 = rf(restaurantID, title)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Offer)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(bson.ObjectId, string) error); ok {
+		r1 = rf(restaurantID, title)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
 func (_m *Offers) GetForRestaurantWithinTimeBounds(restaurantID bson.ObjectId, startTime time.Time, endTime time.Time) ([]*model.Offer, error) {
 	ret := _m.Called(restaurantID, startTime, endTime)
 

@@ -1,6 +1,7 @@
 package db
 
 import (
+	"regexp"
 	"time"
 
 	"github.com/Lunchr/luncher-api/db/model"
@@ -14,6 +15,8 @@ type Offers interface {
 	GetForRegion(region string, startTime, endTime time.Time) ([]*model.Offer, error)
 	GetNear(loc geo.Location, startTime, endTime time.Time) ([]*model.OfferWithDistance, error)
 	GetForRestaurant(restaurantID bson.ObjectId, startTime time.Time) ([]*model.Offer, error)
+	GetSimilarTitlesForRestaurant(restaurantID bson.ObjectId, partialTitle string) ([]string, error)
+	GetForRestaurantByTitle(restaurantID bson.ObjectId, title string) (*model.Offer, error)
 	GetForRestaurantWithinTimeBounds(restaurantID bson.ObjectId, startTime, endTime time.Time) ([]*model.Offer, error)
 	UpdateID(bson.ObjectId, *model.Offer) error
 	GetID(bson.ObjectId) (*model.Offer, error)
@@ -80,6 +83,27 @@ func (c offersCollection) GetForRestaurant(restaurantID bson.ObjectId, startTime
 		"restaurant.id": restaurantID,
 	}).All(&offers)
 	return offers, err
+}
+
+func (c offersCollection) GetSimilarTitlesForRestaurant(restaurantID bson.ObjectId, partialTitle string) ([]string, error) {
+	var matchingTitles []string
+	err := c.Find(bson.M{
+		"title": bson.M{
+			"$regex":   regexp.QuoteMeta(partialTitle),
+			"$options": "i",
+		},
+		"restaurant.id": restaurantID,
+	}).Distinct("title", &matchingTitles)
+	return matchingTitles, err
+}
+
+func (c offersCollection) GetForRestaurantByTitle(restaurantID bson.ObjectId, title string) (*model.Offer, error) {
+	var offer model.Offer
+	err := c.Find(bson.M{
+		"title":         title,
+		"restaurant.id": restaurantID,
+	}).One(&offer)
+	return &offer, err
 }
 
 func (c offersCollection) GetForRestaurantWithinTimeBounds(restaurantID bson.ObjectId, startTime, endTime time.Time) ([]*model.Offer, error) {

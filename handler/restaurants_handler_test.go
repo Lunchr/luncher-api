@@ -2,11 +2,14 @@ package handler_test
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"net/url"
 	"time"
 
 	"golang.org/x/oauth2"
 
+	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 
 	"github.com/Lunchr/luncher-api/db"
@@ -432,7 +435,7 @@ var _ = Describe("RestaurantsHandlers", func() {
 			mockUsersCollection       db.Users
 			params                    httprouter.Params
 			handler                   router.HandlerWithParams
-			mockOffersCollection      db.Offers
+			offersCollection          db.Offers
 			imageStorage              *mocks.Images
 			regionsCollection         *mocks.Regions
 		)
@@ -449,7 +452,151 @@ var _ = Describe("RestaurantsHandlers", func() {
 
 		JustBeforeEach(func() {
 			handler = RestaurantOffers(mockRestaurantsCollection, sessionManager, mockUsersCollection,
-				mockOffersCollection, imageStorage, regionsCollection)
+				offersCollection, imageStorage, regionsCollection)
+		})
+
+		ExpectUserToBeLoggedIn(func() *router.HandlerError {
+			return handler(responseRecorder, request, nil)
+		}, func(mgr session.Manager, users db.Users) {
+			sessionManager = mgr
+			mockUsersCollection = users
+		})
+
+		Context("with user logged in", func() {
+			var restaurantID = bson.ObjectId("12letrrestid")
+
+			BeforeEach(func() {
+				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
+				mockUsersCollection = mockUsers{}
+				mockRestaurantsCollection = &mockRestaurants{}
+				regionsCollection = new(mocks.Regions)
+				regionsCollection.On("GetName", "Tartu").Return(&model.Region{
+					Location: "Europe/Tallinn",
+				}, nil)
+				params = httprouter.Params{httprouter.Param{
+					Key:   "restaurantID",
+					Value: restaurantID.Hex(),
+				}}
+			})
+
+			Context("with title not specified", func() {
+				BeforeEach(func() {
+					requestQuery = url.Values{}
+					offersCollection = mockOffers{}
+				})
+
+				It("should succeed", func() {
+					err := handler(responseRecorder, request, params)
+					Expect(err).To(BeNil())
+				})
+
+				It("should return json", func() {
+					handler(responseRecorder, request, params)
+					contentTypes := responseRecorder.HeaderMap["Content-Type"]
+					Expect(contentTypes).To(HaveLen(1))
+					Expect(contentTypes[0]).To(Equal("application/json"))
+				})
+
+				It("should include the offers in the response", func() {
+					handler(responseRecorder, request, params)
+					var result []*model.OfferJSON
+					json.Unmarshal(responseRecorder.Body.Bytes(), &result)
+					Expect(result).To(HaveLen(2))
+					Expect(result[0].Title).To(Equal("a"))
+					Expect(result[1].Title).To(Equal("b"))
+					Expect(result[0].Image.Large).To(Equal("images/a large image path"))
+					Expect(result[1].Image).To(BeNil())
+				})
+			})
+
+			Context("with title specified", func() {
+				var (
+					title                = "a title"
+					mockOffersCollection *mocks.Offers
+				)
+
+				BeforeEach(func() {
+					mockOffersCollection = new(mocks.Offers)
+					offersCollection = mockOffersCollection
+					requestQuery = url.Values{
+						"title": {url.QueryEscape(title)},
+					}
+				})
+
+				Context("with no matching offer found", func() {
+					BeforeEach(func() {
+						mockOffersCollection.On("GetForRestaurantByTitle", restaurantID, title).Return(nil, mgo.ErrNotFound)
+					})
+
+					It("should respond with StatusNotFound", func() {
+						err := handler(responseRecorder, request, params)
+						Expect(err.Code).To(Equal(http.StatusNotFound))
+					})
+				})
+
+				Context("with DB request failing", func() {
+					BeforeEach(func() {
+						mockOffersCollection.On("GetForRestaurantByTitle", restaurantID, title).Return(nil, errors.New("something went wrong"))
+					})
+
+					It("should respond with StatusInternalServerError", func() {
+						err := handler(responseRecorder, request, params)
+						Expect(err.Code).To(Equal(http.StatusInternalServerError))
+					})
+				})
+
+				Context("with DB returning an offer", func() {
+					BeforeEach(func() {
+						offer := &model.Offer{
+							CommonOfferFields: model.CommonOfferFields{
+								Title: title,
+							},
+							ImageChecksum: "image checksum",
+						}
+						mockOffersCollection.On("GetForRestaurantByTitle", restaurantID, title).Return(offer, nil)
+					})
+
+					It("should succeed", func() {
+						err := handler(responseRecorder, request, params)
+						Expect(err).To(BeNil())
+					})
+
+					It("should return json", func() {
+						handler(responseRecorder, request, params)
+						contentTypes := responseRecorder.HeaderMap["Content-Type"]
+						Expect(contentTypes).To(HaveLen(1))
+						Expect(contentTypes[0]).To(Equal("application/json"))
+					})
+
+					It("should respond with the offer", func() {
+						handler(responseRecorder, request, params)
+						var result *model.OfferJSON
+						json.Unmarshal(responseRecorder.Body.Bytes(), &result)
+						Expect(result.Title).To(Equal(title))
+						Expect(result.Image.Large).To(Equal("images/a large image path"))
+					})
+				})
+			})
+		})
+	})
+
+	Describe("GET /restaurants/:id/offer_suggestions", func() {
+		var (
+			sessionManager            session.Manager
+			mockRestaurantsCollection db.Restaurants
+			mockUsersCollection       db.Users
+			params                    httprouter.Params
+			handler                   router.HandlerWithParams
+			offersCollection          *mocks.Offers
+		)
+
+		BeforeEach(func() {
+			mockRestaurantsCollection = &mockRestaurants{}
+		})
+
+		JustBeforeEach(func() {
+			handler = RestaurantOfferSuggestions(mockRestaurantsCollection, sessionManager, mockUsersCollection,
+				offersCollection)
 		})
 
 		ExpectUserToBeLoggedIn(func() *router.HandlerError {
@@ -463,39 +610,87 @@ var _ = Describe("RestaurantsHandlers", func() {
 			BeforeEach(func() {
 				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
 				mockUsersCollection = mockUsers{}
-				mockOffersCollection = mockOffers{}
+				offersCollection = new(mocks.Offers)
 				mockRestaurantsCollection = &mockRestaurants{}
-				regionsCollection = new(mocks.Regions)
-				regionsCollection.On("GetName", "Tartu").Return(&model.Region{
-					Location: "Europe/Tallinn",
-				}, nil)
 				params = httprouter.Params{httprouter.Param{
 					Key:   "restaurantID",
 					Value: bson.ObjectId("12letrrestid").Hex(),
 				}}
 			})
 
-			It("should succeed", func() {
-				err := handler(responseRecorder, request, params)
-				Expect(err).To(BeNil())
+			Context("without the 'title' parameter", func() {
+				BeforeEach(func() {
+					requestQuery = url.Values{}
+					offersCollection.On("GetSimilarTitlesForRestaurant", bson.ObjectId("12letrrestid"), "rubbish").Return([]string{}, nil)
+				})
+
+				It("fails with StatusBadRequest", func() {
+					err := handler(responseRecorder, request, params)
+					Expect(err.Code).To(Equal(http.StatusBadRequest))
+				})
 			})
 
-			It("should return json", func() {
-				handler(responseRecorder, request, params)
-				contentTypes := responseRecorder.HeaderMap["Content-Type"]
-				Expect(contentTypes).To(HaveLen(1))
-				Expect(contentTypes[0]).To(Equal("application/json"))
+			Context("with title specified, but no matching results", func() {
+				BeforeEach(func() {
+					requestQuery = url.Values{
+						"title": {"rubbish"},
+					}
+					offersCollection.On("GetSimilarTitlesForRestaurant", bson.ObjectId("12letrrestid"), "rubbish").Return([]string{}, nil)
+				})
+
+				It("should succeed", func() {
+					err := handler(responseRecorder, request, params)
+					Expect(err).To(BeNil())
+				})
+
+				It("should return json", func() {
+					handler(responseRecorder, request, params)
+					contentTypes := responseRecorder.HeaderMap["Content-Type"]
+					Expect(contentTypes).To(HaveLen(1))
+					Expect(contentTypes[0]).To(Equal("application/json"))
+				})
+
+				It("should return an empty list", func() {
+					handler(responseRecorder, request, params)
+					var result []string
+					json.Unmarshal(responseRecorder.Body.Bytes(), &result)
+					Expect(result).To(BeEmpty())
+				})
 			})
 
-			It("should include the offers in the response", func() {
-				handler(responseRecorder, request, params)
-				var result []*model.OfferJSON
-				json.Unmarshal(responseRecorder.Body.Bytes(), &result)
-				Expect(result).To(HaveLen(2))
-				Expect(result[0].Title).To(Equal("a"))
-				Expect(result[1].Title).To(Equal("b"))
-				Expect(result[0].Image.Large).To(Equal("images/a large image path"))
-				Expect(result[1].Image).To(BeNil())
+			Context("with title specified and matching results", func() {
+				var (
+					title1 = "Sweet & Sour Chicken"
+					title2 = "Chicken Soup"
+				)
+				BeforeEach(func() {
+					requestQuery = url.Values{
+						"title": {"chicken"},
+					}
+					offersCollection.On("GetSimilarTitlesForRestaurant", bson.ObjectId("12letrrestid"),
+						"chicken").Return([]string{title1, title2}, nil)
+				})
+
+				It("should succeed", func() {
+					err := handler(responseRecorder, request, params)
+					Expect(err).To(BeNil())
+				})
+
+				It("should return json", func() {
+					handler(responseRecorder, request, params)
+					contentTypes := responseRecorder.HeaderMap["Content-Type"]
+					Expect(contentTypes).To(HaveLen(1))
+					Expect(contentTypes[0]).To(Equal("application/json"))
+				})
+
+				It("should return the list of matching offer titles", func() {
+					handler(responseRecorder, request, params)
+					var result []string
+					json.Unmarshal(responseRecorder.Body.Bytes(), &result)
+					Expect(result).To(HaveLen(2))
+					Expect(result[0]).To(Equal(title1))
+					Expect(result[1]).To(Equal(title2))
+				})
 			})
 		})
 	})

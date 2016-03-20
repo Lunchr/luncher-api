@@ -432,6 +432,156 @@ var _ = Describe("Offers", func() {
 		})
 	})
 
+	Describe("GetSimilarTitlesForRestaurant", func() {
+		var (
+			partialTitle string
+			mockTitle    string
+			restaurantID bson.ObjectId
+		)
+
+		Context("with an existing restaurant", func() {
+			BeforeEach(func() {
+				restaurantID = mocks.restaurantID
+				mockTitle = mocks.offers[0].Title
+			})
+
+			Context("with no offers with similar title in DB", func() {
+				BeforeEach(func() {
+					partialTitle = "nothing to see here"
+				})
+
+				It("should return an empty list", func() {
+					matchingTitles, err := offersCollection.GetSimilarTitlesForRestaurant(restaurantID, partialTitle)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(matchingTitles).To(BeEmpty())
+				})
+			})
+
+			Context("with an offer with a similar title in DB", func() {
+				BeforeEach(func() {
+					partialTitle = "Sweet"
+				})
+
+				It("should return the offer title", func() {
+					matchingTitles, err := offersCollection.GetSimilarTitlesForRestaurant(restaurantID, partialTitle)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(matchingTitles).To(HaveLen(1))
+					Expect(matchingTitles).To(ContainElement(mockTitle))
+				})
+			})
+
+			Context("with partial title being a catch-all regex", func() {
+				BeforeEach(func() {
+					partialTitle = ".*"
+				})
+
+				It("should return an empty list", func() {
+					matchingTitles, err := offersCollection.GetSimilarTitlesForRestaurant(restaurantID, partialTitle)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(matchingTitles).To(BeEmpty())
+				})
+			})
+
+			Context("with an offer with a case-insensitive title match in DB", func() {
+				BeforeEach(func() {
+					partialTitle = "sweet"
+				})
+
+				It("should return the offer title", func() {
+					matchingTitles, err := offersCollection.GetSimilarTitlesForRestaurant(restaurantID, partialTitle)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(matchingTitles).To(HaveLen(1))
+					Expect(matchingTitles).To(ContainElement(mockTitle))
+				})
+			})
+
+			Context("with 2 offers with identical matching titles in DB", func() {
+				RebuildDBAfterEach()
+
+				var offerWithIdenticalTitle = func() *model.Offer {
+					offer := anOffer()
+					offer.Restaurant.ID = restaurantID
+					offer.Title = mockTitle
+					return offer
+				}
+
+				BeforeEach(func() {
+					partialTitle = "Sweet"
+					_, err := offersCollection.Insert(offerWithIdenticalTitle())
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("should include the offer title only once", func() {
+					matchingTitles, err := offersCollection.GetSimilarTitlesForRestaurant(restaurantID, partialTitle)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(matchingTitles).To(HaveLen(1))
+					Expect(matchingTitles).To(ContainElement(mockTitle))
+				})
+			})
+		})
+
+		Context("with a non-existing restaurant", func() {
+			BeforeEach(func() {
+				restaurantID = bson.ObjectId("somethingrnd")
+				partialTitle = "Sweet"
+			})
+
+			It("should return an empty list", func() {
+				offers, err := offersCollection.GetSimilarTitlesForRestaurant(restaurantID, partialTitle)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(offers).To(HaveLen(0))
+			})
+		})
+	})
+
+	Describe("GetForRestaurantByTitle", func() {
+		var (
+			title        string
+			restaurantID bson.ObjectId
+		)
+
+		Context("with an existing restaurant", func() {
+			BeforeEach(func() {
+				restaurantID = mocks.restaurantID
+			})
+
+			Context("with a title not matching any offers in DB", func() {
+				BeforeEach(func() {
+					title = "blabla"
+				})
+
+				It("should return ErrNotFound", func() {
+					_, err := offersCollection.GetForRestaurantByTitle(restaurantID, title)
+					Expect(err).To(Equal(mgo.ErrNotFound))
+				})
+			})
+
+			Context("with a title matching an offer in DB", func() {
+				BeforeEach(func() {
+					title = mocks.offers[0].Title
+				})
+
+				It("should return the matching offer", func() {
+					offer, err := offersCollection.GetForRestaurantByTitle(restaurantID, title)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(offer.Title).To(Equal(title))
+				})
+			})
+		})
+
+		Context("with a non-existing restaurant", func() {
+			BeforeEach(func() {
+				restaurantID = bson.ObjectId("somethingrnd")
+				title = "Sweet & Sour Chicken"
+			})
+
+			It("should return ErrNotFound", func() {
+				_, err := offersCollection.GetForRestaurantByTitle(restaurantID, title)
+				Expect(err).To(Equal(mgo.ErrNotFound))
+			})
+		})
+	})
+
 	Describe("GetForRestaurantWithinTimeBounds", func() {
 		var (
 			startTime      time.Time

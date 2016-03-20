@@ -75,6 +75,8 @@ func main() {
 	r.POST("/restaurants", handler.PostRestaurants(restaurantsCollection, sessionManager, usersCollection, facebookLoginAuthenticator))
 	r.GETWithParams("/restaurants/:restaurantID/offers", handler.RestaurantOffers(restaurantsCollection, sessionManager, usersCollection,
 		offersCollection, imageStorage, regionsCollection))
+	r.GETWithParams("/restaurants/:restaurantID/offer_suggestions", handler.RestaurantOfferSuggestions(restaurantsCollection, sessionManager, usersCollection,
+		offersCollection))
 	r.GETWithParams("/restaurants/:restaurantID/posts/:date", handler.OfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection, restaurantsCollection))
 	r.POSTWithParams("/restaurants/:restaurantID/posts", handler.PostOfferGroupPost(offerGroupPostsCollection, sessionManager, usersCollection,
 		restaurantsCollection, facebookPost))

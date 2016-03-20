@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -48,8 +49,7 @@ func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users
 	return forRestaurant(sessionManager, users, c, handler)
 }
 
-// Restaurant returns a router.Handler that returns the restaurant information for the
-// restaurant linked to the currently logged in user
+// PostRestaurants returns an handler for creating a restaurant
 func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.Users, fbAuth facebook.Authenticator) router.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
 		restaurant, err := parseRestaurant(r)
@@ -88,11 +88,12 @@ func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.
 	return checkLogin(sessionManager, users, handler)
 }
 
-// RestaurantOffers returns all upcoming offers for the restaurant linked to the
-// currently logged in user
+// RestaurantOffers returns all upcoming offers for the restaurant linked to the currently
+// logged in user unless the request includes a 'title' query parameter, in which the offer
+// with the specified title will be fetched instead.
 func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager, users db.Users, offers db.Offers,
 	imageStorage storage.Images, regions db.Regions) router.HandlerWithParams {
-	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
+	getTodaysOffersForRestaurant := func(w http.ResponseWriter, restaurant *model.Restaurant) *router.HandlerError {
 		region, err := regions.GetName(restaurant.Region)
 		if err != nil {
 			return router.NewHandlerError(err, "Failed to find the region for this restaurant", http.StatusInternalServerError)
@@ -111,6 +112,50 @@ func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager
 			return handlerErr
 		}
 		return writeJSON(w, offerJSONs)
+	}
+
+	getOfferByTitle := func(w http.ResponseWriter, restaurant *model.Restaurant, escapedTitle string) *router.HandlerError {
+		title, err := url.QueryUnescape(escapedTitle)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to parse the specified title", http.StatusBadRequest)
+		}
+		offer, err := offers.GetForRestaurantByTitle(restaurant.ID, title)
+		if err == mgo.ErrNotFound {
+			return router.NewHandlerError(err, "Failed to find an offer with the specified title", http.StatusNotFound)
+		} else if err != nil {
+			return router.NewHandlerError(err, "Failed to find an offer with the specified title", http.StatusInternalServerError)
+		}
+		offerJSON, handlerErr := mapOfferToJSON(offer, imageStorage)
+		if handlerErr != nil {
+			return handlerErr
+		}
+		return writeJSON(w, offerJSON)
+	}
+
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
+		title := r.FormValue("title")
+		if title != "" {
+			return getOfferByTitle(w, restaurant, title)
+		}
+		return getTodaysOffersForRestaurant(w, restaurant)
+	}
+	return forRestaurant(sessionManager, users, restaurants, handler)
+}
+
+// RestaurantOfferSuggestions handles GET requests to /restaurants/:id/offer_suggestions and expects a 'title' query
+// parameter. It returns a list of previously used offer titles matching the one provided.
+func RestaurantOfferSuggestions(restaurants db.Restaurants, sessionManager session.Manager, users db.Users,
+	offers db.Offers) router.HandlerWithParams {
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
+		partialTitle := r.FormValue("title")
+		if partialTitle == "" {
+			return router.NewStringHandlerError("Title not specified!", "Please specify a title", http.StatusBadRequest)
+		}
+		matchingTitles, err := offers.GetSimilarTitlesForRestaurant(restaurant.ID, partialTitle)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to find matching offers", http.StatusInternalServerError)
+		}
+		return writeJSON(w, matchingTitles)
 	}
 	return forRestaurant(sessionManager, users, restaurants, handler)
 }
