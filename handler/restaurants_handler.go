@@ -49,8 +49,7 @@ func Restaurant(c db.Restaurants, sessionManager session.Manager, users db.Users
 	return forRestaurant(sessionManager, users, c, handler)
 }
 
-// Restaurant returns a router.Handler that returns the restaurant information for the
-// restaurant linked to the currently logged in user
+// PostRestaurants returns an handler for creating a restaurant
 func PostRestaurants(c db.Restaurants, sessionManager session.Manager, users db.Users, fbAuth facebook.Authenticator) router.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User) *router.HandlerError {
 		restaurant, err := parseRestaurant(r)
