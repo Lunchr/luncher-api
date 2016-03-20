@@ -3,6 +3,7 @@ package handler_test
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -496,6 +497,116 @@ var _ = Describe("RestaurantsHandlers", func() {
 				Expect(result[1].Title).To(Equal("b"))
 				Expect(result[0].Image.Large).To(Equal("images/a large image path"))
 				Expect(result[1].Image).To(BeNil())
+			})
+		})
+	})
+
+	Describe("GET /restaurants/:id/offer_suggestions", func() {
+		var (
+			sessionManager            session.Manager
+			mockRestaurantsCollection db.Restaurants
+			mockUsersCollection       db.Users
+			params                    httprouter.Params
+			handler                   router.HandlerWithParams
+			offersCollection          *mocks.Offers
+		)
+
+		BeforeEach(func() {
+			mockRestaurantsCollection = &mockRestaurants{}
+		})
+
+		JustBeforeEach(func() {
+			handler = RestaurantOfferSuggestions(mockRestaurantsCollection, sessionManager, mockUsersCollection,
+				offersCollection)
+		})
+
+		ExpectUserToBeLoggedIn(func() *router.HandlerError {
+			return handler(responseRecorder, request, nil)
+		}, func(mgr session.Manager, users db.Users) {
+			sessionManager = mgr
+			mockUsersCollection = users
+		})
+
+		Context("with user logged in", func() {
+			BeforeEach(func() {
+				sessionManager = &mockSessionManager{isSet: true, id: "correctSession"}
+				mockUsersCollection = mockUsers{}
+				offersCollection = new(mocks.Offers)
+				mockRestaurantsCollection = &mockRestaurants{}
+				params = httprouter.Params{httprouter.Param{
+					Key:   "restaurantID",
+					Value: bson.ObjectId("12letrrestid").Hex(),
+				}}
+			})
+
+			Context("without the 'title' parameter", func() {
+				It("fails with StatusBadRequest", func() {
+					err := handler(responseRecorder, request, params)
+					Expect(err.Code).To(Equal(http.StatusBadRequest))
+				})
+			})
+
+			Context("with title specified, but no matching results", func() {
+				BeforeEach(func() {
+					requestQuery = url.Values{
+						"title": {"rubbish"},
+					}
+					offersCollection.On("GetSimilarTitlesForRestaurant", bson.ObjectId("12letrrestid"), "rubbish").Return([]string{}, nil)
+				})
+
+				It("should succeed", func() {
+					err := handler(responseRecorder, request, params)
+					Expect(err).To(BeNil())
+				})
+
+				It("should return json", func() {
+					handler(responseRecorder, request, params)
+					contentTypes := responseRecorder.HeaderMap["Content-Type"]
+					Expect(contentTypes).To(HaveLen(1))
+					Expect(contentTypes[0]).To(Equal("application/json"))
+				})
+
+				It("should return an empty list", func() {
+					handler(responseRecorder, request, params)
+					var result []string
+					json.Unmarshal(responseRecorder.Body.Bytes(), &result)
+					Expect(result).To(BeEmpty())
+				})
+			})
+
+			Context("with title specified and matching results", func() {
+				var (
+					title1 = "Sweet & Sour Chicken"
+					title2 = "Chicken Soup"
+				)
+				BeforeEach(func() {
+					requestQuery = url.Values{
+						"title": {"chicken"},
+					}
+					offersCollection.On("GetSimilarTitlesForRestaurant", bson.ObjectId("12letrrestid"),
+						"chicken").Return([]string{title1, title2}, nil)
+				})
+
+				It("should succeed", func() {
+					err := handler(responseRecorder, request, params)
+					Expect(err).To(BeNil())
+				})
+
+				It("should return json", func() {
+					handler(responseRecorder, request, params)
+					contentTypes := responseRecorder.HeaderMap["Content-Type"]
+					Expect(contentTypes).To(HaveLen(1))
+					Expect(contentTypes[0]).To(Equal("application/json"))
+				})
+
+				It("should return the list of matching offer titles", func() {
+					handler(responseRecorder, request, params)
+					var result []string
+					json.Unmarshal(responseRecorder.Body.Bytes(), &result)
+					Expect(result).To(HaveLen(2))
+					Expect(result[0]).To(Equal(title1))
+					Expect(result[1]).To(Equal(title2))
+				})
 			})
 		})
 	})

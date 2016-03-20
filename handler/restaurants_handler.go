@@ -115,6 +115,24 @@ func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager
 	return forRestaurant(sessionManager, users, restaurants, handler)
 }
 
+// RestaurantOfferSuggestions handles GET requests to /restaurants/:id/offer_suggestions and expects a 'title' query
+// parameter. It returns a list of previously used offer titles matching the one provided.
+func RestaurantOfferSuggestions(restaurants db.Restaurants, sessionManager session.Manager, users db.Users,
+	offers db.Offers) router.HandlerWithParams {
+	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
+		partialTitle := r.FormValue("title")
+		if partialTitle == "" {
+			return router.NewStringHandlerError("Title not specified!", "Please specify a title", http.StatusBadRequest)
+		}
+		matchingTitles, err := offers.GetSimilarTitlesForRestaurant(restaurant.ID, partialTitle)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to find matching offers", http.StatusInternalServerError)
+		}
+		return writeJSON(w, matchingTitles)
+	}
+	return forRestaurant(sessionManager, users, restaurants, handler)
+}
+
 type HandlerWithRestaurant func(w http.ResponseWriter, r *http.Request, user *model.User,
 	restaurant *model.Restaurant) *router.HandlerError
 
