@@ -147,7 +147,11 @@ func RestaurantOffers(restaurants db.Restaurants, sessionManager session.Manager
 func RestaurantOfferSuggestions(restaurants db.Restaurants, sessionManager session.Manager, users db.Users,
 	offers db.Offers) router.HandlerWithParams {
 	handler := func(w http.ResponseWriter, r *http.Request, user *model.User, restaurant *model.Restaurant) *router.HandlerError {
-		partialTitle := r.FormValue("title")
+		escapedPartialTitle := r.FormValue("title")
+		partialTitle, err := url.QueryUnescape(escapedPartialTitle)
+		if err != nil {
+			return router.NewHandlerError(err, "Failed to parse the specified title", http.StatusBadRequest)
+		}
 		if partialTitle == "" {
 			return router.NewStringHandlerError("Title not specified!", "Please specify a title", http.StatusBadRequest)
 		}

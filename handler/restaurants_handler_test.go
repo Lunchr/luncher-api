@@ -660,15 +660,16 @@ var _ = Describe("RestaurantsHandlers", func() {
 
 			Context("with title specified and matching results", func() {
 				var (
-					title1 = "Sweet & Sour Chicken"
-					title2 = "Chicken Soup"
+					partialTitle = "sour chicken"
+					title1       = "Sweet & Sour Chicken"
+					title2       = "Sour Chicken Soup"
 				)
 				BeforeEach(func() {
 					requestQuery = url.Values{
-						"title": {"chicken"},
+						"title": {url.QueryEscape(partialTitle)},
 					}
 					offersCollection.On("GetSimilarTitlesForRestaurant", bson.ObjectId("12letrrestid"),
-						"chicken").Return([]string{title1, title2}, nil)
+						partialTitle).Return([]string{title1, title2}, nil)
 				})
 
 				It("should succeed", func() {
