@@ -15,7 +15,7 @@ type (
 		Title       string          `json:"title"                bson:"title"`
 		FromTime    time.Time       `json:"from_time"            bson:"from_time"`
 		ToTime      time.Time       `json:"to_time"              bson:"to_time"`
-		Ingredients []string        `json:"ingredients"          bson:"ingredients"`
+		Description string          `json:"description"          bson:"description"`
 		Price       float64         `json:"price"                bson:"price"`
 		Tags        []string        `json:"tags"                 bson:"tags"`
 	}

@@ -102,7 +102,7 @@ var _ = Describe("OffersHandler", func() {
 				requestMethod = "POST"
 				requestData = map[string]interface{}{
 					"title":       "thetitle",
-					"ingredients": []string{"ingredient1", "ingredient2", "ingredient3"},
+					"description": "a short description",
 					"tags":        []string{"tag1", "tag2"},
 					"price":       123.58,
 					"from_time":   "2014-11-11T09:00:00.000Z",
@@ -247,7 +247,7 @@ var _ = Describe("OffersHandler", func() {
 				requestMethod = "PUT"
 				requestData = map[string]interface{}{
 					"title":       "thetitle",
-					"ingredients": []string{"ingredient1", "ingredient2", "ingredient3"},
+					"description": "a short description",
 					"tags":        []string{"tag1", "tag2"},
 					"price":       123.58,
 					"from_time":   "2014-11-11T09:00:00.000Z",
@@ -284,7 +284,7 @@ var _ = Describe("OffersHandler", func() {
 				requestMethod = "PUT"
 				requestData = map[string]interface{}{
 					"title":       "thetitle",
-					"ingredients": []string{"ingredient1", "ingredient2", "ingredient3"},
+					"description": "a short description",
 					"tags":        []string{"tag1", "tag2"},
 					"price":       123.58,
 					"from_time":   "2014-11-11T09:00:00.000Z",
@@ -370,7 +370,7 @@ var _ = Describe("OffersHandler", func() {
 					BeforeEach(func() {
 						requestData = map[string]interface{}{
 							"title":       "thetitle",
-							"ingredients": []string{"ingredient1", "ingredient2", "ingredient3"},
+							"description": "a short description",
 							"tags":        []string{"tag1", "tag2"},
 							"price":       123.58,
 							"from_time":   "2014-11-15T09:00:00.000Z",
@@ -529,10 +529,7 @@ func (m mockOffers) Insert(offers ...*model.Offer) ([]*model.Offer, error) {
 	Expect(offers).To(HaveLen(1))
 	offer := offers[0]
 	Expect(offer.Title).To(Equal("thetitle"))
-	Expect(offer.Ingredients).To(HaveLen(3))
-	Expect(offer.Ingredients).To(ContainElement("ingredient1"))
-	Expect(offer.Ingredients).To(ContainElement("ingredient2"))
-	Expect(offer.Ingredients).To(ContainElement("ingredient3"))
+	Expect(offer.Description).To(Equal("a short description"))
 	Expect(offer.Tags).To(HaveLen(2))
 	Expect(offer.Tags).To(ContainElement("tag1"))
 	Expect(offer.Tags).To(ContainElement("tag2"))
@@ -554,10 +551,7 @@ func (m mockOffers) Insert(offers ...*model.Offer) ([]*model.Offer, error) {
 
 func (m mockOffers) UpdateID(id bson.ObjectId, offer *model.Offer) error {
 	Expect(offer.Title).To(Equal("thetitle"))
-	Expect(offer.Ingredients).To(HaveLen(3))
-	Expect(offer.Ingredients).To(ContainElement("ingredient1"))
-	Expect(offer.Ingredients).To(ContainElement("ingredient2"))
-	Expect(offer.Ingredients).To(ContainElement("ingredient3"))
+	Expect(offer.Description).To(Equal("a short description"))
 	Expect(offer.Tags).To(HaveLen(2))
 	Expect(offer.Tags).To(ContainElement("tag1"))
 	Expect(offer.Tags).To(ContainElement("tag2"))
